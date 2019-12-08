@@ -17,6 +17,40 @@ using state = general_vect<real, STATE_SIZE>;
 
 class primitive_state;
 
+
+class flux_state : public state{
+	static constexpr int mas_i = 0;
+	static constexpr int ene_i = 1;
+	static constexpr int mom_i = 2;
+public:
+	inline real& mass() {
+		return (*this)[mas_i];
+	}
+	inline real& energy() {
+		return (*this)[ene_i];
+	}
+	inline real mass() const {
+		return (*this)[mas_i];
+	}
+	inline real energy() const {
+		return (*this)[ene_i];
+	}
+	inline vect& momentum() {
+		auto *ptr = reinterpret_cast<vect*>(&((*this)[mom_i]));
+		return *ptr;
+	}
+	inline vect momentum() const {
+		vect v;
+		for (int dim = 0; dim < NDIM; dim++) {
+			v[dim] = (*this)[mom_i + dim];
+		}
+		return v;
+	}
+	flux_state boost_from(const vect& v) const;
+	flux_state rotate_from(const vect& norm) const;
+};
+
+
 class conserved_state: public state {
 	static constexpr int d_i = 0;
 	static constexpr int e_i = 1;
@@ -46,6 +80,9 @@ public:
 		return v;
 	}
 	primitive_state to_prim() const;
+	flux_state to_flux() const;
+	conserved_state boost_to(const vect& v) const;
+	conserved_state rotate_to(const vect& norm) const;
 };
 
 class primitive_state: public state {
@@ -78,5 +115,8 @@ public:
 	}
 	conserved_state to_con() const;
 };
+
+flux_state riemann_solver(const conserved_state& UL, const conserved_state& UR);
+
 
 #endif /* SRC_STATE_HPP_ */

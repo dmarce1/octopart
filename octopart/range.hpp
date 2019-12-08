@@ -11,13 +11,26 @@
 #include "vect.hpp"
 #include <limits>
 
-using range = std::pair<vect,vect>;
+struct range {
+	vect min;
+	vect max;
+	template<class Arc>
+	void serialize(Arc& arc,unsigned) {
+		arc & min;
+		arc & max;
+	}
+};
+
 
 bool in_range(const vect&, const range&);
 bool in_range(const range&, const range&);
 bool ranges_intersect(const range&, const range&);
+range range_around(const vect&, real);
+range expand_range(const range&, real);
 real range_volume(const range&);
 range null_range();
+bool operator==(const range&, const range&);
+bool operator!=(const range&, const range&);
 
 #endif /* MATH_HPP_ */
 

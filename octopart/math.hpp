@@ -17,6 +17,27 @@ real dW_dh(real, real);
 real W_norm(real h);
 real dW_norm_dh(real);
 bool matrix_inverse(const std::array<vect, NDIM>&, std::array<vect, NDIM> &A);
+vect rotate_to(const vect &u, const vect &n);
+vect rotate_from(const vect &u, vect n);
+#if(NDIM==3)
+vect cross( const vect& a, const vect& b);
+real triple_product(const vect &a, const vect &b, const vect &c);
+#endif
+
+#if(NDIM==3)
+inline vect cross( const vect& a, const vect& b) {
+	vect c;
+	c[0] = +a[1] * b[2] - a[2] * b[1];
+	c[1] = -a[0] * b[2] + a[2] * b[0];
+	c[2] = +a[2] * b[1] - a[1] * b[2];
+	return c;
+}
+
+inline real triple_product(const vect &a, const vect &b, const vect &c) {
+	return a.dot(cross(b, c));
+}
+#endif
+
 
 inline real W(real r, real h) {
 	auto norm = W_norm(h);

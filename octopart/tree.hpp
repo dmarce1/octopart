@@ -33,31 +33,33 @@ class tree: public hpx::components::managed_component_base<tree> {
 	hpx::id_type parent;
 	hpx::id_type self;
 	range box;
+	range reach;
 	bool leaf;
 
 public:
 	tree(std::vector<particle>&&, const range&);
-	real first_sweep();
-	std::vector<std::shared_ptr<particle>> particle_search(const range&, const hpx::id_type&, const hpx::id_type&);
-	std::vector<std::shared_ptr<particle>> particle_gather(const range&, const hpx::id_type&);
-	void write_checkpoint(const std::string&);
-	void form_tree(const hpx::id_type&, const hpx::id_type&);
-	void set_self(const hpx::id_type&);
 
-	HPX_DEFINE_COMPONENT_ACTION(tree,write_checkpoint,write_checkpoint_action);
-	HPX_DEFINE_COMPONENT_ACTION(tree,first_sweep,first_sweep_action);
+	range find_smoothing_lengths();
+	void form_tree(const hpx::id_type&, const hpx::id_type&);
+	std::vector<std::shared_ptr<particle>> particle_gather(const range&, const range&, const hpx::id_type&);
+	std::vector<std::shared_ptr<particle>> particle_search(const range&, const range&, const hpx::id_type&, const hpx::id_type&);
+	void set_self(const hpx::id_type&);
+	void write_checkpoint(const std::string&);
+
+	HPX_DEFINE_COMPONENT_ACTION(tree,find_smoothing_lengths,find_smoothing_lengths_action);
+	HPX_DEFINE_COMPONENT_ACTION(tree,form_tree,form_tree_action);
 	HPX_DEFINE_COMPONENT_ACTION(tree,particle_search,particle_search_action);
 	HPX_DEFINE_COMPONENT_ACTION(tree,particle_gather,particle_gather_action);
-	HPX_DEFINE_COMPONENT_ACTION(tree,form_tree,form_tree_action);
 	HPX_DEFINE_COMPONENT_ACTION(tree,set_self,set_self_action);
+	HPX_DEFINE_COMPONENT_ACTION(tree,write_checkpoint,write_checkpoint_action);
 
 };
 
-HPX_REGISTER_ACTION_DECLARATION(tree::write_checkpoint_action);
-HPX_REGISTER_ACTION_DECLARATION(tree::first_sweep_action);
+HPX_REGISTER_ACTION_DECLARATION(tree::find_smoothing_lengths_action);
+HPX_REGISTER_ACTION_DECLARATION(tree::form_tree_action);
 HPX_REGISTER_ACTION_DECLARATION(tree::particle_search_action);
 HPX_REGISTER_ACTION_DECLARATION(tree::particle_gather_action);
-HPX_REGISTER_ACTION_DECLARATION(tree::form_tree_action);
 HPX_REGISTER_ACTION_DECLARATION(tree::set_self_action);
+HPX_REGISTER_ACTION_DECLARATION(tree::write_checkpoint_action);
 
 #endif /* TREE_SERVER_CPP_ */

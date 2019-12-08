@@ -6,7 +6,7 @@
  */
 
 
-#include "math.hpp"
+#include <octopart/math.hpp>
 
 
 bool matrix_inverse(const std::array<vect, NDIM> &A, std::array<vect, NDIM> &Ainv) {
@@ -47,3 +47,67 @@ bool matrix_inverse(const std::array<vect, NDIM> &A, std::array<vect, NDIM> &Ain
 #endif
 	return true;
 }
+
+
+
+vect rotate_to(const vect &u, const vect &n) {
+#if(NDIM==1)
+	return u;
+#elif(NDIM==2)
+	vect m;
+	vect v;
+	m[0] = n[1];
+	m[1] = -n[0];
+	v[0] = u.dot(n);
+	v[1] = u.dot(m);
+#else
+	vect m;
+	vect l;
+	m = cross(u,n);
+	if( m.dot(m)==0.0) {
+		return u;
+	} else {
+		vect v;
+		m = m / abs(m);
+		l = cross(m,n);
+		v[0] = u.dot(n);
+		v[1] = u.dot(m);
+		v[2] = u.dot(l);
+		return v;
+	}
+#endif
+
+}
+
+vect rotate_from(const vect &u, vect n) {
+#if(NDIM==1)
+	return u;
+#elif(NDIM==2)
+	vect m;
+	vect v;
+	m[0] = n[1];
+	m[1] = -n[0];
+	v[0] = u.dot(n);
+	v[1] = u.dot(m);
+#else
+	vect m;
+	vect l;
+	m = cross(u,n);
+	if( m.dot(m)==0.0) {
+		return u;
+	} else {
+		vect v;
+		m = m / abs(m);
+		l = cross(m,n);
+		std::swap(n[1], m[0]);
+		std::swap(n[2], l[0]);
+		std::swap(m[2], l[1]);
+		v[0] = u.dot(n);
+		v[1] = u.dot(m);
+		v[2] = u.dot(l);
+		return v;
+	}
+#endif
+
+}
+

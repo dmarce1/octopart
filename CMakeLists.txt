@@ -27,11 +27,14 @@ set(common_source_files
 
 set(octopart_source_files
 	src/main.cpp
+	src/math.cpp
 	src/particle.cpp
 	src/rand.cpp
 	src/range.cpp
 	src/state.cpp
-	src/tree.cpp
+	src/tree/communications.cpp
+	src/tree/tree.cpp
+	src/tree/smoothing_lengths.cpp
 )
 
 set(check2silo_source_files
