@@ -10,10 +10,12 @@
 #include <octopart/tree.hpp>
 
 int hpx_main(int argc, char *argv[]) {
-	std::vector<particle>parts;
+	std::vector<particle> parts = cartesian_particle_set(16);
 	auto root = hpx::new_<tree>(hpx::find_here(), std::move(parts), null_range()).get();
 	typename tree::set_self_action f;
 	f(root, root);
+	tree_stats s = hpx::async<tree::tree_statistics_action>(root).get();
+	s.print();
 	return hpx::finalize();
 
 }

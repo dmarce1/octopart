@@ -8,9 +8,9 @@
 #ifndef SRC_PARTICLE_HPP_
 #define SRC_PARTICLE_HPP_
 
+#include <vector>
 
 #include "state.hpp"
-
 
 
 struct particle {
@@ -28,5 +28,10 @@ struct particle {
 		a & V;
 	}
 };
+
+
+
+std::vector<particle> cartesian_particle_set(int);
+std::vector<particle> random_particle_set(int);
 
 #endif /* SRC_PARTICLE_HPP_ */

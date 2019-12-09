@@ -23,18 +23,17 @@ find_package(Boost REQUIRED)
 
 set(common_source_files
 	src/particle.cpp
+	src/rand.cpp
 )
 
 set(octopart_source_files
 	src/main.cpp
 	src/math.cpp
 	src/particle.cpp
-	src/rand.cpp
 	src/range.cpp
 	src/state.cpp
-	src/tree/communications.cpp
-	src/tree/tree.cpp
-	src/tree/smoothing_lengths.cpp
+	src/tree.cpp
+	src/tree_stats.cpp
 )
 
 set(check2silo_source_files
@@ -54,6 +53,7 @@ set(octopart_header_files
 	octopart/range.hpp
 	octopart/rand.hpp
 	octopart/tree.hpp
+	octopart/tree_stats.hpp
 )
 
 set(check2silo_header_files

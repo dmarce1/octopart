@@ -12,24 +12,27 @@
 #include "range.hpp"
 
 #include <hpx/include/components.hpp>
+#include <octopart/tree_stats.hpp>
 
-static constexpr int NPART_MAX = 100;
-#if(NDIM==1)
-static constexpr int NNGB = 4;
-static constexpr real CV = 1.0;
-#elif(NDIM==2)
-static constexpr int NNGB = 16;
-static constexpr real CV = M_PI;
-#else
-static constexpr int NNGB = 32;
-static constexpr real CV = 4.0 * M_PI / 3.0;
-#endif
+struct tree_attr {
+	range box;
+	range reach;
+	bool leaf;
+	std::vector<hpx::id_type> children;
+	template<class Arc>
+	void serialize(Arc &&arc, unsigned) {
+		arc & box;
+		arc & reach;
+		arc & leaf;
+		arc & children;
+	}
+};
 
 class tree: public hpx::components::managed_component_base<tree> {
 
 	std::vector<particle> parts;
-	std::vector<std::shared_ptr<particle>> nparts;
 	std::array<hpx::id_type, NCHILD> children;
+	std::vector<hpx::id_type> neighbors;
 	hpx::id_type parent;
 	hpx::id_type self;
 	range box;
@@ -39,27 +42,26 @@ class tree: public hpx::components::managed_component_base<tree> {
 public:
 	tree(std::vector<particle>&&, const range&);
 
-	range find_smoothing_lengths();
+	void find_neighbors(std::vector<hpx::id_type>, bool = true);
 	void form_tree(const hpx::id_type&, const hpx::id_type&);
-	std::vector<std::shared_ptr<particle>> particle_gather(const range&, const range&, const hpx::id_type&);
-	std::vector<std::shared_ptr<particle>> particle_search(const range&, const range&, const hpx::id_type&, const hpx::id_type&);
+	tree_attr get_attributes() const;
+	std::vector<vect> get_particle_positions(const range&) const;
 	void set_self(const hpx::id_type&);
+	void smoothing_length_init();
+	bool smoothing_length_iter();
+	tree_stats tree_statistics() const;
 	void write_checkpoint(const std::string&);
 
-	HPX_DEFINE_COMPONENT_ACTION(tree,find_smoothing_lengths,find_smoothing_lengths_action);
-	HPX_DEFINE_COMPONENT_ACTION(tree,form_tree,form_tree_action);
-	HPX_DEFINE_COMPONENT_ACTION(tree,particle_search,particle_search_action);
-	HPX_DEFINE_COMPONENT_ACTION(tree,particle_gather,particle_gather_action);
-	HPX_DEFINE_COMPONENT_ACTION(tree,set_self,set_self_action);
-	HPX_DEFINE_COMPONENT_ACTION(tree,write_checkpoint,write_checkpoint_action);
+	HPX_DEFINE_COMPONENT_ACTION(tree,find_neighbors);
+	HPX_DEFINE_COMPONENT_ACTION(tree,form_tree);
+	HPX_DEFINE_COMPONENT_ACTION(tree,get_attributes);
+	HPX_DEFINE_COMPONENT_ACTION(tree,get_particle_positions);
+	HPX_DEFINE_COMPONENT_ACTION(tree,set_self);
+	HPX_DEFINE_COMPONENT_ACTION(tree,smoothing_length_init);
+	HPX_DEFINE_COMPONENT_ACTION(tree,smoothing_length_iter);
+	HPX_DEFINE_COMPONENT_ACTION(tree,tree_statistics);
+	HPX_DEFINE_COMPONENT_ACTION(tree,write_checkpoint);
 
 };
-
-HPX_REGISTER_ACTION_DECLARATION(tree::find_smoothing_lengths_action);
-HPX_REGISTER_ACTION_DECLARATION(tree::form_tree_action);
-HPX_REGISTER_ACTION_DECLARATION(tree::particle_search_action);
-HPX_REGISTER_ACTION_DECLARATION(tree::particle_gather_action);
-HPX_REGISTER_ACTION_DECLARATION(tree::set_self_action);
-HPX_REGISTER_ACTION_DECLARATION(tree::write_checkpoint_action);
 
 #endif /* TREE_SERVER_CPP_ */
