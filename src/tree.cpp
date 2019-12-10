@@ -26,7 +26,7 @@ constexpr int NNGB = 32;
 HPX_REGISTER_COMPONENT(hpx::components::managed_component<tree>, tree);
 
 tree::tree(std::vector<particle> &&these_parts, const range &box_) :
-		box(box_) {
+		box(box_), nparts0(0) {
 	const int sz = these_parts.size();
 
 	/* Create initial box if root */
@@ -91,9 +91,34 @@ tree::tree(std::vector<particle> &&these_parts, const range &box_) :
 
 void tree::compute_gradients() {
 	if (leaf) {
-		const int nparts0 = parts.size();
-		auto tmp = get_neighbor_particles();
-		parts.insert(parts.end(), tmp.begin(), tmp.end());
+		nparts0 = parts.size();
+		range sbox;
+		std::vector<hpx::future<std::vector<particle>>> futs(neighbors.size());
+		for (const auto &pi : parts) {
+			for (int dim = 0; dim < NDIM; dim++) {
+				sbox.min[dim] = std::min(sbox.min[dim], pi.x[dim] - pi.h);
+				sbox.max[dim] = std::max(sbox.max[dim], pi.x[dim] + pi.h);
+			}
+		}
+		for (int i = 0; i < neighbors.size(); i++) {
+			futs[i] = hpx::async<get_particles_action>(neighbors[i], sbox, box);
+		}
+		for (int i = 0; i < neighbors.size(); i++) {
+			const auto these_parts = futs[i].get();
+			for (const auto &pj : these_parts) {
+				bool inrange = false;
+				for (int i = 0; i < nparts0; i++) {
+					const auto &pi = parts[i];
+					if (abs(pi.x - pj.x) <= std::max(pi.h, pj.h)) {
+						inrange = true;
+						break;
+					}
+				}
+				if (inrange) {
+					parts.push_back(pj);
+				}
+			}
+		}
 
 		for (int i = 0; i < nparts0; i++) {
 			const auto &pi = parts[i];
@@ -153,12 +178,103 @@ void tree::compute_gradients() {
 			}
 
 		}
-
-		parts.resize(nparts0);
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<compute_gradients_action>(children[ci]);
+		}
+		hpx::wait_all(futs);
+	}
+}
+
+void tree::compute_next_state() {
+	if (leaf) {
+		nparts0 = parts.size();
+		range sbox;
+		std::vector<hpx::future<std::vector<gradient>>> futs(neighbors.size());
+		for (const auto &pi : parts) {
+			for (int dim = 0; dim < NDIM; dim++) {
+				sbox.min[dim] = std::min(sbox.min[dim], pi.x[dim] - pi.h);
+				sbox.max[dim] = std::max(sbox.max[dim], pi.x[dim] + pi.h);
+			}
+		}
+		for (int i = 0; i < neighbors.size(); i++) {
+			futs[i] = hpx::async<get_gradients_action>(neighbors[i], sbox, box);
+		}
+		int cnt = 0;
+		for (int i = 0; i < neighbors.size(); i++) {
+			const auto these_parts = futs[i].get();
+			for (const auto &pj_grad : these_parts) {
+				const auto &pj = parts[nparts0 + cnt];
+				bool inrange = false;
+				for (int i = 0; i < nparts0; i++) {
+					const auto &pi = parts[i];
+					if (abs(pi.x - pj.x) <= std::max(pi.h, pj.h)) {
+						inrange = true;
+						break;
+					}
+				}
+				if (inrange) {
+					grads.push_back(pj_grad);
+				}
+				cnt++;
+			}
+		}
+
+		constexpr auto psi1 = 0.5;
+		constexpr auto psi2 = 0.25;
+		for (int i = 0; i < nparts0; i++) {
+			const auto &pi = parts[i];
+			for (int j = 0; j < parts.size(); j++) {
+				if (i != j) {
+					const auto &pj = parts[j];
+					const auto r = abs(pj.x - pi.x);
+					const auto h = pi.h;
+					if (r < h) {
+						const auto xij = pi.x + (pj.x - pi.x) * pi.h / (pi.h + pj.h);
+						const auto phi_i = pi.to_prim();
+						const auto phi_j = pj.to_prim();
+						auto phi_mid = phi_i;
+						const auto dx = xij - pi.x;
+						for (int dim = 0; dim < NDIM; dim++) {
+							phi_mid = phi_mid + grads[i][dim] * dx[dim];
+						}
+						const auto dphi_abs = abs(phi_j, phi_i);
+						const auto delta_1 = dphi_abs * psi1;
+						const auto delta_2 = dphi_abs * psi2;
+						const auto phi_min = min(phi_i, phi_j);
+						const auto phi_max = max(phi_i, phi_j);
+						const auto phi_bar = phi_i + (phi_j - phi_i) * abs(xij - pi.x) / abs(pi.x - pj.x);
+						for (int i = 0; i < STATE_SIZE; i++) {
+							if (phi_i[i] == phi_j[i]) {
+								phi_mid[i] = phi_i[i];
+							} else if (phi_i[i] < phi_j[i]) {
+								primitive_state phi_m;
+								if ((phi_min[i] - delta_1[i]) * phi_min[i] > 0.0) {
+									phi_m[i] = phi_min[i] - delta_1[i];
+								} else {
+									phi_m[i] = phi_min[i] * std::abs(phi_min[i]) / (std::abs(phi_min[i]) + delta_1[i]);
+								}
+								phi_mid[i] = std::max(phi_m[i], std::min(phi_bar[i] + delta_2[i], phi_mid[i]));
+							} else {
+								primitive_state phi_p;
+								if ((phi_max[i] + delta_1[i]) * phi_max[i] > 0.0) {
+									phi_p[i] = phi_max[i] + delta_1[i];
+								} else {
+									phi_p[i] = phi_max[i] * std::abs(phi_max[i]) / (std::abs(phi_max[i]) + delta_1[i]);
+								}
+								phi_mid[i] = std::max(phi_p[i], std::min(phi_bar[i] - delta_2[i], phi_mid[i]));
+							}
+						}
+
+					}
+				}
+			}
+		}
+	} else {
+		std::array<hpx::future<void>, NCHILD> futs;
+		for (int ci = 0; ci < NCHILD; ci++) {
+			futs[ci] = hpx::async<compute_next_state_action>(children[ci]);
 		}
 		hpx::wait_all(futs);
 	}
@@ -373,45 +489,22 @@ tree_attr tree::get_attributes() const {
 	return attr;
 }
 
-std::vector<particle> tree::get_neighbor_particles() {
-	const int nparts0 = parts.size();
-	std::vector<particle> nparts;
-	range sbox;
-	std::vector<real> vol(nparts0);
-	std::vector<hpx::future<std::vector<particle>>> futs(neighbors.size());
-	for (const auto &pi : parts) {
-		for (int dim = 0; dim < NDIM; dim++) {
-			sbox.min[dim] = std::min(sbox.min[dim], pi.x[dim] - pi.h);
-			sbox.max[dim] = std::max(sbox.max[dim], pi.x[dim] + pi.h);
-		}
+std::vector<gradient> tree::get_gradients(const range &big, const range &small) const {
+	std::vector<gradient> gj;
+	for (int i = 0; i < nparts0; i++) {
+		gj.push_back(grads[i]);
 	}
-	for (int i = 0; i < neighbors.size(); i++) {
-		futs[i] = hpx::async<get_particles_action>(neighbors[i], sbox, box);
-	}
-	for (int i = 0; i < neighbors.size(); i++) {
-		const auto these_parts = futs[i].get();
-		for (const auto &pj : these_parts) {
-			bool inrange = false;
-			for (int i = 0; i < nparts0; i++) {
-				const auto &pi = parts[i];
-				if (abs(pi.x - pj.x) <= std::max(pi.h, pj.h)) {
-					inrange = true;
-					break;
-				}
-			}
-			if (inrange) {
-				nparts.push_back(pj);
-			}
-		}
-	}
-	return nparts;
+	return gj;
 }
 
 std::vector<vect> tree::get_particle_positions(const range &search) const {
 	const int sz = parts.size();
-	std::vector<vect> pos(sz);
+	std::vector<vect> pos;
 	for (int i = 0; i < sz; i++) {
-		pos[i] = parts[i].x;
+		const auto &pi = parts[i];
+		if (in_range(pi.x, search)) {
+			pos.push_back(parts[i].x);
+		}
 	}
 	return pos;
 }
