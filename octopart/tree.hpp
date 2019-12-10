@@ -15,16 +15,12 @@
 #include <octopart/tree_stats.hpp>
 
 struct tree_attr {
-	range box;
-	range reach;
 	bool leaf;
-	std::vector<hpx::id_type> children;
+	range box;
 	template<class Arc>
 	void serialize(Arc &&arc, unsigned) {
-		arc & box;
-		arc & reach;
 		arc & leaf;
-		arc & children;
+		arc & box;
 	}
 };
 
@@ -36,32 +32,25 @@ class tree: public hpx::components::managed_component_base<tree> {
 	hpx::id_type parent;
 	hpx::id_type self;
 	range box;
-	range reach;
 	bool leaf;
 
 public:
 	tree(std::vector<particle>&&, const range&);
 
-	void find_neighbors(std::vector<hpx::id_type>, bool = true);
-	void form_tree(const hpx::id_type&, const hpx::id_type&);
+	void form_tree(const hpx::id_type&, const hpx::id_type&, std::vector<hpx::id_type>);
+	void finish_tree(std::vector<hpx::id_type>);
 	tree_attr get_attributes() const;
-	std::vector<vect> get_particle_positions(const range&) const;
+	std::array<hpx::id_type,NCHILD> get_children() const;
 	void set_self(const hpx::id_type&);
-	void smoothing_length_init();
-	bool smoothing_length_iter();
 	tree_stats tree_statistics() const;
 	void write_checkpoint(const std::string&);
 
-	HPX_DEFINE_COMPONENT_ACTION(tree,find_neighbors);
 	HPX_DEFINE_COMPONENT_ACTION(tree,form_tree);
 	HPX_DEFINE_COMPONENT_ACTION(tree,get_attributes);
-	HPX_DEFINE_COMPONENT_ACTION(tree,get_particle_positions);
+	HPX_DEFINE_COMPONENT_ACTION(tree,get_children);
 	HPX_DEFINE_COMPONENT_ACTION(tree,set_self);
-	HPX_DEFINE_COMPONENT_ACTION(tree,smoothing_length_init);
-	HPX_DEFINE_COMPONENT_ACTION(tree,smoothing_length_iter);
 	HPX_DEFINE_COMPONENT_ACTION(tree,tree_statistics);
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_checkpoint);
-
 };
 
 #endif /* TREE_SERVER_CPP_ */
