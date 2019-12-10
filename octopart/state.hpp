@@ -90,6 +90,10 @@ class primitive_state: public state {
 	static constexpr int p_i = 1;
 	static constexpr int v_i = 2;
 public:
+	primitive_state& operator=(const general_vect<real,STATE_SIZE>& other ) {
+		*this = other;
+		return *this;
+	}
 	inline real& den() {
 		return (*this)[d_i];
 	}

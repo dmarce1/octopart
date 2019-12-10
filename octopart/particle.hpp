@@ -14,19 +14,27 @@
 
 
 struct particle {
-	conserved_state U;
 	vect x;
+	real m;
+	vect u;
+	real e;
 	real V;
 	real h;
+	vect psi_a;
 	void write(FILE*) const;
 	int read(FILE*);
 	template<class Arc>
 	void serialize(Arc&& a, unsigned) {
-		a & U;
-		a & h;
 		a & x;
+		a & m;
+		a & u;
+		a & e;
 		a & V;
+		a & h;
+		a & psi_a;
 	}
+	primitive_state to_prim() const;
+	conserved_state to_con() const;
 };
 
 

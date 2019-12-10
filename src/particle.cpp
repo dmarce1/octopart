@@ -7,7 +7,6 @@
 #include <octopart/particle.hpp>
 #include <octopart/rand.hpp>
 
-
 std::vector<particle> cartesian_particle_set(int N) {
 	std::vector<particle> parts;
 	parts.reserve(std::pow(N, NDIM));
@@ -45,38 +44,36 @@ std::vector<particle> random_particle_set(int N) {
 
 void particle::write(FILE *fp) const {
 	real r;
-	for (int i = 0; i < NDIM; i++) {
-		r = x[i];
-		fwrite(&r, sizeof(real), 1, fp);
-	}
+	fwrite(&x, sizeof(real), NDIM, fp);
+	fwrite(&u, sizeof(real), NDIM, fp);
+	fwrite(&psi_a, sizeof(real), NDIM, fp);
+	fwrite(&m, sizeof(real), 1, fp);
+	fwrite(&e, sizeof(real), 1, fp);
 	fwrite(&V, sizeof(real), 1, fp);
 	fwrite(&h, sizeof(real), 1, fp);
-	for (int i = 0; i < STATE_SIZE; i++) {
-		r = U[i];
-		fwrite(&r, sizeof(real), 1, fp);
-	}
 }
 
 int particle::read(FILE *fp) {
-	real r;
-	int rc = 0;
-	for (int i = 0; i < NDIM; i++) {
-		if (fread(&r, sizeof(real), 1, fp) == 0) {
-			rc = -1;
-		}
-		x[i] = r;
-	}
-	if (fread(&V, sizeof(real), 1, fp) == 0) {
-		rc = -1;
-	}
-	if (fread(&h, sizeof(real), 1, fp) == 0) {
-		rc = -1;
-	}
-	for (int i = 0; i < STATE_SIZE; i++) {
-		if (fread(&r, sizeof(real), 1, fp) == 0) {
-			rc = -1;
-		}
-		U[i] = r;
-	}
-	return rc;
+	int cnt = 0;
+	cnt += fread(&x, sizeof(real), NDIM, fp);
+	cnt += fread(&u, sizeof(real), NDIM, fp);
+	cnt += fread(&psi_a, sizeof(real), NDIM, fp);
+	cnt += fread(&m, sizeof(real), 1, fp);
+	cnt += fread(&e, sizeof(real), 1, fp);
+	cnt += fread(&V, sizeof(real), 1, fp);
+	cnt += fread(&h, sizeof(real), 1, fp);
+	return cnt;
 }
+
+primitive_state particle::to_prim() const {
+	return to_con().to_prim();
+}
+
+conserved_state particle::to_con() const {
+	conserved_state U;
+	U.den() = m / V;
+	U.mom() = u * (m / V);
+	U.ene() = e / V;
+	return U;
+}
+

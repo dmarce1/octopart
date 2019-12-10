@@ -22,16 +22,15 @@ find_package(Silo REQUIRED)
 find_package(Boost REQUIRED)
 
 set(common_source_files
+	src/math.cpp
 	src/particle.cpp
 	src/rand.cpp
+	src/state.cpp
 )
 
 set(octopart_source_files
 	src/main.cpp
-	src/math.cpp
-	src/particle.cpp
 	src/range.cpp
-	src/state.cpp
 	src/tree.cpp
 	src/tree_stats.cpp
 )

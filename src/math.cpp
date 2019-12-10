@@ -7,7 +7,22 @@
 
 
 #include <octopart/math.hpp>
+#include <limits>
 
+real condition_number(const std::array<vect, NDIM> &A, std::array<vect, NDIM> &Ainv) {
+	static constexpr auto NMAX = std::numeric_limits<real>::max();
+	if (matrix_inverse(A, Ainv)) {
+		real Asum = 0.0;
+		real Ainvsum = 0.0;
+		for (int n = 0; n < NDIM; n++) {
+			Asum += A[n].dot(A[n]);
+			Ainvsum += Ainv[n].dot(Ainv[n]);
+		}
+		return std::sqrt(Asum * Ainvsum) / NDIM;
+	} else {
+		return NMAX;
+	}
+}
 
 bool matrix_inverse(const std::array<vect, NDIM> &A, std::array<vect, NDIM> &Ainv) {
 #if(NDIM==1)
