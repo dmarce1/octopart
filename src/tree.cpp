@@ -232,41 +232,46 @@ void tree::compute_next_state() {
 					const auto h = pi.h;
 					if (r < h) {
 						const auto xij = pi.x + (pj.x - pi.x) * pi.h / (pi.h + pj.h);
-						const auto phi_i = pi.to_prim();
-						const auto phi_j = pj.to_prim();
-						auto phi_mid = phi_i;
-						const auto dx = xij - pi.x;
+						const auto V_i = pi.to_prim();
+						const auto V_j = pj.to_prim();
+						auto V_mid_i = V_i;
+						auto V_mid_j = V_j;
+						const auto dxi = xij - pi.x;
+						const auto dxj = xij - pj.x;
 						for (int dim = 0; dim < NDIM; dim++) {
-							phi_mid = phi_mid + grads[i][dim] * dx[dim];
+							V_mid_i = V_mid_i + grads[i][dim] * dxi[dim];
+							V_mid_j = V_mid_j + grads[i][dim] * dxj[dim];
 						}
-						const auto dphi_abs = abs(phi_j, phi_i);
-						const auto delta_1 = dphi_abs * psi1;
-						const auto delta_2 = dphi_abs * psi2;
-						const auto phi_min = min(phi_i, phi_j);
-						const auto phi_max = max(phi_i, phi_j);
-						const auto phi_bar = phi_i + (phi_j - phi_i) * abs(xij - pi.x) / abs(pi.x - pj.x);
-						for (int i = 0; i < STATE_SIZE; i++) {
-							if (phi_i[i] == phi_j[i]) {
-								phi_mid[i] = phi_i[i];
-							} else if (phi_i[i] < phi_j[i]) {
-								primitive_state phi_m;
-								if ((phi_min[i] - delta_1[i]) * phi_min[i] > 0.0) {
-									phi_m[i] = phi_min[i] - delta_1[i];
-								} else {
-									phi_m[i] = phi_min[i] * std::abs(phi_min[i]) / (std::abs(phi_min[i]) + delta_1[i]);
-								}
-								phi_mid[i] = std::max(phi_m[i], std::min(phi_bar[i] + delta_2[i], phi_mid[i]));
+						const auto dV_abs = abs(V_j, V_i);
+						const auto delta_1 = dV_abs * psi1;
+						const auto delta_2 = dV_abs * psi2;
+						const auto V_min = min(V_i, V_j);
+						const auto V_max = max(V_i, V_j);
+						const auto V_bar_i = V_i + (V_j - V_i) * abs(xij - pi.x) / abs(pi.x - pj.x);
+						const auto V_bar_j = V_j + (V_i - V_j) * abs(xij - pj.x) / abs(pi.x - pj.x);
+						for (int f = 0; f < STATE_SIZE; f++) {
+							real V_m;
+							real V_p;
+							if ((V_min[f] - delta_1[f]) * V_min[f] > 0.0) {
+								V_m = V_min[f] - delta_1[f];
 							} else {
-								primitive_state phi_p;
-								if ((phi_max[i] + delta_1[i]) * phi_max[i] > 0.0) {
-									phi_p[i] = phi_max[i] + delta_1[i];
-								} else {
-									phi_p[i] = phi_max[i] * std::abs(phi_max[i]) / (std::abs(phi_max[i]) + delta_1[i]);
-								}
-								phi_mid[i] = std::max(phi_p[i], std::min(phi_bar[i] - delta_2[i], phi_mid[i]));
+								V_m = V_min[f] * std::abs(V_min[f]) / (std::abs(V_min[f]) + delta_1[f]);
+							}
+							if ((V_max[f] + delta_1[f]) * V_max[f] > 0.0) {
+								V_p = V_max[f] + delta_1[f];
+							} else {
+								V_p = V_max[f] * std::abs(V_max[f]) / (std::abs(V_max[f]) + delta_1[f]);
+							}
+							if (V_i[f] == V_j[f]) {
+								V_mid_j[f] = V_mid_i[f] = V_i[f];
+							} else if (V_i[f] < V_j[f]) {
+								V_mid_i[f] = std::max(V_m, std::min(V_bar_i[f] + delta_2[f], V_mid_i[f]));
+								V_mid_j[f] = std::max(V_p, std::min(V_bar_j[f] - delta_2[f], V_mid_j[f]));
+							} else {
+								V_mid_i[f] = std::max(V_p, std::min(V_bar_i[f] - delta_2[f], V_mid_i[f]));
+								V_mid_j[f] = std::max(V_m, std::min(V_bar_j[f] + delta_2[f], V_mid_j[f]));
 							}
 						}
-
 					}
 				}
 			}
