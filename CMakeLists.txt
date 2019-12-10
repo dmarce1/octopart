@@ -29,7 +29,6 @@ set(common_source_files
 set(octopart_source_files
 	src/main.cpp
 	src/math.cpp
-	src/nindex.cpp
 	src/particle.cpp
 	src/range.cpp
 	src/state.cpp
@@ -51,7 +50,6 @@ set(common_header_files
 )
 
 set(octopart_header_files
-	octopart/nindex.hpp
 	octopart/range.hpp
 	octopart/rand.hpp
 	octopart/tree.hpp
