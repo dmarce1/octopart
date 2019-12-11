@@ -30,6 +30,7 @@ set(common_source_files
 
 set(octopart_source_files
 	src/main.cpp
+	src/options.cpp
 	src/range.cpp
 	src/tree.cpp
 	src/tree_stats.cpp
@@ -49,6 +50,7 @@ set(common_header_files
 )
 
 set(octopart_header_files
+	octopart/options.hpp
 	octopart/range.hpp
 	octopart/rand.hpp
 	octopart/tree.hpp

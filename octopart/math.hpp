@@ -24,7 +24,7 @@ vect cross( const vect& a, const vect& b);
 real triple_product(const vect &a, const vect &b, const vect &c);
 #endif
 real condition_number(const std::array<vect, NDIM> &A, std::array<vect, NDIM> &Ainv);
-
+real triple_product(const vect &a, const vect &b, const vect &c);
 
 #if(NDIM==3)
 inline vect cross( const vect& a, const vect& b) {
