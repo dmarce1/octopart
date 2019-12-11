@@ -5,7 +5,6 @@
  *      Author: dmarce1
  */
 
-
 #include <octopart/math.hpp>
 #include <octopart/tree.hpp>
 
@@ -528,10 +527,9 @@ void tree::create_children() {
 		futs[ci] = hpx::async([child_box](std::vector<particle> child_parts) {
 			return hpx::new_<tree>(hpx::find_here(), std::move(child_parts), child_box).get();
 		}, std::move(child_parts));
-		for (int ci = 0; ci < NCHILD; ci++) {
-			children[ci] = futs[ci].get();
-		}
-
+	}
+	for (int ci = 0; ci < NCHILD; ci++) {
+		children[ci] = futs[ci].get();
 	}
 }
 
@@ -792,8 +790,8 @@ void tree::redistribute_workload(int current, int total) {
 		for (int ci = 0; ci < NCHILD; ci++) {
 			static const auto localities = hpx::find_all_localities();
 			const int loc_id = current * localities.size() / total;
-			if( localities[loc_id] != hpx::find_here()) {
-				hpx::components::migrate<tree>(children[ci],localities[loc_id]);
+			if (localities[loc_id] != hpx::find_here()) {
+				hpx::components::migrate<tree>(children[ci], localities[loc_id]);
 			}
 			futs[ci] = hpx::async<redistribute_workload_action>(children[ci], current, total);
 			current += child_loads[ci];

@@ -14,8 +14,8 @@ int hpx_main(int argc, char *argv[]) {
 	auto root = hpx::new_<tree>(hpx::find_here(), std::move(parts), null_range()).get();
 	tree::form_tree_action()(root, root, hpx::invalid_id, std::vector<hpx::id_type>());
 	tree::compute_interactions_action()(root);
-	tree_stats s = hpx::async<tree::tree_statistics_action>(root).get();
-	s.print();
+//	tree_stats s = hpx::async<tree::tree_statistics_action>(root).get();
+//	s.print();
 	return hpx::finalize();
 
 }
