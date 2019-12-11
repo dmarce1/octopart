@@ -400,7 +400,7 @@ void tree::compute_interactions() {
 				}
 			}
 		}
-
+		Ncond.resize(parts.size());
 		for (int i = 0; i < parts.size(); i++) {
 			auto &pi = parts[i];
 			pi.V = 0.0;
