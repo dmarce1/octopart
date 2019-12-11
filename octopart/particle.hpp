@@ -13,6 +13,7 @@
 #include "state.hpp"
 
 
+
 struct particle {
 	vect x;
 	real m;
@@ -35,6 +36,7 @@ struct particle {
 	}
 	primitive_state to_prim() const;
 	conserved_state to_con() const;
+	particle from_con(const conserved_state&) const;
 };
 
 

@@ -40,24 +40,46 @@ conserved_state primitive_state::to_con() const {
 	return U;
 }
 
-conserved_state conserved_state::boost_to(const vect &vf) const {
-	conserved_state U = *this;
-	auto &m = U.mom();
-	const auto &d = den();
-	m = m - vf * d;
-	return U;
+real primitive_state::sound_speed() const {
+	return std::sqrt(FGAMMA * std::max(pre(), 0.0) / den());
 }
 
-conserved_state conserved_state::rotate_to(const vect &norm) const {
-	conserved_state U = *this;
-	U.mom() = ::rotate_to(U.mom(), norm);
-	return U;
+primitive_state primitive_state::boost_to(const vect &vf) const {
+	primitive_state V = *this;
+	auto &v = V.vel();
+	v = v - vf;
+	return V;
 }
 
-flux_state riemann_solver(const conserved_state &UL, const conserved_state &UR) {
+primitive_state primitive_state::dW_dt(const gradient &dW_dx) const {
+	primitive_state V;
+	for (int i = 0; i < STATE_SIZE; i++) {
+		V[i] = 0;
+	}
+	for (int dim = 0; dim < NDIM; dim++) {
+		const auto u = (*this)[v_i + dim];
+		V[d_i] -= u * dW_dx[dim][d_i];
+		V[d_i] -= (*this)[d_i] * dW_dx[dim][v_i + dim];
+		V[p_i] -= u * dW_dx[dim][p_i];
+		V[p_i] -= FGAMMA * (*this)[p_i] * dW_dx[dim][v_i + dim];
+		for (int n = 0; n < NDIM; n++) {
+			V[v_i + n] -= u * (*this)[v_i + n];
+			V[v_i + n] -= u * dW_dx[dim][p_i] * (*this)[d_i + n];
+		}
+	}
+	return V;
+}
+
+primitive_state primitive_state::rotate_to(const vect &norm) const {
+	primitive_state V = *this;
+	V.vel() = ::rotate_to(V.vel(), norm);
+	return V;
+}
+
+flux_state riemann_solver(const primitive_state &VL, const primitive_state &VR) {
 	flux_state F, FR, FL;
-	const auto VL = UL.to_prim();
-	const auto VR = UR.to_prim();
+	const auto UL = VL.to_con();
+	const auto UR = VR.to_con();
 	const auto &rhoL = UL.den();
 	const auto &rhoR = UR.den();
 	const auto &EL = UL.ene();

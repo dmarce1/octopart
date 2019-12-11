@@ -77,3 +77,16 @@ conserved_state particle::to_con() const {
 	return U;
 }
 
+
+particle particle::from_con(const conserved_state& U) const {
+	particle p;
+	p.V = V;
+	p.e = U.ene() * V;
+	p.h = h;
+	p.m = U.den() * V;
+	p.u = U.mom() / U.den();
+	p.psi_a = psi_a;
+	p.x = x;
+	return p;
+}
+

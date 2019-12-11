@@ -16,9 +16,10 @@ static constexpr real FGAMMA = 5.0 / 3.0;
 using state = general_vect<real, STATE_SIZE>;
 
 class primitive_state;
+using gradient = general_vect<primitive_state,NDIM>;
 
 
-class flux_state : public state{
+class flux_state: public state {
 	static constexpr int mas_i = 0;
 	static constexpr int ene_i = 1;
 	static constexpr int mom_i = 2;
@@ -46,16 +47,19 @@ public:
 		}
 		return v;
 	}
-	flux_state boost_from(const vect& v) const;
-	flux_state rotate_from(const vect& norm) const;
+	flux_state boost_from(const vect &v) const;
+	flux_state rotate_from(const vect &norm) const;
 };
-
 
 class conserved_state: public state {
 	static constexpr int d_i = 0;
 	static constexpr int e_i = 1;
 	static constexpr int s_i = 2;
 public:
+	conserved_state& operator=(const general_vect<real, STATE_SIZE> &other) {
+		*this = other;
+		return *this;
+	}
 	inline real& den() {
 		return (*this)[d_i];
 	}
@@ -81,8 +85,6 @@ public:
 	}
 	primitive_state to_prim() const;
 	flux_state to_flux() const;
-	conserved_state boost_to(const vect& v) const;
-	conserved_state rotate_to(const vect& norm) const;
 };
 
 class primitive_state: public state {
@@ -90,7 +92,7 @@ class primitive_state: public state {
 	static constexpr int p_i = 1;
 	static constexpr int v_i = 2;
 public:
-	primitive_state& operator=(const general_vect<real,STATE_SIZE>& other ) {
+	primitive_state& operator=(const general_vect<real, STATE_SIZE> &other) {
 		*this = other;
 		return *this;
 	}
@@ -117,10 +119,13 @@ public:
 		}
 		return v;
 	}
+	real sound_speed() const;
 	conserved_state to_con() const;
+	primitive_state boost_to(const vect &v) const;
+	primitive_state rotate_to(const vect &norm) const;
+	primitive_state dW_dt(const gradient&) const;
 };
 
-flux_state riemann_solver(const conserved_state& UL, const conserved_state& UR);
-
+flux_state riemann_solver(const primitive_state &UL, const primitive_state &UR);
 
 #endif /* SRC_STATE_HPP_ */
