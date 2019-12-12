@@ -78,6 +78,7 @@ void tree::compute_drift(real dt) {
 		for (int j = 0; j < neighbors.size(); j++) {
 			futs[j] = hpx::async<send_particles_action>(neighbors[j].id, std::move(send_parts[j]));
 		}
+		hpx::wait_all(futs);
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
@@ -626,7 +627,7 @@ tree_attr tree::finish_drift() {
 				break;
 			}
 		}
-		if (cparts < NPART_MAX) {
+		if (cparts <= NPART_MAX && all_leaves) {
 			std::array<hpx::future<std::vector<particle>>, NCHILD> dfuts;
 			for (int ci = 0; ci < NCHILD; ci++) {
 				dfuts[ci] = hpx::async<destroy_action>(children[ci]);
