@@ -33,8 +33,9 @@ set(octopart_source_files
 	src/main.cpp
 	src/options.cpp
 	src/range.cpp
-	src/tree.cpp
-	src/tree_stats.cpp
+	src/tree/tree_infrastructure.cpp
+	src/tree/tree_compute.cpp
+	src/tree/tree_stats.cpp
 )
 
 set(check2silo_source_files

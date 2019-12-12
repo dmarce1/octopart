@@ -40,7 +40,7 @@ struct neighbor_attr {
 };
 
 class tree: public hpx::components::migration_support<hpx::components::component_base<tree>> {
-
+	static constexpr int NPART_MAX = 1000;
 	std::vector<particle> new_parts;
 	std::vector<particle> parts;
 	std::vector<gradient> grad_lim;
