@@ -64,7 +64,7 @@ public:
 
 	void compute_drift(real);
 	void compute_gradients();
-	void compute_next_state(real, real);
+	void compute_next_state(real);
 	void compute_time_derivatives(real);
 	real compute_timestep() const;
 	void compute_interactions();
@@ -81,6 +81,7 @@ public:
 	hpx::id_type get_parent() const;
 	std::vector<vect> get_particle_positions(const range&) const;
 	std::vector<particle> get_particles(const range&, const range&) const;
+	void initialize(const std::string&);
 	void redistribute_workload(int, int);
 	void send_particles(const std::vector<particle>&);
 	tree_stats tree_statistics() const;
@@ -114,6 +115,7 @@ public:
 	HPX_DEFINE_COMPONENT_ACTION(tree,get_particle_positions);
 	HPX_DEFINE_COMPONENT_ACTION(tree,get_particles);
 	HPX_DEFINE_COMPONENT_ACTION(tree,get_children);
+	HPX_DEFINE_COMPONENT_ACTION(tree,initialize);
 	HPX_DEFINE_COMPONENT_ACTION(tree,finish_drift);
 	HPX_DEFINE_COMPONENT_ACTION(tree,redistribute_workload);
 	HPX_DEFINE_COMPONENT_ACTION(tree,send_particles);

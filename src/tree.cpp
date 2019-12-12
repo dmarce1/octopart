@@ -1,15 +1,9 @@
-/*
- * tree.cpp
- *
- *  Created on: Dec 5, 2019
- *      Author: dmarce1
- */
 
+#include <octopart/initialize.hpp>
 #include <octopart/math.hpp>
 #include <octopart/tree.hpp>
 
 static constexpr int NPART_MAX = 1000;
-
 #if(NDIM == 1 )
 constexpr real CV = 1.0;
 constexpr int NNGB = 2;
@@ -458,7 +452,7 @@ void tree::compute_interactions() {
 	}
 }
 
-void tree::compute_next_state(real dt, real beta) {
+void tree::compute_next_state(real dt) {
 	if (leaf) {
 		parts.resize(nparts0);
 		for (int i = 0; i < nparts0; i++) {
@@ -469,7 +463,7 @@ void tree::compute_next_state(real dt, real beta) {
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_next_state_action>(children[ci], dt, beta);
+			futs[ci] = hpx::async<compute_next_state_action>(children[ci], dt);
 		}
 		hpx::wait_all(futs);
 	}
@@ -706,7 +700,7 @@ void tree::form_tree(const hpx::id_type &self_, const hpx::id_type &parent_, std
 	} else {
 		for (int i = 0; i < nids.size(); i++) {
 			if (ranges_intersect(attrs[i].box, box)) {
-				if( nids[i] != self) {
+				if (nids[i] != self) {
 					cfuts.push_back(hpx::async<get_children_action>(nids[i]));
 				}
 			} else {
@@ -788,6 +782,21 @@ std::vector<particle> tree::get_particles(const range &big, const range &small) 
 	return pj;
 }
 
+void tree::initialize(const std::string &init_name) {
+	if (leaf) {
+		const auto f = get_initialization_function(init_name);
+		for (auto &pi : parts) {
+			f(pi);
+		}
+	} else {
+		std::array<hpx::future<void>, NCHILD> futs;
+		for (int ci = 0; ci < NCHILD; ci++) {
+			futs[ci] = hpx::async<initialize_action>(children[ci], init_name);
+		}
+		hpx::wait_all(futs);
+	}
+}
+
 void tree::redistribute_workload(int current, int total) {
 	if (!leaf) {
 		std::array<hpx::future<void>, NCHILD> futs;
@@ -836,7 +845,7 @@ tree_stats tree::tree_statistics() const {
 
 void tree::write_checkpoint(const std::string &filename) {
 	FILE *fp;
-	if( parent == hpx::invalid_id) {
+	if (parent == hpx::invalid_id) {
 		fp = fopen(filename.c_str(), "wb");
 		fclose(fp);
 	}
