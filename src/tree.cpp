@@ -23,11 +23,10 @@ tree::tree() {
 	nparts0 = 0;
 	dead = false;
 	leaf = false;
-	level = 0;
 }
 
-tree::tree(std::vector<particle> &&these_parts, const range &box_, int lev) :
-		box(box_), nparts0(0), dead(false), level(lev) {
+tree::tree(std::vector<particle> &&these_parts, const range &box_) :
+		box(box_), nparts0(0), dead(false) {
 	const int sz = these_parts.size();
 
 	mtx = std::make_shared<hpx::lcos::local::mutex>();
@@ -317,8 +316,10 @@ real tree::compute_timestep() const {
 				const auto r = abs(dx);
 				const auto &h = pi.h;
 				if (r < h) {
-					const auto ci = pi.to_prim().sound_speed();
-					const auto cj = pj.to_prim().sound_speed();
+					const auto Vi = pi.to_prim();
+					const auto Vj = pj.to_prim();
+					const auto ci = Vi.sound_speed() + Vi.vel().dot(Vi.vel());
+					const auto cj = Vj.sound_speed() + Vj.vel().dot(Vj.vel());
 					const real vsig = ci + cj - std::min(0.0, (pi.u - pj.u).dot(dx) / r);
 					tmin = std::min(tmin, h / vsig);
 				}
@@ -353,30 +354,41 @@ void tree::compute_interactions() {
 				bool done = false;
 				auto &h = pi.h;
 				double max_dh = std::numeric_limits<real>::max();
+				int iters = 0;
+				double dh = pi.h / 2.0;
 				do {
 					double N = 0.0;
-					double dNdh = 0.0;
+					double Np = 0.0;
+					double dNdh;
 					for (const auto &pj : pos) {
 						if (pj != pi.x) {
 							const auto r = abs(pj - pi.x);
 							if (r < h) {
 								N += CV * std::pow(h, NDIM) * W(r, h);
-								dNdh += CV * NDIM * std::pow(h, NDIM - 1) * W(r, h);
-								dNdh += CV * std::pow(h, NDIM) * dW_dh(r, h);
+							}
+							if (r < h + dh) {
+								Np += CV * std::pow(h + dh, NDIM) * W(r, h + dh);
 							}
 						}
 					}
-					if (dNdh == 0.0) {
-						h *= 2.0;
-					} else {
-						auto dh = -(N - NNGB) / dNdh;
-						dh = std::min(h, std::max(-h / 2.0, dh));
-						max_dh = std::min(0.99 * max_dh, std::abs(dh));
-						dh = std::copysign(std::min(max_dh, std::abs(dh)), dh);
-						h += 0.99 * dh;
-					}
 					if (std::abs(NNGB - N) < 1e-6) {
 						done = true;
+					} else {
+						dNdh = (Np - N) / dh;
+						if (dNdh == 0.0) {
+							h *= 2.0;
+						} else {
+							dh = -(N - NNGB) / dNdh;
+							dh = std::min(h, std::max(-h / 2.0, dh));
+							max_dh = std::min(0.99 * max_dh, std::abs(dh));
+							dh = std::copysign(std::min(max_dh, std::abs(dh)), dh);
+							h += 0.99 * dh;
+						}
+					}
+					iters++;
+					if (iters == 1000) {
+						printf("Smoothing length failed to converge\n");
+						abort();
 					}
 				} while (!done);
 			}
@@ -523,7 +535,7 @@ void tree::create_children() {
 		}
 		parts.resize(this_sz);
 		futs[ci] = hpx::async([child_box, this](std::vector<particle> child_parts) {
-			return hpx::new_<tree>(hpx::find_here(), std::move(child_parts), child_box, level + 1).get();
+			return hpx::new_<tree>(hpx::find_here(), std::move(child_parts), child_box).get();
 		}, std::move(child_parts));
 	}
 	for (int ci = 0; ci < NCHILD; ci++) {
@@ -625,7 +637,6 @@ tree_attr tree::finish_drift() {
 				cparts += tmp.nparts;
 			} else {
 				all_leaves = false;
-				break;
 			}
 		}
 		if (cparts <= NPART_MAX && all_leaves) {
@@ -635,6 +646,7 @@ tree_attr tree::finish_drift() {
 			}
 			for (int ci = 0; ci < NCHILD; ci++) {
 				const auto tmp = dfuts[ci].get();
+				children[ci] = hpx::invalid_id;
 				parts.insert(parts.end(), tmp.begin(), tmp.end());
 			}
 			leaf = true;
@@ -673,9 +685,7 @@ void tree::finish_tree(std::vector<hpx::id_type> nids) {
 
 }
 
-void tree::form_tree(const hpx::id_type &self_, const hpx::id_type &parent_, std::vector<hpx::id_type> nids) {
-	self = self_;
-	parent = parent_;
+void tree::form_tree(std::vector<hpx::id_type> nids) {
 	std::vector<hpx::future<tree_attr>> nfuts(nids.size());
 	std::vector<hpx::future<std::array<hpx::id_type, NCHILD>>> cfuts;
 	std::vector<tree_attr> attrs(nids.size());
@@ -727,7 +737,7 @@ void tree::form_tree(const hpx::id_type &self_, const hpx::id_type &parent_, std
 		}
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<form_tree_action>(children[ci], children[ci], self, next_nids);
+			futs[ci] = hpx::async<form_tree_action>(children[ci], next_nids);
 		}
 		hpx::wait_all(futs);
 	}
@@ -739,7 +749,6 @@ tree_attr tree::get_attributes() const {
 	attr.leaf = leaf;
 	attr.box = box;
 	attr.nparts = parts.size();
-	attr.level = level;
 	return attr;
 }
 
@@ -816,10 +825,28 @@ void tree::redistribute_workload(int current, int total) {
 	}
 }
 
+
 void tree::send_particles(const std::vector<particle> &pj) {
 	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
 	new_parts.insert(new_parts.end(), pj.begin(), pj.end());
 }
+
+
+void tree::set_self_and_parent(const hpx::id_type s, const hpx::id_type p) {
+	assert(!dead);
+	self = std::move(s);
+	parent = std::move(p);
+	if (!leaf) {
+		std::array<hpx::future<void>, NCHILD> futs;
+		for (int ci = 0; ci < NCHILD; ci++) {
+			assert(children[ci] != hpx::invalid_id);
+			auto this_p = children[ci];
+			futs[ci] = hpx::async<set_self_and_parent_action>(children[ci], std::move(this_p), self);
+		}
+		hpx::wait_all(futs);
+	}
+}
+
 
 tree_stats tree::tree_statistics() const {
 	tree_stats stats;

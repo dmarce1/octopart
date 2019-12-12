@@ -19,14 +19,12 @@ struct tree_attr {
 	bool leaf;
 	bool dead;
 	int nparts;
-	int level;
 	range box;
 	template<class Arc>
 	void serialize(Arc &&arc, unsigned) {
 		arc & leaf;
 		arc & dead;
 		arc & nparts;
-		arc & level;
 		arc & box;
 	}
 };
@@ -56,14 +54,13 @@ class tree: public hpx::components::migration_support<hpx::components::component
 	hpx::id_type self;
 	range box;
 	int nparts0;
-	int level;
 	bool leaf;
 	bool dead;
 	std::shared_ptr<hpx::lcos::local::mutex> mtx;
 
 public:
 	tree();
-	tree(std::vector<particle>&&, const range&, int = 0);
+	tree(std::vector<particle>&&, const range&);
 
 	void compute_drift(real);
 	void compute_gradients();
@@ -75,7 +72,7 @@ public:
 	void create_children();
 	std::vector<particle> destroy();
 	void find_new_neighbors();
-	void form_tree(const hpx::id_type&, const hpx::id_type&, std::vector<hpx::id_type>);
+	void form_tree(std::vector<hpx::id_type>);
 	tree_attr finish_drift();
 	void finish_tree(std::vector<hpx::id_type>);
 	tree_attr get_attributes() const;
@@ -87,6 +84,7 @@ public:
 	void initialize(const std::string&);
 	void redistribute_workload(int, int);
 	void send_particles(const std::vector<particle>&);
+	void set_self_and_parent(const hpx::id_type, const hpx::id_type);
 	tree_stats tree_statistics() const;
 	void write_checkpoint(const std::string&) const;
 	void write_silo(int) const;
@@ -101,7 +99,6 @@ public:
 		arc & self;
 		arc & box;
 		arc & leaf;
-		arc & level;
 	}
 
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_drift);
@@ -124,6 +121,7 @@ public:
 	HPX_DEFINE_COMPONENT_ACTION(tree,finish_drift);
 	HPX_DEFINE_COMPONENT_ACTION(tree,redistribute_workload);
 	HPX_DEFINE_COMPONENT_ACTION(tree,send_particles);
+	HPX_DEFINE_COMPONENT_ACTION(tree,set_self_and_parent);
 	HPX_DEFINE_COMPONENT_ACTION(tree,tree_statistics);
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_checkpoint);
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_silo);
