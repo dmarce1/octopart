@@ -30,14 +30,10 @@ real range_volume(const range &r) {
 
 bool ranges_intersect(const range &a, const range &b) {
 	for (int dim = 0; dim < NDIM; dim++) {
-		if (a.min[dim] < b.min[dim]) {
-			if (a.max[dim] < b.min[dim]) {
-				return false;
-			}
-		} else {
-			if (b.max[dim] < a.min[dim]) {
-				return false;
-			}
+		const auto front = std::max(a.min[dim], b.min[dim]);
+		const auto back = std::min(a.max[dim], b.max[dim]);
+		if (front > back) {
+			return false;
 		}
 	}
 	return true;
