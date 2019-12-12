@@ -4,6 +4,8 @@
 #include <iostream>
 
 
+options options::global;
+
 bool options::process_options(int argc, char *argv[]) {
 	namespace po = boost::program_options;
 

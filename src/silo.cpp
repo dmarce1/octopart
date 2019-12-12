@@ -67,6 +67,7 @@ int main(int argc, char *argv[]) {
 		DBPutZonelist2(db, "zonelist", nzones, NDIM, node_list.data(), node_list.size(), 0, 0, 0, shapetypes, shapesize, shapecount, 1,
 		NULL);
 		DBPutUcdmesh(db, "mesh", NDIM, coordnames, coords, nnodes, nzones, "zonelist", NULL, DB_DOUBLE, NULL);
+		std::vector<real> h;
 		std::vector<real> rho;
 		std::vector<real> energy;
 		std::array<std::vector<real>, NDIM> mom;
@@ -78,10 +79,12 @@ int main(int argc, char *argv[]) {
 		for (const auto &pi : parts) {
 			rho.push_back(pi.m / pi.V);
 			energy.push_back(pi.e / pi.V);
+			h.push_back(pi.h);
 			for (int dim = 0; dim < NDIM; dim++) {
 				mom[dim].push_back(pi.u[dim] * pi.m / pi.V);
 			}
 		}
+		DBPutUcdvar1(db, "h", "mesh", h.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "density", "mesh", rho.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "energy", "mesh", energy.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		for (int dim = 0; dim < NDIM; dim++) {

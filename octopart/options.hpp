@@ -15,6 +15,7 @@ public:
 		arc & first_order_space;
 		arc & first_order_time;
 	}
-
+	static options global;
+	static void set();
 	bool process_options(int argc, char *argv[]);
 };

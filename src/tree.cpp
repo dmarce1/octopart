@@ -346,11 +346,14 @@ void tree::compute_interactions() {
 	if (leaf) {
 		std::vector<vect> pos;
 		const auto h0 = std::pow(range_volume(box) / (CV * parts.size()), 1.0 / NDIM);
+		for (auto &pi : parts) {
+			pos.push_back(pi.x);
+			pi.h = h0;
+		}
+		for (auto &pi : parts) {
+			pi.h = h0;
+		}
 		for (int pass = 0; pass < 2; pass++) {
-			for (auto &pi : parts) {
-				pos.push_back(pi.x);
-				pi.h = h0;
-			}
 			for (auto &pi : parts) {
 				bool done = false;
 				auto &h = pi.h;
@@ -445,7 +448,6 @@ void tree::compute_interactions() {
 					}
 				}
 			}
-
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
@@ -704,7 +706,9 @@ void tree::form_tree(const hpx::id_type &self_, const hpx::id_type &parent_, std
 	} else {
 		for (int i = 0; i < nids.size(); i++) {
 			if (ranges_intersect(attrs[i].box, box)) {
-				cfuts.push_back(hpx::async<get_children_action>(nids[i]));
+				if( nids[i] != self) {
+					cfuts.push_back(hpx::async<get_children_action>(nids[i]));
+				}
 			} else {
 				nids[i] = nids[nids.size() - 1];
 				nids.resize(nids.size() - 1);
@@ -831,17 +835,20 @@ tree_stats tree::tree_statistics() const {
 }
 
 void tree::write_checkpoint(const std::string &filename) {
+	FILE *fp;
+	if( parent == hpx::invalid_id) {
+		fp = fopen(filename.c_str(), "wb");
+		fclose(fp);
+	}
 	if (leaf) {
-		FILE *fp = fopen(filename.c_str(), "wb");
+		fp = fopen(filename.c_str(), "ab");
 		for (const auto &part : parts) {
 			part.write(fp);
 		}
 		fclose(fp);
 	} else {
-		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
 			write_checkpoint_action()(children[ci], filename);
 		}
-		hpx::wait_all(futs);
 	}
 }
