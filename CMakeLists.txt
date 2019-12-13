@@ -25,7 +25,10 @@ set(common_source_files
 	src/math.cpp
 	src/particle.cpp
 	src/rand.cpp
-	src/state.cpp
+	src/state/conserved.cpp
+	src/state/flux.cpp
+	src/state/primitive.cpp
+	src/state/riemann.cpp
 )
 
 set(octopart_source_files

@@ -100,6 +100,7 @@ vect rotate_from(const vect &u, vect n) {
 	vect v;
 	m[0] = n[1];
 	m[1] = -n[0];
+	std::swap(n[1], m[0]);
 	v[0] = u.dot(n);
 	v[1] = u.dot(m);
 #else
@@ -125,8 +126,8 @@ vect rotate_from(const vect &u, vect n) {
 }
 
 void enable_floating_point_exceptions() {
-	feenableexcept (FE_DIVBYZERO);
-	feenableexcept (FE_INVALID);
-	feenableexcept (FE_OVERFLOW);
+	feenableexcept(FE_DIVBYZERO);
+	feenableexcept(FE_INVALID);
+	feenableexcept(FE_OVERFLOW);
 }
 

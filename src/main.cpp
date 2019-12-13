@@ -2,7 +2,7 @@
 #include <octopart/options.hpp>
 #include <octopart/tree.hpp>
 
-int N = 64;
+int N = 16;
 int hpx_main(int argc, char *argv[]) {
 	real t = 0.0;
 	options opts;
@@ -36,7 +36,6 @@ int hpx_main(int argc, char *argv[]) {
 		tree::write_silo_action()(root, i + 1);
 		tree::compute_interactions_action()(root);
 		t += dt;
-		break;
 	}
 	return hpx::finalize();
 
