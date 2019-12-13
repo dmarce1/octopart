@@ -46,7 +46,6 @@ void particle::write(FILE *fp) const {
 	real r;
 	fwrite(&x, sizeof(real), NDIM, fp);
 	fwrite(&u, sizeof(real), NDIM, fp);
-	fwrite(&psi_a, sizeof(real), NDIM, fp);
 	fwrite(&m, sizeof(real), 1, fp);
 	fwrite(&e, sizeof(real), 1, fp);
 	fwrite(&V, sizeof(real), 1, fp);
@@ -57,7 +56,6 @@ int particle::read(FILE *fp) {
 	int cnt = 0;
 	cnt += fread(&x, sizeof(real), NDIM, fp);
 	cnt += fread(&u, sizeof(real), NDIM, fp);
-	cnt += fread(&psi_a, sizeof(real), NDIM, fp);
 	cnt += fread(&m, sizeof(real), 1, fp);
 	cnt += fread(&e, sizeof(real), 1, fp);
 	cnt += fread(&V, sizeof(real), 1, fp);
@@ -85,7 +83,7 @@ particle particle::from_con(const conserved_state& U) const {
 	p.h = h;
 	p.m = U.den() * V;
 	p.u = U.mom() / U.den();
-	p.psi_a = psi_a;
+	p.B = B;
 	p.x = x;
 	return p;
 }
