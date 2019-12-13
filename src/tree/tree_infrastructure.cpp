@@ -208,6 +208,7 @@ tree_attr tree::finish_drift() {
 				children[ci] = hpx::invalid_id;
 				parts.insert(parts.end(), tmp.begin(), tmp.end());
 			}
+			nparts0 = parts.size();
 			leaf = true;
 		}
 	}
