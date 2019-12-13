@@ -8,6 +8,19 @@
 #include <octopart/math.hpp>
 #include <octopart/state.hpp>
 
+flux_state primitive_state::to_flux() const {
+	flux_state f;
+	const auto v = (*this)[v_i];
+	f[d_i] = den() * v;
+	for (int dim = 0; dim < NDIM; dim++) {
+		f[v_i] = den() * v * (*this)[v_i + dim];
+	}
+	const auto P = std::max(0.0, pre());
+	f[v_i] += P;
+	f[p_i] = (pre() / (FGAMMA - 1.0) + P + den() * vel().dot(vel()) * 0.5) * v;
+	return f;
+}
+
 flux_state flux_state::boost_from(const vect &vf) const {
 	flux_state F;
 	F.mass() = mass();
@@ -97,21 +110,33 @@ flux_state riemann_solver(const primitive_state &VL, const primitive_state &VR) 
 	const auto aroe = std::sqrt(std::max(0.0, (FGAMMA - 1.0) * (hroe - uroe.dot(uroe) / 2.0)));
 	const auto sR = uroe[0] + aroe;
 	const auto sL = uroe[0] - aroe;
-
-	if (sR > 0.0 && sL < 0.0) {
-		const auto sstar_den = rhoL * (sL - uL) - rhoR * (sR - uR);
-		const auto sstar_num = PR - PL + rhoL * uL * (sL - uL) - rhoR * uR * (sR - uR);
-		const auto sstar = std::max(sL, std::min(sR, sstar_num / sstar_den));
-		if (sstar > 0.0) {
-
-		} else {
-
-		}
+	if (sL > 0.0) {
+		F = VL.to_flux();
+	} else if (sR < 0.0) {
+		F = VR.to_flux();
 	} else {
-		if (sR < 0.0 && sL < 0.0) {
-
+		const auto s0_den = rhoL * (sL - uL) - rhoR * (sR - uR);
+		const auto s0_num = PR - PL + rhoL * uL * (sL - uL) - rhoR * uR * (sR - uR);
+		const auto s0 = std::max(sL, std::min(sR, s0_num / s0_den));
+		conserved_state U0;
+		if (s0 > 0.0) {
+			const auto rho0 = rhoL * (sL - uL) / (sL - s0);
+			U0.den() = rho0;
+			U0.mom()[0] = rho0 * s0;
+			for (int dim = 1; dim < NDIM; dim++) {
+				U0.mom()[dim] = rho0 * VL.vel()[dim];
+			}
+			U0.ene() = EL / rhoL + (s0 - uL) * (s0 + PL / (rhoL * (sL - uL)));
+			F = VL.to_flux() + (U0 - UL) * s0;
 		} else {
-
+			const auto rho0 = rhoR * (sR - uR) / (sR - s0);
+			U0.den() = rho0;
+			U0.mom()[0] = rho0 * s0;
+			for (int dim = 1; dim < NDIM; dim++) {
+				U0.mom()[dim] = rho0 * VR.vel()[dim];
+			}
+			U0.ene() = ER / rhoR + (s0 - uR) * (s0 + PR / (rhoR * (sR - uR)));
+			F = VR.to_flux() + (U0 - UR) * s0;
 		}
 	}
 	return F;

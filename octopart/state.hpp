@@ -24,6 +24,12 @@ class flux_state: public state {
 	static constexpr int ene_i = 1;
 	static constexpr int mom_i = 2;
 public:
+	flux_state& operator=(const general_vect<real, STATE_SIZE> &other) {
+		for( int i = 0; i < STATE_SIZE; i++) {
+			(*this)[i] = other[i];
+		}
+		return *this;
+	}
 	inline real& mass() {
 		return (*this)[mas_i];
 	}
@@ -86,7 +92,6 @@ public:
 		return v;
 	}
 	primitive_state to_prim() const;
-	flux_state to_flux() const;
 };
 
 class primitive_state: public state {
@@ -128,6 +133,7 @@ public:
 	primitive_state boost_to(const vect &v) const;
 	primitive_state rotate_to(const vect &norm) const;
 	primitive_state dW_dt(const gradient&) const;
+	flux_state to_flux() const;
 };
 
 flux_state riemann_solver(const primitive_state &UL, const primitive_state &UR);
