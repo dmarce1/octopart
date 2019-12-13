@@ -9,7 +9,7 @@ flux_state primitive_state::to_flux() const {
 	for (int dim = 0; dim < NDIM; dim++) {
 		f[v_i] = den() * v * (*this)[v_i + dim];
 	}
-	const auto P = std::max(0.0, pre());
+	const auto P = max(real(0.0), pre());
 	f[v_i] += P;
 	f[p_i] = (pre() / (FGAMMA - 1.0) + P + den() * vel().dot(vel()) * 0.5) * v;
 	return f;

@@ -11,7 +11,7 @@ conserved_state primitive_state::to_con() const {
 }
 
 real primitive_state::sound_speed() const {
-	return std::sqrt(FGAMMA * std::max(pre(), 0.0) / den());
+	return sqrt(FGAMMA * max(pre(), real(0.0)) / den());
 }
 
 primitive_state primitive_state::boost_to(const vect &vf) const {

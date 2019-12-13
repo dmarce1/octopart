@@ -18,7 +18,7 @@ real condition_number(const std::array<vect, NDIM> &A, std::array<vect, NDIM> &A
 			Asum += A[n].dot(A[n]);
 			Ainvsum += Ainv[n].dot(Ainv[n]);
 		}
-		return std::sqrt(Asum * Ainvsum) / NDIM;
+		return sqrt(Asum * Ainvsum) / NDIM;
 	} else {
 		return NMAX;
 	}

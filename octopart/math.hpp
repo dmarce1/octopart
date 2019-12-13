@@ -50,7 +50,7 @@ inline real bspline(real r) {
 		const auto r2 = r * r;
 		return 1.0 - 1.5 * r2 + 0.75 * r2 * r;
 	} else if (r <= 2) {
-		return 0.25 * std::pow(2 - r, 3);
+		return 0.25 * pow(2 - r, 3);
 	} else {
 		return 0.0;
 	}

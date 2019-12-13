@@ -121,14 +121,14 @@ inline T general_vect<T, N>::dot(const general_vect<T, N> &other) const {
 
 template<class T, int N>
 inline T abs(const general_vect<T, N> &v) {
-	return std::sqrt(v.dot(v));
+	return sqrt(v.dot(v));
 }
 
 template<class T, int N>
 inline general_vect<T, N> abs(const general_vect<T, N> &a, const general_vect<T, N> &b) {
 	general_vect<T, N> c;
 	for (int i = 0; i < N; i++) {
-		c[i] = std::abs(a[i] - b[i]);
+		c[i] = abs(a[i] - b[i]);
 	}
 	return c;
 }
@@ -137,7 +137,7 @@ template<class T, int N>
 inline general_vect<T, N> max(const general_vect<T, N> &a, const general_vect<T, N> &b) {
 	general_vect<T, N> c;
 	for (int i = 0; i < N; i++) {
-		c[i] = std::max(a[i], b[i]);
+		c[i] = max(a[i], b[i]);
 	}
 	return c;
 }
@@ -146,7 +146,7 @@ template<class T, int N>
 inline general_vect<T, N> min(const general_vect<T, N> &a, const general_vect<T, N> &b) {
 	general_vect<T, N> c;
 	for (int i = 0; i < N; i++) {
-		c[i] = std::min(a[i], b[i]);
+		c[i] = min(a[i], b[i]);
 	}
 	return c;
 }

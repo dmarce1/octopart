@@ -32,7 +32,7 @@ std::vector<delauny_region> compute_delaunay_regions(const std::vector<particle>
 	fprintf(fp, "%i\n", sz);
 	for (const auto &pi : parts) {
 		for (int dim = 0; dim < NDIM; dim++) {
-			fprintf(fp, "%e ", pi.x[dim]);
+			fprintf(fp, "%e ", pi.x[dim].get());
 		}
 		fprintf(fp, "\n");
 	}
