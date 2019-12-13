@@ -1,8 +1,7 @@
 #include <octopart/math.hpp>
 #include <octopart/state.hpp>
 
-
-flux_state riemann_solver(const primitive_state &VL, const primitive_state &VR) {
+static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 	flux_state F, FR, FL;
 	const auto UL = VL.to_con();
 	const auto UR = VR.to_con();
@@ -55,4 +54,21 @@ flux_state riemann_solver(const primitive_state &VL, const primitive_state &VR) 
 		}
 	}
 	return F;
+}
+
+flux_state KT(const primitive_state &VL, const primitive_state &VR) {
+	flux_state F;
+	const auto UR = VR.to_con();
+	const auto UL = VL.to_con();
+	const auto vR = VR.vel()[0];
+	const auto vL = VL.vel()[0];
+	const auto aR = VR.sound_speed() + abs(vR);
+	const auto aL = VL.sound_speed() + abs(vL);
+	const auto a = max(aR, aL);
+	F = (VR.to_flux() + VL.to_flux() - (UR - UL) * a) * 0.5;
+	return F;
+}
+
+flux_state riemann_solver(const primitive_state &VL, const primitive_state &VR) {
+	return KT(VL, VR);
 }
