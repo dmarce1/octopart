@@ -57,7 +57,9 @@ class conserved_state: public state {
 	static constexpr int s_i = 2;
 public:
 	conserved_state& operator=(const general_vect<real, STATE_SIZE> &other) {
-		*this = other;
+		for( int i = 0; i < STATE_SIZE; i++) {
+			(*this)[i] = other[i];
+		}
 		return *this;
 	}
 	inline real& den() {
@@ -93,7 +95,9 @@ class primitive_state: public state {
 	static constexpr int v_i = 2;
 public:
 	primitive_state& operator=(const general_vect<real, STATE_SIZE> &other) {
-		*this = other;
+		for( int i = 0; i < STATE_SIZE; i++) {
+			(*this)[i] = other[i];
+		}
 		return *this;
 	}
 	inline real& den() {

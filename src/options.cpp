@@ -1,13 +1,25 @@
 #include <octopart/options.hpp>
-#include <boost/program_options.hpp>
 #include <fstream>
 #include <iostream>
+#include <hpx/runtime/actions/plain_action.hpp>
+#include <hpx/async.hpp>
+#include <hpx/program_options.hpp>
 
 
 options options::global;
 
+HPX_PLAIN_ACTION(options::set, set_options_action);
+
+options& options::get() {
+	return global;
+}
+
+void options::set(options o) {
+	global = o;
+}
+
 bool options::process_options(int argc, char *argv[]) {
-	namespace po = boost::program_options;
+	namespace po = hpx::program_options;
 
 	po::options_description command_opts("options");
 
@@ -17,9 +29,10 @@ bool options::process_options(int argc, char *argv[]) {
 	("dust_only", po::value<bool>(&dust_only)->default_value(false), "treat particles as dust")           //
 	("first_order_space", po::value<bool>(&first_order_space)->default_value(false), "use 1st order spatial scheme")           //
 	("first_order_time", po::value<bool>(&first_order_time)->default_value(false), "use 1st order time integration")           //
+	("problem", po::value<std::string>(&problem)->default_value("sod"), "problem name")           //
 			;
 
-	boost::program_options::variables_map vm;
+	hpx::program_options::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, command_opts), vm);
 	po::notify(vm);
 	if (vm.count("help")) {
@@ -36,6 +49,13 @@ bool options::process_options(int argc, char *argv[]) {
 		}
 	}
 	po::notify(vm);
+	const auto loc = hpx::find_all_localities();
+	const auto sz = loc.size();
+	std::vector<hpx::future<void>> futs(sz);
+	for( int i = 0; i < sz; i++) {
+		futs[i] = hpx::async<set_options_action>(loc[i], *this);
+	}
+	hpx::wait_all(futs);
 #define SHOW( opt ) std::cout << std::string( #opt ) << " = " << std::to_string(opt) << '\n';
 	SHOW(dust_only);
 	SHOW(first_order_space);

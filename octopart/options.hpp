@@ -7,6 +7,7 @@ public:
 	bool dust_only;
 	bool first_order_space;
 	bool first_order_time;
+	std::string problem;
 
 	template<class Arc>
 	void serialize(Arc &arc, unsigned) {
@@ -16,6 +17,7 @@ public:
 		arc & first_order_time;
 	}
 	static options global;
-	static void set();
+	static options& get();
+	static void set(options);
 	bool process_options(int argc, char *argv[]);
 };

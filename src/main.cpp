@@ -13,13 +13,23 @@ int hpx_main(int argc, char *argv[]) {
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>());
 	tree::compute_interactions_action()(root);
-	tree::initialize_action()(root, "drift");
+	tree::initialize_action()(root, opts.problem);
 	tree::write_silo_action()(root, 0);
-	for( int i = 0; i < 1000; i++) {
+	for (int i = 0; i < 1000; i++) {
 		auto dt = tree::compute_timestep_action()(root);
 		dt *= 2.0 * 0.8;
 		tree_stats s = tree::tree_statistics_action()(root);
-		printf( "Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i\n", i, t, dt, s.nparts, s.nleaves, s.max_level);
+		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i\n", i, t, dt, s.nparts, s.nleaves, s.max_level);
+		tree::compute_drift_action()(root, dt / 2.0);
+		tree::finish_drift_action()(root);
+		tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
+		tree::form_tree_action()(root, std::vector<hpx::id_type>());
+		if (!opts.dust_only) {
+			tree::compute_gradients_action()(root);
+			exit(0);
+			tree::compute_time_derivatives_action()(root, dt);
+			tree::compute_next_state_action()(root, dt);
+		}
 		tree::compute_drift_action()(root, dt / 2.0);
 		tree::finish_drift_action()(root);
 		tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
