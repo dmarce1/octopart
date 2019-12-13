@@ -7,6 +7,7 @@ public:
 	bool dust_only;
 	bool first_order_space;
 	bool first_order_time;
+	bool fpe;
 	std::string problem;
 
 	template<class Arc>
@@ -15,6 +16,7 @@ public:
 		arc & dust_only;
 		arc & first_order_space;
 		arc & first_order_time;
+		arc & fpe;
 	}
 	static options global;
 	static options& get();

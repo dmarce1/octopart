@@ -5,8 +5,8 @@
  *      Author: dmarce1
  */
 
-
 #include <octopart/math.hpp>
+#include <fenv.h>
 #include <limits>
 
 real condition_number(const std::array<vect, NDIM> &A, std::array<vect, NDIM> &Ainv) {
@@ -62,8 +62,6 @@ bool matrix_inverse(const std::array<vect, NDIM> &A, std::array<vect, NDIM> &Ain
 #endif
 	return true;
 }
-
-
 
 vect rotate_to(const vect &u, const vect &n) {
 #if(NDIM==1)
@@ -124,5 +122,11 @@ vect rotate_from(const vect &u, vect n) {
 	}
 #endif
 
+}
+
+void enable_floating_point_exceptions() {
+	feenableexcept (FE_DIVBYZERO);
+	feenableexcept (FE_INVALID);
+	feenableexcept (FE_OVERFLOW);
 }
 

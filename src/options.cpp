@@ -1,3 +1,4 @@
+#include <octopart/math.hpp>
 #include <octopart/options.hpp>
 #include <fstream>
 #include <iostream>
@@ -16,6 +17,9 @@ options& options::get() {
 
 void options::set(options o) {
 	global = o;
+	if( global.fpe) {
+		enable_floating_point_exceptions();
+	}
 }
 
 bool options::process_options(int argc, char *argv[]) {
@@ -29,6 +33,7 @@ bool options::process_options(int argc, char *argv[]) {
 	("dust_only", po::value<bool>(&dust_only)->default_value(false), "treat particles as dust")           //
 	("first_order_space", po::value<bool>(&first_order_space)->default_value(false), "use 1st order spatial scheme")           //
 	("first_order_time", po::value<bool>(&first_order_time)->default_value(false), "use 1st order time integration")           //
+	("fpe", po::value<bool>(&fpe)->default_value(true), "enable floating point exceptions")           //
 	("problem", po::value<std::string>(&problem)->default_value("sod"), "problem name")           //
 			;
 
