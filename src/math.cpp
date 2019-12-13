@@ -73,6 +73,7 @@ vect rotate_to(const vect &u, const vect &n) {
 	m[1] = -n[0];
 	v[0] = u.dot(n);
 	v[1] = u.dot(m);
+	return v;
 #else
 	vect m;
 	vect l;
@@ -103,6 +104,7 @@ vect rotate_from(const vect &u, vect n) {
 	std::swap(n[1], m[0]);
 	v[0] = u.dot(n);
 	v[1] = u.dot(m);
+	return v;
 #else
 	vect m;
 	vect l;
