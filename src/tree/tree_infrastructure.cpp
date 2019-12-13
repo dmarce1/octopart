@@ -10,7 +10,7 @@ tree::tree() {
 	leaf = false;
 }
 
-tree::tree(std::vector<particle> &&these_parts, const range &box_) :
+tree::tree(std::vector<particle> &&these_parts, const range &box_, const range& root_box_) :
 		box(box_), nparts0(0), dead(false) {
 	const int sz = these_parts.size();
 
@@ -28,7 +28,9 @@ tree::tree(std::vector<particle> &&these_parts, const range &box_) :
 			box.max[dim] += dx;
 		}
 	}
-
+	if( root_box == null_range()) {
+		root_box = box;
+	}
 	if (sz > NPART_MAX) {
 		parts = std::move(these_parts);
 		create_children();
@@ -93,7 +95,7 @@ void tree::create_children() {
 		}
 		parts.resize(this_sz);
 		futs[ci] = hpx::async([child_box, this](std::vector<particle> child_parts) {
-			return hpx::new_<tree>(hpx::find_here(), std::move(child_parts), child_box).get();
+			return hpx::new_<tree>(hpx::find_here(), std::move(child_parts), child_box, root_box).get();
 		}, std::move(child_parts));
 	}
 	for (int ci = 0; ci < NCHILD; ci++) {

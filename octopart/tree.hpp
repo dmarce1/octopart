@@ -52,6 +52,7 @@ class tree: public hpx::components::migration_support<hpx::components::component
 	std::vector<neighbor_attr> neighbors;
 	hpx::id_type parent;
 	hpx::id_type self;
+	range root_box;
 	range box;
 	int nparts0;
 	bool leaf;
@@ -60,7 +61,7 @@ class tree: public hpx::components::migration_support<hpx::components::component
 
 public:
 	tree();
-	tree(std::vector<particle>&&, const range&);
+	tree(std::vector<particle>&&, const range&, const range&);
 
 	void compute_drift(real);
 	void compute_gradients();
@@ -97,6 +98,7 @@ public:
 		arc & neighbors;
 		arc & parent;
 		arc & self;
+		arc & root_box;
 		arc & box;
 		arc & leaf;
 	}
