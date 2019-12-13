@@ -65,4 +65,5 @@ bool options::process_options(int argc, char *argv[]) {
 	SHOW(dust_only);
 	SHOW(first_order_space);
 	SHOW(first_order_time);
+	SHOW(fpe);
 }
