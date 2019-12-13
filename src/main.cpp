@@ -26,15 +26,14 @@ int hpx_main(int argc, char *argv[]) {
 		tree::form_tree_action()(root, std::vector<hpx::id_type>());
 		if (!opts.dust_only) {
 			tree::compute_gradients_action()(root);
-			exit(0);
-			tree::compute_time_derivatives_action()(root, dt);
-			tree::compute_next_state_action()(root, dt);
+//			tree::compute_time_derivatives_action()(root, dt);
+//			tree::compute_next_state_action()(root, dt);
 		}
 		tree::compute_drift_action()(root, dt / 2.0);
 		tree::finish_drift_action()(root);
 		tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 		tree::form_tree_action()(root, std::vector<hpx::id_type>());
-		tree::write_silo_action()(root, i);
+		tree::write_silo_action()(root, i + 1);
 		tree::compute_interactions_action()(root);
 		t += dt;
 	}
@@ -43,5 +42,7 @@ int hpx_main(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-	hpx::init(argc, argv);
+	std::vector<std::string> cfg = { "hpx.commandline.allow_unknown=1" };
+
+	hpx::init(argc, argv, cfg);
 }

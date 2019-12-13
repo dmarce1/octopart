@@ -9,11 +9,11 @@ void drift(particle &p) {
 
 void sod(particle &p) {
 	if (p.x[0] > 0.0) {
-		p.m = 1.0 / p.V;
-		p.e = 2.5 / p.V;
+		p.m = 1.0 * p.V;
+		p.e = 2.5 * p.V;
 	} else {
-		p.m = 0.1 / p.V;
-		p.e = 0.125 / p.V;
+		p.m = 0.1 * p.V;
+		p.e = 0.125 * p.V;
 	}
 	for (int dim = 0; dim < NDIM; dim++) {
 		p.u[dim] = 0.0;
