@@ -42,8 +42,8 @@ bool ranges_intersect(const range &a, const range &b) {
 range null_range() {
 	range null;
 	for (int dim = 0; dim < NDIM; dim++) {
-		null.min[dim] = std::numeric_limits<real>::max();
-		null.max[dim] = -std::numeric_limits<real>::max();
+		null.min[dim] = real::max();
+		null.max[dim] = -real::max();
 	}
 	return null;
 }

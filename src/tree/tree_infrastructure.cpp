@@ -23,7 +23,7 @@ tree::tree(std::vector<particle> &&these_parts, const range &box_) :
 			box.max = max(box.max, part.x);
 		}
 		for (int dim = 0; dim < NDIM; dim++) {
-			const auto dx = std::numeric_limits<real>::epsilon() * (box.max[dim] - box.min[dim]);
+			const auto dx = 1.0e-10 * (box.max[dim] - box.min[dim]);
 			box.min[dim] -= dx;
 			box.max[dim] += dx;
 		}

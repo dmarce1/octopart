@@ -10,7 +10,7 @@
 #include <limits>
 
 real condition_number(const std::array<vect, NDIM> &A, std::array<vect, NDIM> &Ainv) {
-	static constexpr auto NMAX = std::numeric_limits<real>::max();
+	static constexpr auto NMAX = real::max();
 	if (matrix_inverse(A, Ainv)) {
 		real Asum = 0.0;
 		real Ainvsum = 0.0;

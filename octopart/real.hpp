@@ -65,25 +65,25 @@ public:
 		return r > a.r;
 	}
 	inline bool operator<=(const real &a) const {
-		return r < a.r;
+		return r <= a.r;
 	}
 	inline bool operator>=(const real &a) const {
-		return r > a.r;
+		return r >= a.r;
 	}
 	inline bool operator==(const real &a) const {
 		return r == a.r;
 	}
 	inline bool operator!=(const real &a) const {
-		return r == a.r;
+		return r != a.r;
 	}
 	template<class Arc>
 	void serialize(Arc &&arc, unsigned) {
 		arc & r;
 	}
-	static real max() {
+	static constexpr real max() {
 		return std::numeric_limits<real>::max();
 	}
-	static real min() {
+	static constexpr real min() {
 		return std::numeric_limits<real>::min();
 	}
 	friend real copysign(real a, real b);
