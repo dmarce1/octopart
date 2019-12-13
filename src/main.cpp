@@ -2,7 +2,7 @@
 #include <octopart/options.hpp>
 #include <octopart/tree.hpp>
 
-int N = 100;
+int N = 32;
 int hpx_main(int argc, char *argv[]) {
 	real t = 0.0;
 	options opts;
@@ -20,7 +20,7 @@ int hpx_main(int argc, char *argv[]) {
 		dt *= 0.4;
 		tree_stats s = tree::tree_statistics_action()(root);
 		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i\n", i, t.get(), dt.get(), s.nparts, s.nleaves, s.max_level);
-		tree::compute_drift_action()(root, dt);
+		tree::compute_drift_action()(root, dt / 2.0);
 		tree::finish_drift_action()(root);
 		tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 		tree::form_tree_action()(root, std::vector<hpx::id_type>());

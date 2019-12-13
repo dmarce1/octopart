@@ -30,8 +30,8 @@ real range_volume(const range &r) {
 
 bool ranges_intersect(const range &a, const range &b) {
 	for (int dim = 0; dim < NDIM; dim++) {
-		const auto front = std::max(a.min[dim], b.min[dim]);
-		const auto back = std::min(a.max[dim], b.max[dim]);
+		const auto front = max(a.min[dim], b.min[dim]);
+		const auto back = min(a.max[dim], b.max[dim]);
 		if (front > back) {
 			return false;
 		}
@@ -51,8 +51,8 @@ range null_range() {
 range range_around(const vect &p, real h) {
 	range r;
 	for (int dim = 0; dim < NDIM; dim++) {
-		r.min[dim] = p[dim] + h;
-		r.max[dim] = p[dim] - h;
+		r.max[dim] = p[dim] + h;
+		r.min[dim] = p[dim] - h;
 	}
 	return r;
 }
