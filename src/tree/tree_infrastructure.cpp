@@ -345,7 +345,9 @@ std::vector<vect> tree::get_particle_positions(const range &search) const {
 
 std::vector<particle> tree::get_particles(const range &big, const range &small) const {
 	std::vector<particle> pj;
-	for (const auto &pi : parts) {
+	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
+	for( int i = 0; i < nparts0; i++) {
+		const auto& pi = parts[i];
 		if (in_range(pi.x, big) || ranges_intersect(range_around(pi.x, pi.h), small)) {
 			pj.push_back(pi);
 		}
