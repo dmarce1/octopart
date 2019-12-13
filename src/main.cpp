@@ -2,7 +2,7 @@
 #include <octopart/options.hpp>
 #include <octopart/tree.hpp>
 
-int N = 16;
+int N = 30;
 int hpx_main(int argc, char *argv[]) {
 	real t = 0.0;
 	options opts;

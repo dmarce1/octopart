@@ -27,7 +27,7 @@ flux_state flux_state::rotate_from(const vect &norm) const {
 	flux_state F;
 	F.mass() = mass();
 	F.energy() = energy();
-	F.momentum() = ::rotate_from(F.momentum(), norm);
+	F.momentum() = ::rotate_from(momentum(), norm);
 	return F;
 }
 
