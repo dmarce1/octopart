@@ -81,10 +81,10 @@ public:
 		arc & r;
 	}
 	static constexpr real max() {
-		return std::numeric_limits<real>::max();
+		return std::numeric_limits<double>::max();
 	}
 	static constexpr real min() {
-		return std::numeric_limits<real>::min();
+		return std::numeric_limits<double>::min();
 	}
 	friend real copysign(real a, real b);
 	friend real max(real a, real b);

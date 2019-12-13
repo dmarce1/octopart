@@ -67,31 +67,33 @@ set(check2silo_header_files
 	octopart/delaunay.hpp	
 )
 
+add_library(
+   octopartlib
+    ${common_source_files}
+    ${common_header_files}
+)  
 
 add_hpx_executable(
   octopart
   DEPENDENCIES
-    Silo::silo Boost::boost
+    Silo::silo Boost::boost octopartlib
   SOURCES
     ${octopart_source_files}
-    ${common_source_files}
   HEADERS
     ${octopart_header_files}
-    ${common_header_files}
-)
+ )
 
 add_hpx_executable(
   check2silo
   DEPENDENCIES
-    Silo::silo Boost::boost
+    Silo::silo Boost::boost octopartlib
   SOURCES
     ${check2silo_source_files}
-    ${common_source_files}
   HEADERS
     ${check2silo_header_files}
-    ${common_header_files}
 )
 
+target_include_directories(octopartlib PUBLIC ${PROJECT_SOURCE_DIR})
 target_include_directories(octopart PUBLIC ${PROJECT_SOURCE_DIR})
 target_include_directories(check2silo PUBLIC ${PROJECT_SOURCE_DIR})
 

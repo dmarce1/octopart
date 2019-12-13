@@ -77,6 +77,7 @@ vect rotate_to(const vect &u, const vect &n) {
 #else
 	vect m;
 	vect l;
+#error 'fix this'
 	m = cross(u,n);
 	if( m.dot(m)==0.0) {
 		return u;
