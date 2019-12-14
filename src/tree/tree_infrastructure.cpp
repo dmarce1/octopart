@@ -11,7 +11,7 @@ tree::tree() {
 }
 
 tree::tree(std::vector<particle> &&these_parts, const range &box_, const range& root_box_) :
-		box(box_), nparts0(0), dead(false) {
+		box(box_), nparts0(0), dead(false), root_box(root_box_) {
 	const int sz = these_parts.size();
 
 	mtx = std::make_shared<hpx::lcos::local::mutex>();
