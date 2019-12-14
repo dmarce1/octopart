@@ -22,11 +22,12 @@ struct range {
 };
 
 
+range shift_range(const range& r, const vect&);
+vect range_span(const range&);
 bool in_range(const vect&, const range&);
 bool in_range(const range&, const range&);
 bool ranges_intersect(const range&, const range&);
 range range_around(const vect&, real);
-range shift_range(const range&, int, real);
 range expand_range(const range&, real);
 real range_volume(const range&);
 range null_range();

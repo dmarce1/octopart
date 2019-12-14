@@ -29,13 +29,15 @@ struct tree_attr {
 	}
 };
 
-struct neighbor_attr {
+struct sibling_attr {
 	hpx::id_type id;
 	range box;
+	vect pshift;
 	template<class Arc>
 	void serialize(Arc &&arc, unsigned) {
 		arc & id;
 		arc & box;
+		arc & pshift;
 	}
 };
 
@@ -49,8 +51,8 @@ class tree: public hpx::components::migration_support<hpx::components::component
 	std::vector<real> Ncond;
 	std::array<hpx::id_type, NCHILD> children;
 	std::array<int, NCHILD> child_loads;
-	std::vector<neighbor_attr> siblings;
-	std::vector<neighbor_attr> psiblings;
+	std::vector<sibling_attr> siblings;
+	std::vector<sibling_attr> psiblings;
 	hpx::id_type parent;
 	hpx::id_type self;
 	range root_box;

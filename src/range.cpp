@@ -7,6 +7,17 @@
 
 #include <octopart/range.hpp>
 
+
+range shift_range(const range& r_, const vect& v) {
+	range r;
+	for( int dim = 0; dim < NDIM; dim++) {
+		r.min[dim] = r_.min[dim] + v[dim];
+		r.max[dim] = r_.max[dim] + v[dim];
+	}
+	return r;
+}
+
+
 bool in_range(const vect &x, const range &r) {
 	for (int dim = 0; dim < NDIM; dim++) {
 		if (x[dim] < r.min[dim] || x[dim] >= r.max[dim]) {
@@ -16,13 +27,13 @@ bool in_range(const vect &x, const range &r) {
 	return true;
 }
 
-range shift_range(const range& r_, int d, real s) {
-	range r = r_;
-	r.min[d] += s;
-	r.max[d] += s;
-	return r;
+vect range_span(const range& r ) {
+	vect s;
+	for( int dim = 0; dim < NDIM; dim++) {
+		s[dim] = r.max[dim] - r.min[dim];
+	}
+	return s;
 }
-
 
 bool in_range(const range &a, const range &b) {
 	return in_range(a.min, b) && in_range(a.max, b);

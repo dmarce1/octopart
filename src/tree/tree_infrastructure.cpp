@@ -1,6 +1,7 @@
 #include <octopart/initialize.hpp>
 #include <octopart/options.hpp>
 #include <octopart/tree.hpp>
+#include <set>
 
 HPX_REGISTER_COMPONENT(hpx::components::component<tree>, tree);
 
@@ -155,26 +156,48 @@ void tree::form_tree(std::vector<hpx::id_type> nids, bool clear_sibs) {
 	std::vector<hpx::future<std::array<hpx::id_type, NCHILD>>> cfuts;
 	std::vector<tree_attr> attrs(nids.size());
 	std::vector<hpx::id_type> next_nids;
+	std::set<hpx::id_type> used;
 	for (int i = 0; i < nids.size(); i++) {
 		assert(nids[i] != hpx::invalid_id);
 		nfuts[i] = hpx::async<get_attributes_action>(nids[i]);
 	}
-	for (int i = 0; i < nids.size(); i++) {
-		attrs[i] = nfuts[i].get();
-	}
-	if( clear_sibs) {
+	if (clear_sibs) {
 		siblings.clear();
 	}
 	for (int i = 0; i < nids.size(); i++) {
-		if (ranges_intersect(attrs[i].box, box)) {
-			if (nids[i] != self) {
-				if (attrs[i].leaf) {
-					siblings.push_back( { nids[i], attrs[i].box });
-				} else {
-					cfuts.push_back(hpx::async<get_children_action>(nids[i]));
+		attrs[i] = nfuts[i].get();
+	}
+	for (int i = 0; i < nids.size(); i++) {
+		vect shift;
+		vect span;
+		span = range_span(root_box);
+#if(NDIM==3)
+		for (shift[2] = span[2]; shift[2] >= -span[2]; shift[2] -= span[2]) {
+#endif
+#if(NDIM>=2)
+		for (shift[1] = span[1]; shift[1] >= -span[1]; shift[1] -= span[1]) {
+#endif
+			for (shift[0] = span[0]; shift[0] >= -span[0]; shift[0] -= span[0]) {
+				if (opts.periodic || shift == vect(0)) {
+					const auto srange = shift_range(attrs[i].box, shift);
+					if (ranges_intersect(srange, box) && srange != box) {
+						if (attrs[i].leaf) {
+							siblings.push_back( { nids[i], attrs[i].box, shift });
+						} else {
+							if (used.find(nids[i]) == used.end()) {
+								cfuts.push_back(hpx::async<get_children_action>(nids[i]));
+								used.insert(nids[i]);
+							}
+						}
+					}
 				}
 			}
+#if(NDIM>=2)
 		}
+#endif
+#if(NDIM==3)
+		}
+#endif
 	}
 	if (leaf) {
 		for (auto &f : cfuts) {
@@ -182,12 +205,15 @@ void tree::form_tree(std::vector<hpx::id_type> nids, bool clear_sibs) {
 			next_nids.insert(next_nids.end(), list.begin(), list.end());
 		}
 		if (nids.size()) {
-			form_tree(std::move(next_nids),false);
+			form_tree(std::move(next_nids), false);
 		}
 	} else {
-		next_nids.resize(siblings.size());
-		for( int i = 0; i < siblings.size(); i++) {
-			next_nids[i] = std::move(siblings[i].id);
+		used.clear();
+		for (int i = 0; i < siblings.size(); i++) {
+			if (used.find(siblings[i].id) == used.end()) {
+				used.insert(siblings[i].id);
+				next_nids.push_back(std::move(siblings[i].id));
+			}
 		}
 		siblings.clear();
 		next_nids.insert(next_nids.end(), children.begin(), children.end());
@@ -200,6 +226,9 @@ void tree::form_tree(std::vector<hpx::id_type> nids, bool clear_sibs) {
 			futs[ci] = hpx::async<form_tree_action>(children[ci], next_nids, true);
 		}
 		hpx::wait_all(futs);
+	}
+	if (leaf) {
+		printf("%i\n", siblings.size());
 	}
 }
 

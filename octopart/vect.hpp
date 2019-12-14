@@ -20,9 +20,8 @@ class general_vect {
 	std::array<T, N> v;
 public:
 	general_vect() = default;
-	general_vect(std::array<real, N> a) :
-			v(a) {
-	}
+	general_vect(std::array<real, N> a);
+	general_vect(T a);
 	T& operator[](int i);
 	T operator[](int i) const;
 	general_vect operator-() const;
@@ -39,6 +38,19 @@ public:
 	}
 
 };
+
+
+template<class T, int N>
+inline general_vect<T,N>::general_vect(std::array<real, N> a) :
+		v(a) {
+}
+
+template<class T, int N>
+inline general_vect<T,N>::general_vect(T a) {
+	for (int i = 0; i < N; i++) {
+		v[i] = a;
+	}
+}
 
 template<class T, int N>
 inline bool general_vect<T, N>::operator==(const general_vect<T, N> &other) const {
