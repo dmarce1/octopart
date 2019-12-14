@@ -242,8 +242,10 @@ std::array<hpx::id_type, NCHILD> tree::get_children() const {
 	return children;
 }
 
-std::vector<gradient> tree::get_gradients(const range &big, const range &small) const {
+std::vector<gradient> tree::get_gradients(range big, range small, const vect &shift) const {
 	std::vector<gradient> gj;
+	big = shift_range(big, -shift);
+	small = shift_range(small, -shift);
 	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
 	for (int i = 0; i < nparts0; i++) {
 		const auto &pi = parts[i];
@@ -272,12 +274,15 @@ std::vector<vect> tree::get_particle_positions(range search, const vect &shift) 
 	return pos;
 }
 
-std::vector<particle> tree::get_particles(const range &big, const range &small) const {
+std::vector<particle> tree::get_particles(range big, range small, const vect &shift) const {
 	std::vector<particle> pj;
+	big = shift_range(big, -shift);
+	small = shift_range(small, -shift);
 	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
 	for (int i = 0; i < nparts0; i++) {
-		const auto &pi = parts[i];
+		auto pi = parts[i];
 		if (in_range(pi.x, big) || ranges_intersect(range_around(pi.x, pi.h), small)) {
+			pi.x = pi.x + shift;
 			pj.push_back(pi);
 		}
 	}
@@ -315,9 +320,9 @@ void tree::redistribute_workload(int current, int total) {
 	}
 }
 
-void tree::send_particles(const std::vector<particle> &pj, const vect& shift) {
+void tree::send_particles(const std::vector<particle> &pj, const vect &shift) {
 	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
-	for( auto p : pj) {
+	for (auto p : pj) {
 		p.x = p.x - shift;
 		new_parts.push_back(std::move(p));
 	}

@@ -65,7 +65,7 @@ void tree::compute_gradients() {
 			}
 		}
 		for (int i = 0; i < siblings.size(); i++) {
-			futs[i] = hpx::async<get_particles_action>(siblings[i].id, sbox, box);
+			futs[i] = hpx::async<get_particles_action>(siblings[i].id, sbox, box, siblings[i].pshift);
 		}
 		for (int i = 0; i < siblings.size(); i++) {
 			const auto these_parts = futs[i].get();
@@ -159,7 +159,7 @@ void tree::compute_time_derivatives(real dt) {
 				}
 			}
 			for (int i = 0; i < siblings.size(); i++) {
-				futs[i] = hpx::async<get_gradients_action>(siblings[i].id, sbox, box);
+				futs[i] = hpx::async<get_gradients_action>(siblings[i].id, sbox, box, siblings[i].pshift);
 			}
 			for (int i = 0; i < siblings.size(); i++) {
 				const auto these_grads = futs[i].get();

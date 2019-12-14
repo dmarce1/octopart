@@ -79,10 +79,10 @@ public:
 	tree_attr finish_drift();
 	tree_attr get_attributes() const;
 	std::array<hpx::id_type, NCHILD> get_children() const;
-	std::vector<gradient> get_gradients(const range&, const range&) const;
+	std::vector<gradient> get_gradients(range, range, const vect&) const;
 	hpx::id_type get_parent() const;
 	std::vector<vect> get_particle_positions(range, const vect&) const;
-	std::vector<particle> get_particles(const range&, const range&) const;
+	std::vector<particle> get_particles(range, range, const vect&) const;
 	void initialize(const std::string&);
 	void redistribute_workload(int, int);
 	void send_particles(const std::vector<particle>&, const vect&);
