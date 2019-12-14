@@ -31,7 +31,7 @@ bool options::process_options(int argc, char *argv[]) {
 	("help", "produce help message")          //
 	("config_file", po::value<std::string>(&config_file)->default_value(""), "configuration file") //
 	("dust_only", po::value<bool>(&dust_only)->default_value(false), "treat particles as dust")           //
-	("first_order_space", po::value<bool>(&first_order_space)->default_value(true), "use 1st order spatial scheme")           //
+	("first_order_space", po::value<bool>(&first_order_space)->default_value(false), "use 1st order spatial scheme")           //
 	("first_order_time", po::value<bool>(&first_order_time)->default_value(true), "use 1st order time integration")           //
 	("fpe", po::value<bool>(&fpe)->default_value(true), "enable floating point exceptions")           //
 	("problem", po::value<std::string>(&problem)->default_value("sod"), "problem name")           //

@@ -320,6 +320,7 @@ std::array<hpx::id_type, NCHILD> tree::get_children() const {
 
 std::vector<gradient> tree::get_gradients(const range &big, const range &small) const {
 	std::vector<gradient> gj;
+	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
 	for (int i = 0; i < nparts0; i++) {
 		const auto &pi = parts[i];
 		if (in_range(pi.x, big) || ranges_intersect(range_around(pi.x, pi.h), small)) {

@@ -2,7 +2,7 @@
 #include <octopart/options.hpp>
 #include <octopart/tree.hpp>
 
-int N = 100;
+int N = 32;
 int hpx_main(int argc, char *argv[]) {
 	real t = 0.0;
 	options opts;
@@ -26,6 +26,7 @@ int hpx_main(int argc, char *argv[]) {
 		tree::form_tree_action()(root, std::vector<hpx::id_type>());
 		if (!opts.dust_only) {
 			tree::compute_gradients_action()(root);
+			printf( "\n");
 			tree::compute_time_derivatives_action()(root, dt);
 			tree::compute_next_state_action()(root, dt);
 		}
