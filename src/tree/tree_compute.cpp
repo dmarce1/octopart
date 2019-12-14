@@ -198,36 +198,36 @@ void tree::compute_time_derivatives(real dt) {
 								VL = VL + grad_lim[i][dim] * dxi[dim];
 								VR = VR + grad_lim[i][dim] * dxj[dim];
 							}
-//							const auto dV_abs = abs(V_j, V_i);
-//							const auto delta_1 = dV_abs * psi1;
-//							const auto delta_2 = dV_abs * psi2;
-//							const auto V_min = min(V_i, V_j);
-//							const auto V_max = max(V_i, V_j);
-//							const auto V_bar_i = V_i + (V_j - V_i) * abs(xij - pi.x) / abs(pi.x - pj.x);
-//							const auto V_bar_j = V_j + (V_i - V_j) * abs(xij - pj.x) / abs(pi.x - pj.x);
-//							for (int f = 0; f < STATE_SIZE; f++) {
-//								real V_m;
-//								real V_p;
-//								if ((V_min[f] - delta_1[f]) * V_min[f] > 0.0) {
-//									V_m = V_min[f] - delta_1[f];
-//								} else {
-//									V_m = V_min[f] * abs(V_min[f]) / (abs(V_min[f]) + delta_1[f]);
-//								}
-//								if ((V_max[f] + delta_1[f]) * V_max[f] > 0.0) {
-//									V_p = V_max[f] + delta_1[f];
-//								} else {
-//									V_p = V_max[f] * abs(V_max[f]) / (abs(V_max[f]) + delta_1[f]);
-//								}
-//								if (V_i[f] == V_j[f]) {
-//									VR[f] = VL[f] = V_i[f];
-//								} else if (V_i[f] < V_j[f]) {
-//									VL[f] = max(V_m, min(V_bar_i[f] + delta_2[f], VL[f]));
-//									VR[f] = max(V_p, min(V_bar_j[f] - delta_2[f], VR[f]));
-//								} else {
-//									VL[f] = max(V_p, min(V_bar_i[f] - delta_2[f], VL[f]));
-//									VR[f] = max(V_m, min(V_bar_j[f] + delta_2[f], VR[f]));
-//								}
-//							}
+							const auto dV_abs = abs(V_j, V_i);
+							const auto delta_1 = dV_abs * psi1;
+							const auto delta_2 = dV_abs * psi2;
+							const auto V_min = min(V_i, V_j);
+							const auto V_max = max(V_i, V_j);
+							const auto V_bar_i = V_i + (V_j - V_i) * abs(xij - pi.x) / abs(pi.x - pj.x);
+							const auto V_bar_j = V_j + (V_i - V_j) * abs(xij - pj.x) / abs(pi.x - pj.x);
+							for (int f = 0; f < STATE_SIZE; f++) {
+								real V_m;
+								real V_p;
+								if ((V_min[f] - delta_1[f]) * V_min[f] >= 0.0) {
+									V_m = V_min[f] - delta_1[f];
+								} else {
+									V_m = V_min[f] * abs(V_min[f]) / (abs(V_min[f]) + delta_1[f]);
+								}
+								if ((V_max[f] + delta_1[f]) * V_max[f] >= 0.0) {
+									V_p = V_max[f] + delta_1[f];
+								} else {
+									V_p = V_max[f] * abs(V_max[f]) / (abs(V_max[f]) + delta_1[f]);
+								}
+								if (V_i[f] == V_j[f]) {
+									VR[f] = VL[f] = V_i[f];
+								} else if (V_i[f] < V_j[f]) {
+									VL[f] = max(V_m, min(V_bar_i[f] + delta_2[f], VL[f]));
+									VR[f] = max(V_p, min(V_bar_j[f] - delta_2[f], VR[f]));
+								} else {
+									VL[f] = max(V_p, min(V_bar_i[f] - delta_2[f], VL[f]));
+									VR[f] = max(V_m, min(V_bar_j[f] + delta_2[f], VR[f]));
+								}
+							}
 						}
 						const auto dx = pj.x - pi.x;
 						const auto uij = pi.u + (pj.u - pi.u) * (xij - pi.x).dot(dx) / (dx.dot(dx));
