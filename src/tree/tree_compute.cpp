@@ -17,14 +17,14 @@ constexpr int NNGB = 32;
 
 void tree::compute_drift(real dt) {
 	if (leaf) {
-		std::vector<std::vector<particle>> send_parts(neighbors.size());
+		std::vector<std::vector<particle>> send_parts(siblings.size());
 		int sz = parts.size();
 		for (int i = 0; i < sz; i++) {
 			auto &pi = parts[i];
 			pi.x = pi.x + pi.u * dt;
 			if (!in_range(pi.x, box)) {
-				for (int j = 0; j < neighbors.size(); j++) {
-					if (in_range(pi.x, neighbors[j].box)) {
+				for (int j = 0; j < siblings.size(); j++) {
+					if (in_range(pi.x, siblings[j].box)) {
 						send_parts[j].push_back(pi);
 						break;
 					}
@@ -35,9 +35,9 @@ void tree::compute_drift(real dt) {
 				parts.resize(sz);
 			}
 		}
-		std::vector<hpx::future<void>> futs(neighbors.size());
-		for (int j = 0; j < neighbors.size(); j++) {
-			futs[j] = hpx::async<send_particles_action>(neighbors[j].id, std::move(send_parts[j]));
+		std::vector<hpx::future<void>> futs(siblings.size());
+		for (int j = 0; j < siblings.size(); j++) {
+			futs[j] = hpx::async<send_particles_action>(siblings[j].id, std::move(send_parts[j]));
 		}
 		hpx::wait_all(futs);
 	} else {
@@ -57,17 +57,17 @@ void tree::compute_gradients() {
 		grad.resize(nparts0);
 		grad_lim.resize(nparts0);
 		range sbox = null_range();
-		std::vector<hpx::future<std::vector<particle>>> futs(neighbors.size());
+		std::vector<hpx::future<std::vector<particle>>> futs(siblings.size());
 		for (const auto &pi : parts) {
 			for (int dim = 0; dim < NDIM; dim++) {
 				sbox.min[dim] = min(sbox.min[dim], pi.x[dim] - pi.h);
 				sbox.max[dim] = max(sbox.max[dim], pi.x[dim] + pi.h);
 			}
 		}
-		for (int i = 0; i < neighbors.size(); i++) {
-			futs[i] = hpx::async<get_particles_action>(neighbors[i].id, sbox, box);
+		for (int i = 0; i < siblings.size(); i++) {
+			futs[i] = hpx::async<get_particles_action>(siblings[i].id, sbox, box);
 		}
-		for (int i = 0; i < neighbors.size(); i++) {
+		for (int i = 0; i < siblings.size(); i++) {
 			const auto these_parts = futs[i].get();
 			std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
 			parts.insert(parts.end(), these_parts.begin(), these_parts.end());
@@ -150,7 +150,7 @@ void tree::compute_time_derivatives(real dt) {
 	if (leaf) {
 		if (!opts.first_order_space) {
 			range sbox = null_range();
-			std::vector<hpx::future<std::vector<gradient>>> futs(neighbors.size());
+			std::vector<hpx::future<std::vector<gradient>>> futs(siblings.size());
 			for (int i = 0; i < nparts0; i++) {
 				const auto &pi = parts[i];
 				for (int dim = 0; dim < NDIM; dim++) {
@@ -158,10 +158,10 @@ void tree::compute_time_derivatives(real dt) {
 					sbox.max[dim] = max(sbox.max[dim], pi.x[dim] + pi.h);
 				}
 			}
-			for (int i = 0; i < neighbors.size(); i++) {
-				futs[i] = hpx::async<get_gradients_action>(neighbors[i].id, sbox, box);
+			for (int i = 0; i < siblings.size(); i++) {
+				futs[i] = hpx::async<get_gradients_action>(siblings[i].id, sbox, box);
 			}
-			for (int i = 0; i < neighbors.size(); i++) {
+			for (int i = 0; i < siblings.size(); i++) {
 				const auto these_grads = futs[i].get();
 				std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
 				for (int j = 0; j < these_grads.size(); j += 2) {
@@ -375,12 +375,12 @@ void tree::compute_interactions() {
 							sbox.max[dim] = max(sbox.max[dim], pi.x[dim] + pi.h);
 						}
 					}
-					std::vector<hpx::future<std::vector<vect>>> futs(neighbors.size());
-					for (int i = 0; i < neighbors.size(); i++) {
-						assert(neighbors[i].id != hpx::invalid_id);
-						futs[i] = hpx::async<get_particle_positions_action>(neighbors[i].id, sbox);
+					std::vector<hpx::future<std::vector<vect>>> futs(siblings.size());
+					for (int i = 0; i < siblings.size(); i++) {
+						assert(siblings[i].id != hpx::invalid_id);
+						futs[i] = hpx::async<get_particle_positions_action>(siblings[i].id, sbox);
 					}
-					for (int i = 0; i < neighbors.size(); i++) {
+					for (int i = 0; i < siblings.size(); i++) {
 						const auto tmp = futs[i].get();
 						pos.insert(pos.end(), tmp.begin(), tmp.end());
 					}

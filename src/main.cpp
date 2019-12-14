@@ -2,7 +2,7 @@
 #include <octopart/options.hpp>
 #include <octopart/tree.hpp>
 
-int N = 256;
+int N = 128;
 int hpx_main(int argc, char *argv[]) {
 	real t = 0.0;
 	options opts;
@@ -11,7 +11,7 @@ int hpx_main(int argc, char *argv[]) {
 	std::vector<particle> parts = cartesian_particle_set(N);
 	auto root = hpx::new_<tree>(hpx::find_here(), std::move(parts), null_range(), null_range()).get();
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
-	tree::form_tree_action()(root, std::vector<hpx::id_type>());
+	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
 	tree::compute_interactions_action()(root);
 	tree::initialize_action()(root, opts.problem);
 	tree::write_silo_action()(root, 0);
@@ -23,7 +23,7 @@ int hpx_main(int argc, char *argv[]) {
 		tree::compute_drift_action()(root, dt / 2.0);
 		tree::finish_drift_action()(root);
 		tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
-		tree::form_tree_action()(root, std::vector<hpx::id_type>());
+		tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
 		tree::compute_interactions_action()(root);
 		if (!opts.dust_only) {
 			tree::compute_gradients_action()(root);
@@ -33,7 +33,7 @@ int hpx_main(int argc, char *argv[]) {
 		tree::compute_drift_action()(root, dt);
 		tree::finish_drift_action()(root);
 		tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
-		tree::form_tree_action()(root, std::vector<hpx::id_type>());
+		tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
 		tree::compute_interactions_action()(root);
 		tree::write_silo_action()(root, i + 1);
 		t += dt;

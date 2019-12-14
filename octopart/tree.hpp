@@ -49,7 +49,8 @@ class tree: public hpx::components::migration_support<hpx::components::component
 	std::vector<real> Ncond;
 	std::array<hpx::id_type, NCHILD> children;
 	std::array<int, NCHILD> child_loads;
-	std::vector<neighbor_attr> neighbors;
+	std::vector<neighbor_attr> siblings;
+	std::vector<neighbor_attr> psiblings;
 	hpx::id_type parent;
 	hpx::id_type self;
 	range root_box;
@@ -72,10 +73,8 @@ public:
 	int compute_workload();
 	void create_children();
 	std::vector<particle> destroy();
-	void find_new_neighbors();
-	void form_tree(std::vector<hpx::id_type>);
+	void form_tree(std::vector<hpx::id_type>, bool = true);
 	tree_attr finish_drift();
-	void finish_tree(std::vector<hpx::id_type>);
 	tree_attr get_attributes() const;
 	std::array<hpx::id_type, NCHILD> get_children() const;
 	std::vector<gradient> get_gradients(const range&, const range&) const;
@@ -95,7 +94,8 @@ public:
 		arc & parts;
 		arc & children;
 		arc & child_loads;
-		arc & neighbors;
+		arc & siblings;
+		arc & psiblings;
 		arc & parent;
 		arc & self;
 		arc & root_box;
@@ -111,7 +111,6 @@ public:
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_interactions);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_workload);
 	HPX_DEFINE_COMPONENT_ACTION(tree,destroy);
-	HPX_DEFINE_COMPONENT_ACTION(tree,find_new_neighbors);
 	HPX_DEFINE_COMPONENT_ACTION(tree,form_tree);
 	HPX_DEFINE_COMPONENT_ACTION(tree,get_attributes);
 	HPX_DEFINE_COMPONENT_ACTION(tree,get_gradients);

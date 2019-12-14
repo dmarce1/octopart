@@ -34,6 +34,7 @@ bool options::process_options(int argc, char *argv[]) {
 	("first_order_space", po::value<bool>(&first_order_space)->default_value(false), "use 1st order spatial scheme")           //
 	("first_order_time", po::value<bool>(&first_order_time)->default_value(false), "use 1st order time integration")           //
 	("fpe", po::value<bool>(&fpe)->default_value(true), "enable floating point exceptions")           //
+	("periodic", po::value<bool>(&periodic)->default_value(true), "enable periodic boundary conditions")           //
 	("problem", po::value<std::string>(&problem)->default_value("sod"), "problem name")           //
 			;
 
@@ -66,4 +67,5 @@ bool options::process_options(int argc, char *argv[]) {
 	SHOW(first_order_space);
 	SHOW(first_order_time);
 	SHOW(fpe);
+	SHOW(periodic);
 }

@@ -16,6 +16,14 @@ bool in_range(const vect &x, const range &r) {
 	return true;
 }
 
+range shift_range(const range& r_, int d, real s) {
+	range r = r_;
+	r.min[d] += s;
+	r.max[d] += s;
+	return r;
+}
+
+
 bool in_range(const range &a, const range &b) {
 	return in_range(a.min, b) && in_range(a.max, b);
 }
