@@ -4,7 +4,9 @@ void drift(particle &p) {
 	p.m = 1.0;
 	p.e = 0.0;
 	const auto r = abs(p.x);
-	p.u = -p.x;
+	p.u = vect(0);
+	p.u[0] = 1.0;
+
 }
 
 void sod(particle &p) {

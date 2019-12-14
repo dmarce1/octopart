@@ -81,11 +81,11 @@ public:
 	std::array<hpx::id_type, NCHILD> get_children() const;
 	std::vector<gradient> get_gradients(const range&, const range&) const;
 	hpx::id_type get_parent() const;
-	std::vector<vect> get_particle_positions(const range&) const;
+	std::vector<vect> get_particle_positions(range, const vect&) const;
 	std::vector<particle> get_particles(const range&, const range&) const;
 	void initialize(const std::string&);
 	void redistribute_workload(int, int);
-	void send_particles(const std::vector<particle>&);
+	void send_particles(const std::vector<particle>&, const vect&);
 	void set_self_and_parent(const hpx::id_type, const hpx::id_type);
 	tree_stats tree_statistics() const;
 	void write_checkpoint(const std::string&) const;

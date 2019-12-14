@@ -259,13 +259,14 @@ hpx::id_type tree::get_parent() const {
 	return parent;
 }
 
-std::vector<vect> tree::get_particle_positions(const range &search) const {
+std::vector<vect> tree::get_particle_positions(range search, const vect &shift) const {
 	const int sz = parts.size();
 	std::vector<vect> pos;
+	search = shift_range(search, -shift);
 	for (int i = 0; i < sz; i++) {
 		const auto &pi = parts[i];
 		if (in_range(pi.x, search)) {
-			pos.push_back(parts[i].x);
+			pos.push_back(parts[i].x + shift);
 		}
 	}
 	return pos;
@@ -314,9 +315,12 @@ void tree::redistribute_workload(int current, int total) {
 	}
 }
 
-void tree::send_particles(const std::vector<particle> &pj) {
+void tree::send_particles(const std::vector<particle> &pj, const vect& shift) {
 	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
-	new_parts.insert(new_parts.end(), pj.begin(), pj.end());
+	for( auto p : pj) {
+		p.x = p.x - shift;
+		new_parts.push_back(std::move(p));
+	}
 }
 
 void tree::set_self_and_parent(const hpx::id_type s, const hpx::id_type p) {

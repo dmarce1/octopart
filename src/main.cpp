@@ -9,7 +9,12 @@ int hpx_main(int argc, char *argv[]) {
 	opts.process_options(argc, argv);
 //	std::vector<particle> parts = random_particle_set(N * N);
 	std::vector<particle> parts = cartesian_particle_set(opts.problem_size);
-	auto root = hpx::new_<tree>(hpx::find_here(), std::move(parts), null_range(), null_range()).get();
+	range box;
+	for (int dim = 0; dim < NDIM; dim++) {
+		box.min[dim] = -0.5;
+		box.max[dim] = +0.5;
+	}
+	auto root = hpx::new_<tree>(hpx::find_here(), std::move(parts), box, null_range()).get();
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
 	tree::compute_interactions_action()(root);

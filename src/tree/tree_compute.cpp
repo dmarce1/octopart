@@ -24,7 +24,7 @@ void tree::compute_drift(real dt) {
 			pi.x = pi.x + pi.u * dt;
 			if (!in_range(pi.x, box)) {
 				for (int j = 0; j < siblings.size(); j++) {
-					if (in_range(pi.x, siblings[j].box)) {
+					if (in_range(pi.x, shift_range(siblings[j].box, siblings[j].pshift))) {
 						send_parts[j].push_back(pi);
 						break;
 					}
@@ -37,7 +37,7 @@ void tree::compute_drift(real dt) {
 		}
 		std::vector<hpx::future<void>> futs(siblings.size());
 		for (int j = 0; j < siblings.size(); j++) {
-			futs[j] = hpx::async<send_particles_action>(siblings[j].id, std::move(send_parts[j]));
+			futs[j] = hpx::async<send_particles_action>(siblings[j].id, std::move(send_parts[j]), siblings[j].pshift);
 		}
 		hpx::wait_all(futs);
 	} else {
@@ -378,7 +378,7 @@ void tree::compute_interactions() {
 					std::vector<hpx::future<std::vector<vect>>> futs(siblings.size());
 					for (int i = 0; i < siblings.size(); i++) {
 						assert(siblings[i].id != hpx::invalid_id);
-						futs[i] = hpx::async<get_particle_positions_action>(siblings[i].id, sbox);
+						futs[i] = hpx::async<get_particle_positions_action>(siblings[i].id, sbox, siblings[i].pshift);
 					}
 					for (int i = 0; i < siblings.size(); i++) {
 						const auto tmp = futs[i].get();
