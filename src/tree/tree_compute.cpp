@@ -417,6 +417,7 @@ void tree::compute_interactions() {
 					}
 				}
 				Ncond[i] = condition_number(E, pi.B);
+				assert(Ncond[i]!=0.0);
 			}
 		}
 	} else {

@@ -85,5 +85,5 @@ static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 }
 
 flux_state riemann_solver(const primitive_state &VL, const primitive_state &VR) {
-	return HLLC(VL, VR);
+	return KT(VL, VR);
 }

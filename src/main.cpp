@@ -2,7 +2,7 @@
 #include <octopart/options.hpp>
 #include <octopart/tree.hpp>
 
-int N = 31;
+int N = 100;
 int hpx_main(int argc, char *argv[]) {
 	real t = 0.0;
 	options opts;
@@ -24,17 +24,18 @@ int hpx_main(int argc, char *argv[]) {
 		tree::finish_drift_action()(root);
 		tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 		tree::form_tree_action()(root, std::vector<hpx::id_type>());
+		tree::compute_interactions_action()(root);
 		if (!opts.dust_only) {
 			tree::compute_gradients_action()(root);
 			tree::compute_time_derivatives_action()(root, dt);
 			tree::compute_next_state_action()(root, dt);
 		}
-		tree::compute_drift_action()(root, dt / 2.0);
+		tree::compute_drift_action()(root, dt);
 		tree::finish_drift_action()(root);
 		tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 		tree::form_tree_action()(root, std::vector<hpx::id_type>());
-		tree::write_silo_action()(root, i + 1);
 		tree::compute_interactions_action()(root);
+		tree::write_silo_action()(root, i + 1);
 		t += dt;
 	}
 	return hpx::finalize();

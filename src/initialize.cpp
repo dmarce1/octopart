@@ -12,8 +12,8 @@ void sod(particle &p) {
 		p.m = 1.0 * p.V;
 		p.e = 2.5 * p.V;
 	} else {
-		p.m = 0.1 * p.V;
-		p.e = 0.125 * p.V;
+		p.m = 0.125 * p.V;
+		p.e = 0.25 * p.V;
 	}
 	for (int dim = 0; dim < NDIM; dim++) {
 		p.u[dim] = 0.0;
