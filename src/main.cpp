@@ -2,13 +2,13 @@
 #include <octopart/options.hpp>
 #include <octopart/tree.hpp>
 
-int N = 64;
+int N = 32;
 int hpx_main(int argc, char *argv[]) {
 	real t = 0.0;
 	options opts;
 	opts.process_options(argc, argv);
 //	std::vector<particle> parts = random_particle_set(N * N);
-	std::vector<particle> parts = cartesian_particle_set(N);
+	std::vector<particle> parts = cartesian_particle_set(opts.problem_size);
 	auto root = hpx::new_<tree>(hpx::find_here(), std::move(parts), null_range(), null_range()).get();
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);

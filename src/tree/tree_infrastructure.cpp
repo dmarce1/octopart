@@ -184,7 +184,7 @@ void tree::form_tree(std::vector<hpx::id_type> nids, bool clear_sibs) {
 						if (attrs[i].leaf) {
 							siblings.push_back( { nids[i], attrs[i].box, shift });
 						} else {
-							if (used.find(nids[i]) == used.end()) {
+							if (used.find(nids[i]) == used.end() && nids[i] != self) {
 								cfuts.push_back(hpx::async<get_children_action>(nids[i]));
 								used.insert(nids[i]);
 							}
@@ -226,9 +226,6 @@ void tree::form_tree(std::vector<hpx::id_type> nids, bool clear_sibs) {
 			futs[ci] = hpx::async<form_tree_action>(children[ci], next_nids, true);
 		}
 		hpx::wait_all(futs);
-	}
-	if (leaf) {
-		printf("%i\n", siblings.size());
 	}
 }
 

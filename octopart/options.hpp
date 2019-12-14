@@ -9,6 +9,7 @@ public:
 	bool first_order_time;
 	bool fpe;
 	bool periodic;
+	int problem_size;
 	std::string problem;
 
 	template<class Arc>
@@ -19,6 +20,8 @@ public:
 		arc & first_order_time;
 		arc & fpe;
 		arc & periodic;
+		arc & problem_size;
+		arc & problem;
 	}
 	static options global;
 	static options& get();
