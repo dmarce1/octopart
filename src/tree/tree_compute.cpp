@@ -1,6 +1,7 @@
 #include <octopart/math.hpp>
 #include <octopart/tree.hpp>
 #include <octopart/options.hpp>
+#include <octopart/profiler.hpp>
 
 #if(NDIM == 1 )
 constexpr real CV = 1.0;
@@ -18,21 +19,24 @@ constexpr int NNGB = 32;
 void tree::compute_drift(real dt) {
 	if (leaf) {
 		std::vector<std::vector<particle>> send_parts(siblings.size());
-		int sz = parts.size();
-		for (int i = 0; i < sz; i++) {
-			auto &pi = parts[i];
-			pi.x = pi.x + pi.u * dt;
-			if (!in_range(pi.x, box)) {
-				for (int j = 0; j < siblings.size(); j++) {
-					if (in_range(pi.x, shift_range(siblings[j].box, siblings[j].pshift))) {
-						send_parts[j].push_back(pi);
-						break;
+		{
+			PROFILE();
+			int sz = parts.size();
+			for (int i = 0; i < sz; i++) {
+				auto &pi = parts[i];
+				pi.x = pi.x + pi.u * dt;
+				if (!in_range(pi.x, box)) {
+					for (int j = 0; j < siblings.size(); j++) {
+						if (in_range(pi.x, shift_range(siblings[j].box, siblings[j].pshift))) {
+							send_parts[j].push_back(pi);
+							break;
+						}
 					}
+					sz--;
+					parts[i] = parts[sz];
+					i--;
+					parts.resize(sz);
 				}
-				sz--;
-				parts[i] = parts[sz];
-				i--;
-				parts.resize(sz);
 			}
 		}
 		std::vector<hpx::future<void>> futs(siblings.size());
@@ -72,67 +76,70 @@ void tree::compute_gradients() {
 			std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
 			parts.insert(parts.end(), these_parts.begin(), these_parts.end());
 		}
-		if (!opts.first_order_space) {
-			for (int i = 0; i < nparts0; i++) {
-				const auto &pi = parts[i];
-				primitive_state max_ngb;
-				primitive_state min_ngb;
-				const auto piV = pi.to_prim();
-				for (int j = 0; j < STATE_SIZE; j++) {
-					max_ngb[j] = min_ngb[j] = piV[j];
-					for (int dim = 0; dim < NDIM; dim++) {
-						grad[i][dim][j] = 0.0;
-					}
-				}
-				for (const auto &pj : parts) {
-					const auto r = abs(pi.x - pj.x);
-					const auto &h = pi.h;
-					if (r < h) {
-						const auto pjV = pj.to_prim();
+		{
+			PROFILE();
+			if (!opts.first_order_space) {
+				for (int i = 0; i < nparts0; i++) {
+					const auto &pi = parts[i];
+					primitive_state max_ngb;
+					primitive_state min_ngb;
+					const auto piV = pi.to_prim();
+					for (int j = 0; j < STATE_SIZE; j++) {
+						max_ngb[j] = min_ngb[j] = piV[j];
 						for (int dim = 0; dim < NDIM; dim++) {
-							real psi_a_j = 0.0;
-							for (int m = 0; m < NDIM; m++) {
-								psi_a_j += pi.B[dim][m] * (pj.x[m] - pi.x[m]) * W(r, h) * pi.V;
-							}
-							grad[i][dim] = grad[i][dim] + (pjV - piV) * psi_a_j;
+							grad[i][dim][j] = 0.0;
 						}
 					}
-				}
-				grad_lim[i] = grad[i];
-				real max_dx = 0.0;
-				for (const auto &pj : parts) {
-					const auto r = abs(pi.x - pj.x);
-					const auto &h = pi.h;
-					if (r < h) {
-						const auto pjV = pj.to_prim();
-						vect dx = pj.x - pi.x;
-						vect xij = pi.x + dx * (pi.h) / (pi.h + pj.h);
-						vect mid_dx = xij - pi.x;
-						max_dx = max(max_dx, sqrt(mid_dx.dot(mid_dx)));
-						max_ngb = max(max_ngb, pjV);
-						min_ngb = min(min_ngb, pjV);
+					for (const auto &pj : parts) {
+						const auto r = abs(pi.x - pj.x);
+						const auto &h = pi.h;
+						if (r < h) {
+							const auto pjV = pj.to_prim();
+							for (int dim = 0; dim < NDIM; dim++) {
+								real psi_a_j = 0.0;
+								for (int m = 0; m < NDIM; m++) {
+									psi_a_j += pi.B[dim][m] * (pj.x[m] - pi.x[m]) * W(r, h) * pi.V;
+								}
+								grad[i][dim] = grad[i][dim] + (pjV - piV) * psi_a_j;
+							}
+						}
 					}
-				}
-				const auto beta = max(1.0, min(2.0, 100.0 / Ncond[i]));
-				real alpha;
-				for (int k = 0; k < STATE_SIZE; k++) {
-					const auto dmax_ngb = max_ngb[k] - piV[k];
-					const auto dmin_ngb = piV[k] - min_ngb[k];
-					real grad_abs = 0.0;
-					for (int dim = 0; dim < NDIM; dim++) {
-						grad_abs += grad_lim[i][dim][k] * grad_lim[i][dim][k];
+					grad_lim[i] = grad[i];
+					real max_dx = 0.0;
+					for (const auto &pj : parts) {
+						const auto r = abs(pi.x - pj.x);
+						const auto &h = pi.h;
+						if (r < h) {
+							const auto pjV = pj.to_prim();
+							vect dx = pj.x - pi.x;
+							vect xij = pi.x + dx * (pi.h) / (pi.h + pj.h);
+							vect mid_dx = xij - pi.x;
+							max_dx = max(max_dx, sqrt(mid_dx.dot(mid_dx)));
+							max_ngb = max(max_ngb, pjV);
+							min_ngb = min(min_ngb, pjV);
+						}
 					}
-					grad_abs = sqrt(grad_abs);
-					const real den = grad_abs * max_dx;
-					if (den == 0.0) {
-						alpha = 1.0;
-					} else {
-						alpha = min(1.0, beta * min(dmax_ngb / den, dmin_ngb / den));
-					}
-					for (int dim = 0; dim < NDIM; dim++) {
-						grad_lim[i][dim][k] = grad_lim[i][dim][k] * alpha;
-					}
+					const auto beta = max(1.0, min(2.0, 100.0 / Ncond[i]));
+					real alpha;
+					for (int k = 0; k < STATE_SIZE; k++) {
+						const auto dmax_ngb = max_ngb[k] - piV[k];
+						const auto dmin_ngb = piV[k] - min_ngb[k];
+						real grad_abs = 0.0;
+						for (int dim = 0; dim < NDIM; dim++) {
+							grad_abs += grad_lim[i][dim][k] * grad_lim[i][dim][k];
+						}
+						grad_abs = sqrt(grad_abs);
+						const real den = grad_abs * max_dx;
+						if (den == 0.0) {
+							alpha = 1.0;
+						} else {
+							alpha = min(1.0, beta * min(dmax_ngb / den, dmin_ngb / den));
+						}
+						for (int dim = 0; dim < NDIM; dim++) {
+							grad_lim[i][dim][k] = grad_lim[i][dim][k] * alpha;
+						}
 
+					}
 				}
 			}
 		}
@@ -170,6 +177,7 @@ void tree::compute_time_derivatives(real dt) {
 				}
 			}
 		}
+		PROFILE();
 		constexpr auto psi1 = 0.5;
 		constexpr auto psi2 = 0.25;
 		dudt.resize(nparts0);
@@ -184,8 +192,7 @@ void tree::compute_time_derivatives(real dt) {
 				if (i != j) {
 					const auto &pj = parts[j];
 					const auto r = abs(pj.x - pi.x);
-					const auto h = pi.h;
-					if (r < h) {
+					if (r < std::max(pi.h, pj.h)) {
 						const auto xij = pi.x + (pj.x - pi.x) * pi.h / (pi.h + pj.h);
 						const auto V_i = pi.to_prim();
 						const auto V_j = pj.to_prim();
@@ -272,6 +279,7 @@ void tree::compute_time_derivatives(real dt) {
 real tree::compute_timestep() const {
 	real tmin = real::max();
 	if (leaf) {
+		PROFILE();
 		for (int i = 0; i < nparts0; i++) {
 			const auto &pi = parts[i];
 			for (const auto &pj : parts) {
@@ -315,60 +323,63 @@ void tree::compute_interactions() {
 			}
 			const auto hmax = box.max[0] - box.min[0];
 			for (int pass = 0; pass < 2; pass++) {
-				for (auto &pi : parts) {
-					bool done = false;
-					auto &h = pi.h;
-					real max_dh = real::max();
-					int iters = 0;
-					real dh = pi.h / 2.0;
-					do {
-						real N = 0.0;
-						real Np = 0.0;
-						real dNdh;
-						const auto eps = 0.1 * abs(dh);
-						for (const auto &pj : pos) {
-							if (pj != pi.x) {
-								const auto r = abs(pj - pi.x);
-								if (r < h) {
-									N += CV * pow(h, NDIM) * W(r, h);
-								}
-								if (r < h + eps) {
-									Np += CV * pow(h + eps, NDIM) * W(r, h + eps);
+				{
+					PROFILE();
+					for (auto &pi : parts) {
+						bool done = false;
+						auto &h = pi.h;
+						real max_dh = real::max();
+						int iters = 0;
+						real dh = pi.h / 2.0;
+						do {
+							real N = 0.0;
+							real Np = 0.0;
+							real dNdh;
+							const auto eps = 0.1 * abs(dh);
+							for (const auto &pj : pos) {
+								if (pj != pi.x) {
+									const auto r = abs(pj - pi.x);
+									if (r < h) {
+										N += CV * pow(h, NDIM) * W(r, h);
+									}
+									if (r < h + eps) {
+										Np += CV * pow(h + eps, NDIM) * W(r, h + eps);
+									}
 								}
 							}
-						}
-						if (abs(NNGB - N) < 1e-6) {
-							done = true;
-						} else {
-							dNdh = (Np - N) / eps;
-							if (dNdh == 0.0) {
-								h *= 2.0;
+							if (abs(NNGB - N) < 1e-6) {
+								done = true;
 							} else {
-								dh = -(N - NNGB) / dNdh;
-								dh = min(h, max(-h / 2.0, dh));
-								max_dh = min(0.99 * max_dh, abs(dh));
-								dh = copysign(min(max_dh, abs(dh)), dh);
-								h += 0.99 * dh;
-							}
-						}
-						iters++;
-						if (pass == 0) {
-							if (iters > 100 || h > hmax) {
-								break;
-							}
-						} else {
-							if (iters > 50) {
-								printf("%e %e %e %e\n", h.get(), dh.get(), max_dh.get(), N.get());
-								if (iters == 100) {
-									printf("Smoothing length failed to converge\n");
-									abort();
+								dNdh = (Np - N) / eps;
+								if (dNdh == 0.0) {
+									h *= 2.0;
+								} else {
+									dh = -(N - NNGB) / dNdh;
+									dh = min(h, max(-h / 2.0, dh));
+									max_dh = min(0.99 * max_dh, abs(dh));
+									dh = copysign(min(max_dh, abs(dh)), dh);
+									h += 0.99 * dh;
 								}
 							}
-						}
-					} while (!done);
+							iters++;
+							if (pass == 0) {
+								if (iters > 100 || h > hmax) {
+									break;
+								}
+							} else {
+								if (iters > 50) {
+									printf("%e %e %e %e\n", h.get(), dh.get(), max_dh.get(), N.get());
+									if (iters == 100) {
+										printf("Smoothing length failed to converge\n");
+										abort();
+									}
+								}
+							}
+						} while (!done);
+					}
 				}
-				range sbox = null_range();
 				if (pass == 0) {
+					range sbox = null_range();
 					for (const auto &pi : parts) {
 						for (int dim = 0; dim < NDIM; dim++) {
 							sbox.min[dim] = min(sbox.min[dim], pi.x[dim] - pi.h);
@@ -386,38 +397,41 @@ void tree::compute_interactions() {
 					}
 				}
 			}
-			Ncond.resize(parts.size());
-			for (int i = 0; i < parts.size(); i++) {
-				auto &pi = parts[i];
-				pi.V = 0.0;
-				for (const auto &pjx : pos) {
-					const auto r = abs(pi.x - pjx);
-					const auto h = pi.h;
-					if (r < h) {
-						pi.V += W(r, h);
+			{
+				PROFILE();
+				Ncond.resize(parts.size());
+				for (int i = 0; i < parts.size(); i++) {
+					auto &pi = parts[i];
+					pi.V = 0.0;
+					for (const auto &pjx : pos) {
+						const auto r = abs(pi.x - pjx);
+						const auto h = pi.h;
+						if (r < h) {
+							pi.V += W(r, h);
+						}
 					}
-				}
-				pi.V = 1.0 / pi.V;
-				std::array<vect, NDIM> E, B;
-				for (int n = 0; n < NDIM; n++) {
-					for (int m = 0; m < NDIM; m++) {
-						E[n][m] = 0.0;
+					pi.V = 1.0 / pi.V;
+					std::array<vect, NDIM> E, B;
+					for (int n = 0; n < NDIM; n++) {
+						for (int m = 0; m < NDIM; m++) {
+							E[n][m] = 0.0;
+						}
 					}
-				}
-				for (const auto &pjx : pos) {
-					const auto r = abs(pi.x - pjx);
-					const auto h = pi.h;
-					if (r < h) {
-						const auto psi_j = W(r, h) * pi.V;
-						for (int n = 0; n < NDIM; n++) {
-							for (int m = 0; m < NDIM; m++) {
-								E[n][m] += (pjx[n] - pi.x[n]) * (pjx[m] - pi.x[m]) * psi_j;
+					for (const auto &pjx : pos) {
+						const auto r = abs(pi.x - pjx);
+						const auto h = pi.h;
+						if (r < h) {
+							const auto psi_j = W(r, h) * pi.V;
+							for (int n = 0; n < NDIM; n++) {
+								for (int m = 0; m < NDIM; m++) {
+									E[n][m] += (pjx[n] - pi.x[n]) * (pjx[m] - pi.x[m]) * psi_j;
+								}
 							}
 						}
 					}
+					Ncond[i] = condition_number(E, pi.B);
+					assert(Ncond[i] != 0.0);
 				}
-				Ncond[i] = condition_number(E, pi.B);
-				assert(Ncond[i]!=0.0);
 			}
 		}
 	} else {
@@ -431,6 +445,7 @@ void tree::compute_interactions() {
 
 void tree::compute_next_state(real dt) {
 	if (leaf) {
+		PROFILE();
 		parts.resize(nparts0);
 		for (int i = 0; i < nparts0; i++) {
 			auto U = parts[i].to_con();

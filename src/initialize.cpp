@@ -6,7 +6,8 @@ void drift(particle &p) {
 	p.e = 0.0;
 	const auto r = abs(p.x);
 	p.u = vect(0);
-	p.u[0] = 1.0;
+	p.u[0] = rand_unit_box();
+	p.u[1] = rand_unit_box();
 
 }
 
@@ -15,13 +16,13 @@ void kh(particle &p) {
 		p.u[dim] = rand_unit_box() * 0.01;
 	}
 	if (abs(p.x[1]) > 0.25) {
-		p.u[0] += -0.5;
-		p.m = p.V;
-		p.e = p.V + p.u.dot(p.u) * 0.5 * p.m;
-	} else {
 		p.u[0] += +0.5;
+		p.m = p.V;
+		p.e = 6.25 * p.V + p.u.dot(p.u) * 0.5 * p.m;
+	} else {
+		p.u[0] += -0.5;
 		p.m = 2.0 * p.V;
-		p.e = p.V + p.u.dot(p.u) * 0.5 * p.m; ;
+		p.e = 6.25 * p.V + p.u.dot(p.u) * 0.5 * p.m; ;
 	}
 }
 

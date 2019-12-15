@@ -11,7 +11,7 @@
 #include "vect.hpp"
 
 static constexpr int STATE_SIZE = NDIM + 2;
-static constexpr real FGAMMA = 7.0 / 5.0;
+
 
 using state = general_vect<real, STATE_SIZE>;
 

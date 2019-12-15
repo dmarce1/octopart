@@ -1,5 +1,6 @@
 #include <hpx/hpx_init.hpp>
 #include <octopart/options.hpp>
+#include <octopart/profiler.hpp>
 #include <octopart/tree.hpp>
 
 int N = 32;
@@ -20,11 +21,12 @@ int hpx_main(int argc, char *argv[]) {
 	tree::compute_interactions_action()(root);
 	tree::initialize_action()(root, opts.problem);
 	tree::write_silo_action()(root, 0);
-	for (int i = 0; i < 10000; i++) {
+	for (int i = 0; t < opts.tmax; i++) {
 		auto dt = tree::compute_timestep_action()(root);
 		dt *= 0.4;
 		tree_stats s = tree::tree_statistics_action()(root);
-		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %16e\n", i, t.get(), dt.get(), s.nparts, s.nleaves, s.max_level, s.mass);
+		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %16e\n", i, t.get(), dt.get(), s.nparts, s.nleaves, s.max_level,
+				s.mass.get());
 		if (!opts.dust_only) {
 			tree::compute_gradients_action()(root);
 			tree::compute_time_derivatives_action()(root, dt);
@@ -38,6 +40,9 @@ int hpx_main(int argc, char *argv[]) {
 		tree::write_silo_action()(root, i + 1);
 		t += dt;
 	}
+	FILE *fp = fopen("profile.txt", "wt");
+	profiler_output(fp);
+	fclose(fp);
 	return hpx::finalize();
 
 }

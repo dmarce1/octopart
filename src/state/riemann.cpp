@@ -1,4 +1,5 @@
 #include <octopart/math.hpp>
+#include <octopart/options.hpp>
 #include <octopart/state.hpp>
 
 flux_state KT(const primitive_state &VL, const primitive_state &VR) {
@@ -15,6 +16,8 @@ flux_state KT(const primitive_state &VL, const primitive_state &VR) {
 }
 
 static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
+	static const auto opts = options::get();
+	const real fgamma = opts.fgamma;
 	flux_state F;
 	flux_state FR;
 	flux_state FL;
@@ -40,12 +43,12 @@ static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 		if (P0 < PR) {
 			qR = 1.0;
 		} else {
-			qR = sqrt(1.0 + (FGAMMA + 1.0) / (2.0 * FGAMMA) * (P0 / PR - 1.0));
+			qR = sqrt(1.0 + (fgamma + 1.0) / (2.0 * fgamma) * (P0 / PR - 1.0));
 		}
 		if (P0 < PL) {
 			qL = 1.0;
 		} else {
-			qL = sqrt(1.0 + (FGAMMA + 1.0) / (2.0 * FGAMMA) * (P0 / PL - 1.0));
+			qL = sqrt(1.0 + (fgamma + 1.0) / (2.0 * fgamma) * (P0 / PL - 1.0));
 		}
 		const auto sR = uR + aR * qR;
 		const auto sL = uL - aL * qL;
@@ -80,8 +83,8 @@ static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 				F = FR + (U0 - UR) * sR;
 			}
 		}
-		return F;
 	}
+	return F;
 }
 
 

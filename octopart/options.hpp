@@ -1,4 +1,5 @@
 #pragma once
+#include <octopart/real.hpp>
 #include <string>
 
 class options {
@@ -10,6 +11,8 @@ public:
 	bool fpe;
 	bool periodic;
 	int problem_size;
+	double fgamma;
+	double tmax;
 	std::string problem;
 
 	template<class Arc>
@@ -21,6 +24,8 @@ public:
 		arc & fpe;
 		arc & periodic;
 		arc & problem_size;
+		arc & fgamma;
+		arc & tmax;
 		arc & problem;
 	}
 	static options global;

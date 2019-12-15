@@ -27,6 +27,7 @@ set(common_source_files
 	src/rand.cpp
 	src/state/conserved.cpp
 	src/state/flux.cpp
+	src/options.cpp
 	src/state/primitive.cpp
 	src/state/riemann.cpp
 )
@@ -34,8 +35,8 @@ set(common_source_files
 set(octopart_source_files
 	src/initialize.cpp
 	src/main.cpp
-	src/options.cpp
 	src/range.cpp
+	src/profiler.cpp
 	src/tree/tree_infrastructure.cpp
 	src/tree/tree_compute.cpp
 	src/tree/tree_stats.cpp
@@ -48,6 +49,7 @@ set(check2silo_source_files
 
 set(common_header_files
 	octopart/dim.hpp
+	octopart/options.hpp
 	octopart/particle.hpp
 	octopart/real.hpp
 	octopart/state.hpp
@@ -56,7 +58,6 @@ set(common_header_files
 
 set(octopart_header_files
 	octopart/initialize.hpp
-	octopart/options.hpp
 	octopart/range.hpp
 	octopart/rand.hpp
 	octopart/tree.hpp

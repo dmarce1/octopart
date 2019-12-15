@@ -31,12 +31,14 @@ bool options::process_options(int argc, char *argv[]) {
 	("help", "produce help message")          //
 	("config_file", po::value<std::string>(&config_file)->default_value(""), "configuration file") //
 	("dust_only", po::value<bool>(&dust_only)->default_value(false), "treat particles as dust")           //
+	("fgamma", po::value<double>(&fgamma)->default_value(7.0/5.0), "gamma for fluid gamma law")           //
 	("first_order_space", po::value<bool>(&first_order_space)->default_value(false), "use 1st order spatial scheme")           //
 	("first_order_time", po::value<bool>(&first_order_time)->default_value(false), "use 1st order time integration")           //
 	("fpe", po::value<bool>(&fpe)->default_value(true), "enable floating point exceptions")           //
 	("periodic", po::value<bool>(&periodic)->default_value(false), "enable periodic boundary conditions")           //
 	("problem_size", po::value<int>(&problem_size)->default_value(100), "problem size")           //
 	("problem", po::value<std::string>(&problem)->default_value("sod"), "problem name")           //
+	("tmax", po::value<double>(&tmax)->default_value(1.0), "time to end simulation")           //
 			;
 
 	hpx::program_options::variables_map vm;
@@ -65,9 +67,11 @@ bool options::process_options(int argc, char *argv[]) {
 	hpx::wait_all(futs);
 #define SHOW( opt ) std::cout << std::string( #opt ) << " = " << std::to_string(opt) << '\n';
 	SHOW(dust_only);
+	SHOW(fgamma);
 	SHOW(first_order_space);
 	SHOW(first_order_time);
 	SHOW(fpe);
 	SHOW(periodic);
 	SHOW(problem_size);
+	SHOW(tmax);
 }
