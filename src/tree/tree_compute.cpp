@@ -76,6 +76,25 @@ void tree::compute_gradients() {
 			std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
 			parts.insert(parts.end(), these_parts.begin(), these_parts.end());
 		}
+		if (opts.reflecting) {
+			for (int i = 0; i < 2 * NDIM; i++) {
+				const auto dim = i / 2;
+				range this_box;
+				real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
+				if (axis == (i % 2 ? box.max[dim] : box.min[dim])) {
+					this_box = reflect_range(sbox, dim, axis);
+					if (ranges_intersect(this_box, box)) {
+						for ( auto pj : parts) {
+							if (in_range(pj.x, this_box)) {
+								pj.x[dim] = 2.0 * axis - pj.x[dim];
+								pj.u[dim] = -pj.u[dim];
+								parts.push_back(pj);
+							}
+						}
+					}
+				}
+			}
+		}
 		{
 			PROFILE();
 			if (!opts.first_order_space) {
@@ -174,6 +193,30 @@ void tree::compute_time_derivatives(real dt) {
 				for (int j = 0; j < these_grads.size(); j += 2) {
 					grad.push_back(these_grads[j]);
 					grad_lim.push_back(these_grads[j + 1]);
+				}
+			}
+			if (opts.reflecting) {
+				for (int i = 0; i < 2 * NDIM; i++) {
+					const auto dim = i / 2;
+					range this_box;
+					real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
+					if (axis == (i % 2 ? box.max[dim] : box.min[dim])) {
+						this_box = reflect_range(sbox, dim, axis);
+						if (ranges_intersect(this_box, box)) {
+							for( int j = 0; j < parts.size(); j++) {
+								if (in_range(parts[j].x, this_box)) {
+									auto g = grad[j];
+									auto gl = grad_lim[j];
+									g[dim] = -g[dim];
+									gl[dim] = -gl[dim];
+									g[dim].vel()[dim] = -g[dim].vel()[dim];
+									gl[dim].vel()[dim] = -gl[dim].vel()[dim];
+									grad.push_back(g);
+									grad_lim.push_back(gl);
+								}
+							}
+						}
+					}
 				}
 			}
 		}
@@ -398,6 +441,7 @@ void tree::compute_interactions() {
 						pos.insert(pos.end(), tmp.begin(), tmp.end());
 					}
 					if (opts.reflecting) {
+						const auto sz = pos.size();
 						for (int i = 0; i < 2 * NDIM; i++) {
 							const auto dim = i / 2;
 							range this_box;
@@ -405,9 +449,10 @@ void tree::compute_interactions() {
 							if (axis == (i % 2 ? box.max[dim] : box.min[dim])) {
 								this_box = reflect_range(sbox, dim, axis);
 								if (ranges_intersect(this_box, box)) {
-									for (const auto &pi : parts) {
-										if (in_range(pi.x, this_box)) {
-											auto this_x = pi.x;
+									for( int j = 0; j < sz; j++) {
+										const auto pix = pos[j];
+										if (in_range(pix, this_box)) {
+											auto this_x = pix;
 											this_x[dim] = 2.0 * axis - this_x[dim];
 											pos.push_back(this_x);
 										}
