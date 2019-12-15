@@ -196,7 +196,7 @@ void tree::compute_time_derivatives(real dt) {
 							const auto dxj = xij - pj.x;
 							for (int dim = 0; dim < NDIM; dim++) {
 								VL = VL + grad_lim[i][dim] * dxi[dim];
-								VR = VR + grad_lim[i][dim] * dxj[dim];
+								VR = VR + grad_lim[j][dim] * dxj[dim];
 							}
 							const auto dV_abs = abs(V_j, V_i);
 							const auto delta_1 = dV_abs * psi1;
