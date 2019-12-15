@@ -22,9 +22,20 @@ void sod(particle &p) {
 	}
 }
 
+void blast(particle &p) {
+	const auto r = abs(p.x.dot(p.x));
+	p.m = p.V;
+	p.e = exp(-1000.0 * r) * p.V;
+	for (int dim = 0; dim < NDIM; dim++) {
+		p.u[dim] = 0.0;
+	}
+}
+
 init_func_type get_initialization_function(const std::string &name) {
 	if (name == "drift") {
 		return drift;
+	} else if (name == "blast") {
+		return blast;
 	} else if (name == "sod") {
 		return sod;
 	} else {

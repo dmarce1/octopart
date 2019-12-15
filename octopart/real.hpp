@@ -90,6 +90,7 @@ public:
 	friend real max(real a, real b);
 	friend real min(real a, real b);
 	friend real abs(real a);
+	friend real exp(real a);
 	friend real sqrt(real a);
 	friend real pow(real a, real b);
 	friend real operator+(double a, real b);
@@ -120,6 +121,10 @@ inline real copysign(real a, real b) {
 
 inline real pow(real a, real b) {
 	return real(std::pow(a.r, b.r));
+}
+
+inline real exp(real a) {
+	return real(std::exp(a.r));
 }
 
 inline real sqrt(real a) {

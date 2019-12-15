@@ -222,9 +222,9 @@ void tree::compute_time_derivatives(real dt) {
 									VR[f] = VL[f] = V_i[f];
 								} else if (V_i[f] < V_j[f]) {
 									VL[f] = max(V_m, min(V_bar_i[f] + delta_2[f], VL[f]));
-									VR[f] = max(V_p, min(V_bar_j[f] - delta_2[f], VR[f]));
+									VR[f] = min(V_p, max(V_bar_j[f] - delta_2[f], VR[f]));
 								} else {
-									VL[f] = max(V_p, min(V_bar_i[f] - delta_2[f], VL[f]));
+									VL[f] = min(V_p, max(V_bar_i[f] - delta_2[f], VL[f]));
 									VR[f] = max(V_m, min(V_bar_j[f] + delta_2[f], VR[f]));
 								}
 							}
