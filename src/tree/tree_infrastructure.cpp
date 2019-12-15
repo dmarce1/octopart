@@ -347,9 +347,17 @@ tree_stats tree::tree_statistics() const {
 	tree_stats stats;
 	stats.max_level = 0;
 	stats.nnodes = 1;
+	stats.mass = 0.0;
+	stats.energy = 0.0;
+	stats.momentum = vect(0);
 	if (leaf) {
 		stats.nparts = parts.size();
 		stats.nleaves = 1;
+		for( const auto& p : parts) {
+			stats.mass += p.m;
+			stats.energy += p.e;
+			stats.momentum = stats.momentum + p.u * p.m;
+		}
 	} else {
 		stats.nparts = 0;
 		stats.nleaves = 0;
@@ -363,6 +371,9 @@ tree_stats tree::tree_statistics() const {
 			stats.nleaves += cstat.nleaves;
 			stats.nnodes += cstat.nnodes;
 			stats.nparts += cstat.nparts;
+			stats.energy += cstat.energy;
+			stats.mass += cstat.mass;
+			stats.momentum = stats.momentum + cstat.momentum;
 		}
 	}
 	return stats;

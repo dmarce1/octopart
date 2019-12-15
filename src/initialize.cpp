@@ -1,4 +1,5 @@
 #include <octopart/initialize.hpp>
+#include <octopart/rand.hpp>
 
 void drift(particle &p) {
 	p.m = 1.0;
@@ -7,6 +8,21 @@ void drift(particle &p) {
 	p.u = vect(0);
 	p.u[0] = 1.0;
 
+}
+
+void kh(particle &p) {
+	for (int dim = 0; dim < NDIM; dim++) {
+		p.u[dim] = rand_unit_box() * 0.01;
+	}
+	if (abs(p.x[1]) > 0.25) {
+		p.u[0] += -0.5;
+		p.m = p.V;
+		p.e = p.V + p.u.dot(p.u) * 0.5 * p.m;
+	} else {
+		p.u[0] += +0.5;
+		p.m = 2.0 * p.V;
+		p.e = p.V + p.u.dot(p.u) * 0.5 * p.m; ;
+	}
 }
 
 void sod(particle &p) {
@@ -23,9 +39,9 @@ void sod(particle &p) {
 }
 
 void blast(particle &p) {
-	const auto r = abs(p.x.dot(p.x));
+	const auto r = sqrt(p.x.dot(p.x));
 	p.m = p.V;
-	p.e = exp(-1000.0 * r) * p.V;
+	p.e = exp(-500.0 * r) * p.V;
 	for (int dim = 0; dim < NDIM; dim++) {
 		p.u[dim] = 0.0;
 	}
@@ -34,6 +50,8 @@ void blast(particle &p) {
 init_func_type get_initialization_function(const std::string &name) {
 	if (name == "drift") {
 		return drift;
+	} else if (name == "kh") {
+		return kh;
 	} else if (name == "blast") {
 		return blast;
 	} else if (name == "sod") {

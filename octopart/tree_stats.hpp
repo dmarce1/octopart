@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <octopart/vect.hpp>
 
 
 struct tree_stats {
@@ -8,6 +9,9 @@ struct tree_stats {
 	int nnodes;
 	int nleaves;
 	int nparts;
+	real mass;
+	real energy;
+	vect momentum;
 	void print() const;
 	template<class Arc>
 	void serialize(Arc &&arc, unsigned) {
@@ -15,5 +19,8 @@ struct tree_stats {
 		arc & nnodes;
 		arc & nleaves;
 		arc & nparts;
+		arc & mass;
+		arc & energy;
+		arc & momentum;
 	}
 };
