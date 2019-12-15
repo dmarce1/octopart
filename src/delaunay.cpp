@@ -23,8 +23,8 @@ std::vector<delauny_region> compute_delaunay_regions(const std::vector<particle>
 	});
 	for (int i = 0; i < sz - 1; i++) {
 		delauny_region &r = regions[i];
-		r[0] = ptrs[i]->x[0];
-		r[1] = ptrs[i + 1]->x[0];
+		r[0] = i;
+		r[1] = i + 1;
 	}
 #else
 	FILE *fp = fopen("points.dat", "wt");

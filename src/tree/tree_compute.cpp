@@ -231,17 +231,17 @@ void tree::compute_time_derivatives(real dt) {
 						}
 						const auto dx = pj.x - pi.x;
 						const auto uij = pi.u + (pj.u - pi.u) * (xij - pi.x).dot(dx) / (dx.dot(dx));
-						vect psi_a_j;
-						vect psi_a_i;
+						vect psi_a_ij;
+						vect psi_a_ji;
 						for (int n = 0; n < NDIM; n++) {
-							psi_a_i[n] = 0.0;
-							psi_a_j[n] = 0.0;
+							psi_a_ij[n] = 0.0;
+							psi_a_ji[n] = 0.0;
 							for (int m = 0; m < NDIM; m++) {
-								psi_a_i[n] = psi_a_i[n] + pi.B[n][m] * (pj.x[m] - pi.x[m]) * W(r, h) * pi.V;
-								psi_a_j[n] = psi_a_j[n] + pj.B[n][m] * (pi.x[m] - pj.x[m]) * W(r, h) * pj.V;
+								psi_a_ij[n] = psi_a_ij[n] + pj.B[n][m] * (pi.x[m] - pj.x[m]) * W(r, pj.h) * pj.V;
+								psi_a_ji[n] = psi_a_ji[n] + pi.B[n][m] * (pj.x[m] - pi.x[m]) * W(r, pi.h) * pi.V;
 							}
 						}
-						const auto da = psi_a_i * pi.V - psi_a_j * pj.V;
+						const auto da = psi_a_ji * pi.V - psi_a_ij * pj.V;
 						const auto norm = da / abs(da);
 						VL = VL.boost_to(uij);
 						VR = VR.boost_to(uij);

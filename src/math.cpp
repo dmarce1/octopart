@@ -65,7 +65,7 @@ bool matrix_inverse(const std::array<vect, NDIM> &A, std::array<vect, NDIM> &Ain
 
 vect rotate_to(const vect &u, const vect &n) {
 #if(NDIM==1)
-	return u;
+	return u.dot(n);
 #elif(NDIM==2)
 	vect m;
 	vect v;
@@ -96,7 +96,7 @@ vect rotate_to(const vect &u, const vect &n) {
 
 vect rotate_from(const vect &u, vect n) {
 #if(NDIM==1)
-	return u;
+	return u.dot(n);
 #elif(NDIM==2)
 	vect m;
 	vect v;
