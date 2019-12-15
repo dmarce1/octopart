@@ -1,2 +1,2 @@
-wc ./src/* ./octopart/*
+wc ./src/* ./octopart/* ./src/tree/*
 

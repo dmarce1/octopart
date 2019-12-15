@@ -89,6 +89,8 @@ public:
 	friend real copysign(real a, real b);
 	friend real max(real a, real b);
 	friend real min(real a, real b);
+	friend real sin(real a);
+	friend real cos(real a);
 	friend real abs(real a);
 	friend real exp(real a);
 	friend real sqrt(real a);
@@ -129,6 +131,14 @@ inline real exp(real a) {
 
 inline real sqrt(real a) {
 	return real(std::sqrt(a.r));
+}
+
+inline real sin(real a) {
+	return real(std::sin(a.r));
+}
+
+inline real cos(real a) {
+	return real(std::cos(a.r));
 }
 
 inline real abs(real a) {

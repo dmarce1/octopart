@@ -309,10 +309,12 @@ real tree::compute_timestep() const {
 }
 
 void tree::compute_interactions() {
+	static auto opts = options::get();
 	nparts0 = parts.size();
 	if (leaf) {
 		if (nparts0) {
 			std::vector<vect> pos;
+			pos.reserve(parts.size());
 			const auto h0 = pow(range_volume(box) / (CV * parts.size()), 1.0 / NDIM);
 			for (auto &pi : parts) {
 				pos.push_back(pi.x);
@@ -394,6 +396,25 @@ void tree::compute_interactions() {
 					for (int i = 0; i < siblings.size(); i++) {
 						const auto tmp = futs[i].get();
 						pos.insert(pos.end(), tmp.begin(), tmp.end());
+					}
+					if (opts.reflecting) {
+						for (int i = 0; i < 2 * NDIM; i++) {
+							const auto dim = i / 2;
+							range this_box;
+							real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
+							if (axis == (i % 2 ? box.max[dim] : box.min[dim])) {
+								this_box = reflect_range(sbox, dim, axis);
+								if (ranges_intersect(this_box, box)) {
+									for (const auto &pi : parts) {
+										if (in_range(pi.x, this_box)) {
+											auto this_x = pi.x;
+											this_x[dim] = 2.0 * axis - this_x[dim];
+											pos.push_back(this_x);
+										}
+									}
+								}
+							}
+						}
 					}
 				}
 			}

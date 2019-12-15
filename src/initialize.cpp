@@ -12,18 +12,48 @@ void drift(particle &p) {
 }
 
 void kh(particle &p) {
-	for (int dim = 0; dim < NDIM; dim++) {
-		p.u[dim] = rand_unit_box() * 0.01;
-	}
-	if (abs(p.x[1]) > 0.25) {
-		p.u[0] += +0.5;
-		p.m = p.V;
-		p.e = 6.25 * p.V + p.u.dot(p.u) * 0.5 * p.m;
+	const real x = p.x[0];
+	const real y = p.x[1];
+	constexpr real rho1 = 1.0;
+	constexpr real rho2 = 2.0;
+	const real drho = 0.5 * (rho2 - rho1);
+	constexpr real dy = 0.025;
+	constexpr real E = 3.75;
+	real rho, vx, vy;
+	if (y < -0.25) {
+		rho = rho1 + drho * exp((y + 0.25) / dy);
+		vx = -0.5 + 0.5 * exp((y + 0.25) / dy);
+	} else if (y < 0.) {
+		rho = rho2 - drho * exp((-0.25 - y) / dy);
+		vx = +0.5 - 0.5 * exp((-0.25 - y) / dy);
+	} else if (y < 0.25) {
+		rho = rho2 - drho * exp((y - 0.25) / dy);
+		vx = +0.5 - 0.5 * exp((y - 0.25) / dy);
 	} else {
-		p.u[0] += -0.5;
-		p.m = 2.0 * p.V;
-		p.e = 6.25 * p.V + p.u.dot(p.u) * 0.5 * p.m; ;
+		rho = rho1 + drho * exp((0.25 - y) / dy);
+		vx = -0.5 + 0.5 * exp((0.25 - y) / dy);
 	}
+	vy = 0.01 * sin(4.0 * M_PI * (x + 0.5));
+	p.u[0] = -vx;
+	p.u[1] = vy;
+#if(NDIM==3)
+	p.u[2] = 0.0;
+#endif
+	p.m = rho * p.V;
+	p.e = E * p.V + p.u.dot(p.u) * 0.5 * p.m;
+	;
+//	for (int dim = 0; dim < NDIM; dim++) {
+//		p.u[dim] = rand_unit_box() * 0.01;
+//	}
+//	if (abs(p.x[1]) > 0.25) {
+//		p.u[0] += +0.5;
+//		p.m = p.V;
+//		p.e = 6.25 * p.V + p.u.dot(p.u) * 0.5 * p.m;
+//	} else {
+//		p.u[0] += -0.5;
+//		p.m = 2.0 * p.V;
+	//		p.e = 6.25 * p.V + p.u.dot(p.u) * 0.5 * p.m; ;
+//	}
 }
 
 void sod(particle &p) {
@@ -51,8 +81,10 @@ void blast(particle &p) {
 init_func_type get_initialization_function(const std::string &name) {
 	if (name == "drift") {
 		return drift;
+#if(NDIM!=1)
 	} else if (name == "kh") {
 		return kh;
+#endif
 	} else if (name == "blast") {
 		return blast;
 	} else if (name == "sod") {

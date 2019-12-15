@@ -10,6 +10,8 @@ public:
 	bool first_order_time;
 	bool fpe;
 	bool periodic;
+	bool reflecting;
+	int parts_per_node;
 	int problem_size;
 	double fgamma;
 	double tmax;
@@ -22,7 +24,9 @@ public:
 		arc & first_order_space;
 		arc & first_order_time;
 		arc & fpe;
+		arc & parts_per_node;
 		arc & periodic;
+		arc & reflecting;
 		arc & problem_size;
 		arc & fgamma;
 		arc & tmax;

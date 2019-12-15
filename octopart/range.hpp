@@ -21,6 +21,7 @@ struct range {
 	}
 };
 
+range reflect_range(const range&, int dim, real axis);
 
 range shift_range(const range& r, const vect&);
 vect range_span(const range&);

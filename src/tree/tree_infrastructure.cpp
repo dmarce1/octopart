@@ -15,6 +15,8 @@ tree::tree() {
 tree::tree(std::vector<particle> &&these_parts, const range &box_, const range &root_box_) :
 		box(box_), nparts0(0), dead(false), root_box(root_box_) {
 	const int sz = these_parts.size();
+	static const auto opts = options::get();
+	const auto npart_max = opts.parts_per_node;
 
 	mtx = std::make_shared<hpx::lcos::local::mutex>();
 
@@ -33,7 +35,7 @@ tree::tree(std::vector<particle> &&these_parts, const range &box_, const range &
 	if (root_box == null_range()) {
 		root_box = box;
 	}
-	if (sz > NPART_MAX) {
+	if (sz > npart_max) {
 		parts = std::move(these_parts);
 		create_children();
 	} else {
@@ -111,11 +113,13 @@ std::vector<particle> tree::destroy() {
 }
 
 tree_attr tree::finish_drift() {
+	static const auto opts = options::get();
+	const auto npart_max = opts.parts_per_node;
 	if (leaf) {
 		parts.insert(parts.end(), new_parts.begin(), new_parts.end());
 		new_parts.clear();
 		nparts0 = parts.size();
-		if (nparts0 > NPART_MAX) {
+		if (nparts0 > npart_max) {
 			create_children();
 		}
 	} else {
@@ -133,7 +137,7 @@ tree_attr tree::finish_drift() {
 				all_leaves = false;
 			}
 		}
-		if (cparts <= NPART_MAX && all_leaves) {
+		if (cparts <= npart_max && all_leaves) {
 			std::array<hpx::future<std::vector<particle>>, NCHILD> dfuts;
 			for (int ci = 0; ci < NCHILD; ci++) {
 				dfuts[ci] = hpx::async<destroy_action>(children[ci]);

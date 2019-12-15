@@ -7,16 +7,21 @@
 
 #include <octopart/range.hpp>
 
+range reflect_range(const range &r_, int dim, real x) {
+	range r = r_;
+	r.min[dim] = 2 * x - r_.max[dim];
+	r.max[dim] = 2 * x - r_.min[dim];
+	return r;
+}
 
-range shift_range(const range& r_, const vect& v) {
+range shift_range(const range &r_, const vect &v) {
 	range r;
-	for( int dim = 0; dim < NDIM; dim++) {
+	for (int dim = 0; dim < NDIM; dim++) {
 		r.min[dim] = r_.min[dim] + v[dim];
 		r.max[dim] = r_.max[dim] + v[dim];
 	}
 	return r;
 }
-
 
 bool in_range(const vect &x, const range &r) {
 	for (int dim = 0; dim < NDIM; dim++) {
@@ -27,9 +32,9 @@ bool in_range(const vect &x, const range &r) {
 	return true;
 }
 
-vect range_span(const range& r ) {
+vect range_span(const range &r) {
 	vect s;
-	for( int dim = 0; dim < NDIM; dim++) {
+	for (int dim = 0; dim < NDIM; dim++) {
 		s[dim] = r.max[dim] - r.min[dim];
 	}
 	return s;
