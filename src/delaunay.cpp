@@ -14,17 +14,17 @@ std::vector<delauny_region> compute_delaunay_regions(const std::vector<particle>
 	const int sz = parts.size();
 #if(NDIM==1)
 	regions.resize(sz - 1);
-	std::vector<const particle*> ptrs(parts.size());
+	std::vector<int> indexes(parts.size());
 	for (int i = 0; i < sz; i++) {
-		ptrs[i] = &parts[i];
+		indexes[i] = i;
 	}
-	std::sort(ptrs.begin(), ptrs.end(), [](const particle *a, const particle *b) {
-		return a->x[0] < b->x[0];
+	std::sort(indexes.begin(), indexes.end(), [&parts](int a, int b) {
+		return parts[a].x[0] < parts[b].x[0];
 	});
 	for (int i = 0; i < sz - 1; i++) {
 		delauny_region &r = regions[i];
-		r[0] = i;
-		r[1] = i + 1;
+		r[0] = indexes[i];
+		r[1] = indexes[i + 1];
 	}
 #else
 	FILE *fp = fopen("points.dat", "wt");

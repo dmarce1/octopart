@@ -4,7 +4,7 @@
 
 #if(NDIM == 1 )
 constexpr real CV = 1.0;
-constexpr int NNGB = 2;
+constexpr int NNGB = 4;
 #else
 #if( NDIM == 2 )
 constexpr real CV = M_PI;

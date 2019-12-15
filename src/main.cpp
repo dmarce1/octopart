@@ -22,14 +22,9 @@ int hpx_main(int argc, char *argv[]) {
 	tree::write_silo_action()(root, 0);
 	for (int i = 0; i < 1000; i++) {
 		auto dt = tree::compute_timestep_action()(root);
-		dt *= 0.2;
+		dt *= 0.4;
 		tree_stats s = tree::tree_statistics_action()(root);
 		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i\n", i, t.get(), dt.get(), s.nparts, s.nleaves, s.max_level);
-		tree::compute_drift_action()(root, dt / 2.0);
-		tree::finish_drift_action()(root);
-		tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
-		tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
-		tree::compute_interactions_action()(root);
 		if (!opts.dust_only) {
 			tree::compute_gradients_action()(root);
 			tree::compute_time_derivatives_action()(root, dt);
