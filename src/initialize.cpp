@@ -57,14 +57,14 @@ void kh(particle &p) {
 }
 
 void kepler(particle &p) {
-	p.m = 1.0e-3 * p.V;
+	p.m = p.V;
 	const auto r = abs(p.x);
 	const auto y = p.x[1];
 	const auto x = p.x[0];
 	p.u = vect(0);
 	p.u[0] = -y / r / sqrt(r);
 	p.u[1] = +x / r / sqrt(r);
-	p.e = 1.0e-10 * p.V + 0.5 * p.u.dot(p.u) * p.m;
+	p.e = 0.5 * p.u.dot(p.u) * p.m;
 
 }
 

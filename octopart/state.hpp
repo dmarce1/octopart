@@ -24,6 +24,12 @@ class flux_state: public state {
 	static constexpr int ene_i = 1;
 	static constexpr int mom_i = 2;
 public:
+	flux_state() = default;
+	flux_state(const general_vect<real, STATE_SIZE> &other) {
+		for( int i = 0; i < STATE_SIZE; i++) {
+			(*this)[i] = other[i];
+		}
+	}
 	flux_state& operator=(const general_vect<real, STATE_SIZE> &other) {
 		for( int i = 0; i < STATE_SIZE; i++) {
 			(*this)[i] = other[i];

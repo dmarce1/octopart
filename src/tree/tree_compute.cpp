@@ -241,14 +241,17 @@ void tree::compute_time_derivatives(real dt) {
 				du[i] = 0.0;
 			}
 		}
-		for (int i = 0; i < nparts0; i++) {
+		for (int i = 0; i < parts.size(); i++) {
 			const auto &pi = parts[i];
 			for (int j = 0; j < parts.size(); j++) {
-				if (i != j) {
-					const auto &pj = parts[j];
+				const auto &pj = parts[j];
+				if (i >= nparts0 && j >= nparts0) {
+					continue;
+				}
+				if (pi.x > pj.x) {
 					const auto r = abs(pj.x - pi.x);
 					if (r < std::max(pi.h, pj.h)) {
-						const auto xij = pi.x + (pj.x - pi.x) * pi.h / (pi.h + pj.h);
+						const auto xij = (pi.x * pj.h + pj.x * pi.h) / (pi.h + pj.h);
 						const auto V_i = pi.to_prim();
 						const auto V_j = pj.to_prim();
 						auto VL = V_i;
@@ -292,7 +295,7 @@ void tree::compute_time_derivatives(real dt) {
 							}
 						}
 						const auto dx = pj.x - pi.x;
-						const auto uij = pi.u + (pj.u - pi.u) * (xij - pi.x).dot(dx) / (dx.dot(dx));
+						const auto uij = (pi.u * (pj.x - xij).dot(dx) + pj.u * (xij - pi.x).dot(dx)) / (dx.dot(dx));
 						vect psi_a_ij;
 						vect psi_a_ji;
 						for (int n = 0; n < NDIM; n++) {
@@ -311,12 +314,22 @@ void tree::compute_time_derivatives(real dt) {
 							VL = VL + VL.dW_dt(grad[i]) * 0.5 * dt;
 							VR = VR + VR.dW_dt(grad[j]) * 0.5 * dt;
 						}
-						VL = VL.rotate_to(norm);
-						VR = VR.rotate_to(norm);
-						auto F = riemann_solver(VL, VR);
-						F = F.rotate_from(norm);
+						auto VL1 = VL.rotate_to(norm);
+						auto VR1 = VR.rotate_to(norm);
+						auto VL2 = VL.rotate_to(-norm);
+						auto VR2 = VR.rotate_to(-norm);
+						auto F1 = riemann_solver(VL1, VR1);
+						auto F2 = riemann_solver(VR2, VL2);
+						F1 = F1.rotate_from(norm);
+						F2 = F2.rotate_from(norm);
+						flux_state F = (F1 + F2) * 0.5;
 						F = F.boost_from(uij);
-						dudt[i] = dudt[i] - F * abs(da) / pi.V;
+						if (i < nparts0) {
+							dudt[i] = dudt[i] - F * abs(da) / pi.V;
+						}
+						if (j < nparts0) {
+							dudt[j] = dudt[j] + F * abs(da) / pj.V;
+						}
 					}
 				}
 			}
@@ -363,7 +376,7 @@ real tree::compute_timestep() const {
 }
 
 void tree::compute_interactions() {
-	const auto toler = NNGB * sqrt(real::eps());
+	const auto toler = NNGB * 10.0 * real::eps();
 	static auto opts = options::get();
 	nparts0 = parts.size();
 	if (leaf) {
@@ -527,7 +540,7 @@ void tree::compute_next_state(real dt) {
 		parts.resize(nparts0);
 		if (opts.problem == "kepler") {
 			for (int i = 0; i < nparts0; i++) {
-				const auto& p = parts[i];
+				const auto &p = parts[i];
 				const auto &x = p.x;
 				const auto r = abs(x);
 				for (int dim = 0; dim < NDIM; dim++) {

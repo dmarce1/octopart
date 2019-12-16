@@ -29,6 +29,10 @@ public:
 	general_vect operator+(const general_vect &other) const;
 	general_vect operator*(T r) const;
 	general_vect operator/(T r) const;
+	bool operator<(const general_vect &other) const;
+	bool operator<=(const general_vect &other) const;
+	bool operator>(const general_vect &other) const;
+	bool operator>=(const general_vect &other) const;
 	bool operator==(const general_vect &other) const;
 	bool operator!=(const general_vect &other) const;
 	T dot(const general_vect &other) const;
@@ -39,14 +43,40 @@ public:
 
 };
 
+template<class T, int N>
+bool inline general_vect<T, N>::operator<(const general_vect &other) const {
+	for (int n = 0; n < N; n++) {
+		if ((*this)[n] < other[n]) {
+			return true;
+		} else if ((*this)[n] > other[n]) {
+			return false;
+		}
+	}
+	return false;
+}
 
 template<class T, int N>
-inline general_vect<T,N>::general_vect(std::array<real, N> a) :
+bool inline general_vect<T, N>::operator<=(const general_vect &other) const {
+	return *this < other || *this == other;
+}
+
+template<class T, int N>
+bool inline general_vect<T, N>::operator>(const general_vect &other) const {
+	return !(*this <= other);
+}
+
+template<class T, int N>
+bool inline general_vect<T, N>::operator>=(const general_vect &other) const {
+	return !(*this < other);
+}
+
+template<class T, int N>
+inline general_vect<T, N>::general_vect(std::array<real, N> a) :
 		v(a) {
 }
 
 template<class T, int N>
-inline general_vect<T,N>::general_vect(T a) {
+inline general_vect<T, N>::general_vect(T a) {
 	for (int i = 0; i < N; i++) {
 		v[i] = a;
 	}

@@ -36,30 +36,18 @@ static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 	const auto uL = VL.vel()[0];
 	const auto uR = VR.vel()[0];
 	const auto P0 = std::max(real(0.0), 0.5 * (PL + PR) - 0.5 * (uR - uL) * rho_bar * a_bar);
-	if (PL <= 0.0 || PR <= 0.0) {
-//		printf("HLLC failed %e %e %e\n", PL.get(), P0.get(), PR.get());
-		F = KT(VL, VR);
+	const auto sR = std::max(uR + aR, uL + aL);
+	const auto sL = std::min(uR - aR, uL - aL);
+	if (sL > 0.0) {
+		F = VL.to_flux();
+	} else if (sR < 0.0) {
+		F = VR.to_flux();
 	} else {
-		real qR, qL;
-		if (P0 < PR) {
-			qR = 1.0;
-		} else {
-			qR = sqrt(1.0 + (fgamma + 1.0) / (2.0 * fgamma) * (P0 / PR - 1.0));
-		}
-		if (P0 < PL) {
-			qL = 1.0;
-		} else {
-			qL = sqrt(1.0 + (fgamma + 1.0) / (2.0 * fgamma) * (P0 / PL - 1.0));
-		}
-		const auto sR = uR + aR * qR;
-		const auto sL = uL - aL * qL;
 		const auto s0_den = rhoL * (sL - uL) - rhoR * (sR - uR);
 		const auto s0_num = PR - PL + rhoL * uL * (sL - uL) - rhoR * uR * (sR - uR);
 		const auto s0 = s0_num / s0_den;
-		if (sL > 0.0) {
-			F = VL.to_flux();
-		} else if (sR < 0.0) {
-			F = VR.to_flux();
+		if (PL <= 0.0 || PR <= 0.0) {
+			F = KT(VL, VR);
 		} else {
 			conserved_state U0;
 			if (s0 > 0.0) {
