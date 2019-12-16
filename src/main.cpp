@@ -23,10 +23,14 @@ int hpx_main(int argc, char *argv[]) {
 	tree::write_silo_action()(root, 0);
 	for (int i = 0; t < opts.tmax; i++) {
 		auto dt = tree::compute_timestep_action()(root);
-		dt *= 0.4;
+		dt *= 0.2;
 		tree_stats s = tree::tree_statistics_action()(root);
-		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %16e\n", i, t.get(), dt.get(), s.nparts, s.nleaves, s.max_level,
+		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, t.get(), dt.get(), s.nparts, s.nleaves, s.max_level,
 				s.mass.get());
+		for( int dim = 0; dim < NDIM; dim++) {
+			printf( "%e ", s.momentum[dim].get());
+		}
+		printf( "Energy = %e\n", s.energy.get());
 		if (!opts.dust_only) {
 			tree::compute_gradients_action()(root);
 			tree::compute_time_derivatives_action()(root, dt);

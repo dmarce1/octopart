@@ -81,18 +81,22 @@ void tree::compute_gradients() {
 				std::vector<particle> rparts;
 				const auto sz = parts.size();
 				const auto dim = i / 2;
-				range this_box;
 				real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
 				if (axis == (i % 2 ? box.max[dim] : box.min[dim])) {
-					this_box = reflect_range(sbox, dim, axis);
-					if (ranges_intersect(this_box, box)) {
-						for (int j = 0; j < sz; j++) {
-							auto pj = parts[j];
-							if (in_range(pj.x, this_box) || ranges_intersect(range_around(pj.x, pj.h), box)) {
-								pj.x[dim] = 2.0 * axis - pj.x[dim];
-								pj.u[dim] = -pj.u[dim];
-								rparts.push_back(pj);
+					const auto rsbox = reflect_range(sbox, dim, axis);
+					const auto rbox = reflect_range(box, dim, axis);
+					for (int j = 0; j < sz; j++) {
+						auto pj = parts[j];
+						if (in_range(pj.x, rsbox) || ranges_intersect(range_around(pj.x, pj.h), rbox)) {
+							pj.x[dim] = 2.0 * axis - pj.x[dim];
+							pj.u[dim] = -pj.u[dim];
+							for( int n = 0; n < NDIM; n++) {
+								if( n != dim) {
+									pj.B[n][dim] = -pj.B[n][dim];
+									pj.B[dim][n] = -pj.B[dim][n];
+								}
 							}
+							rparts.push_back(pj);
 						}
 					}
 				}
@@ -206,23 +210,21 @@ void tree::compute_time_derivatives(real dt) {
 					std::vector<gradient> rgrad_lim;
 					const auto sz = grad.size();
 					const auto dim = i / 2;
-					range this_box;
 					real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
 					if (axis == (i % 2 ? box.max[dim] : box.min[dim])) {
-						this_box = reflect_range(sbox, dim, axis);
-						if (ranges_intersect(this_box, box)) {
-							for (int j = 0; j < sz; j++) {
-								const auto& pj = parts[j];
-								if (in_range(pj.x, this_box) || ranges_intersect(range_around(pj.x, pj.h), box)) {
-									auto g = grad[j];
-									auto gl = grad_lim[j];
-									g[dim] = -g[dim];
-									gl[dim] = -gl[dim];
-									g[dim].vel()[dim] = -g[dim].vel()[dim];
-									gl[dim].vel()[dim] = -gl[dim].vel()[dim];
-									rgrad.push_back(g);
-									rgrad_lim.push_back(gl);
-								}
+						const auto rsbox = reflect_range(sbox, dim, axis);
+						const auto rbox = reflect_range(box, dim, axis);
+						for (int j = 0; j < sz; j++) {
+							const auto &pj = parts[j];
+							if (in_range(pj.x, rsbox) || ranges_intersect(range_around(pj.x, pj.h), rbox)) {
+								auto g = grad[j];
+								auto gl = grad_lim[j];
+								g[dim] = -g[dim];
+								gl[dim] = -gl[dim];
+								g[dim].vel()[dim] = -g[dim].vel()[dim];
+								gl[dim].vel()[dim] = -gl[dim].vel()[dim];
+								rgrad.push_back(g);
+								rgrad_lim.push_back(gl);
 							}
 						}
 					}
@@ -340,14 +342,13 @@ real tree::compute_timestep() const {
 			for (const auto &pj : parts) {
 				const auto dx = pi.x - pj.x;
 				const auto r = abs(dx);
-				const auto &h = pi.h;
-				if (r > 0.0 && r < h) {
+				if (r > 0.0 && r < max(pi.h, pj.h)) {
 					const auto Vi = pi.to_prim();
 					const auto Vj = pj.to_prim();
 					const auto ci = Vi.sound_speed() + abs(Vi.vel());
 					const auto cj = Vj.sound_speed() + abs(Vj.vel());
-					const real vsig = (ci + cj - min(0.0, (pi.u - pj.u).dot(dx) / r))/2.0;
-					tmin = min(tmin, h / vsig);
+					const real vsig = (ci + cj - min(0.0, (pi.u - pj.u).dot(dx) / r)) / 2.0;
+					tmin = min(tmin, std::min(pi.h, pj.h) / vsig);
 				}
 			}
 		}
@@ -404,7 +405,7 @@ void tree::compute_interactions() {
 									}
 								}
 							}
-							if (abs(NNGB - N) < 1e-6) {
+							if (abs(NNGB - N) < 1e-12) {
 								done = true;
 							} else {
 								dNdh = (Np - N) / eps;
@@ -413,9 +414,9 @@ void tree::compute_interactions() {
 								} else {
 									dh = -(N - NNGB) / dNdh;
 									dh = min(h, max(-h / 2.0, dh));
-									max_dh = min(0.99 * max_dh, abs(dh));
+									max_dh = min(0.999 * max_dh, abs(dh));
 									dh = copysign(min(max_dh, abs(dh)), dh);
-									h += 0.99 * dh;
+									h += 0.999 * dh;
 								}
 							}
 							iters++;

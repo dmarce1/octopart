@@ -35,9 +35,9 @@ static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 	const auto a_bar = (aL + aR) * 0.5;
 	const auto uL = VL.vel()[0];
 	const auto uR = VR.vel()[0];
-	const auto P0 = std::max(real(0), 0.5 * (PL + PR) - 0.5 * (uR - uL) * rho_bar * a_bar);
-	if (PL <= 0.0 || PR <= 0.0 || P0 <= 0.0) {
-		printf( "HLLC failed\n");
+	const auto P0 = std::max(real(0.0), 0.5 * (PL + PR) - 0.5 * (uR - uL) * rho_bar * a_bar);
+	if (PL <= 0.0 || PR <= 0.0) {
+		printf("HLLC failed %e %e %e\n", PL, P0, PR);
 		F = KT(VL, VR);
 	} else {
 		real qR, qL;
@@ -87,7 +87,6 @@ static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 	}
 	return F;
 }
-
 
 flux_state riemann_solver(const primitive_state &VL, const primitive_state &VR) {
 	return HLLC(VL, VR);
