@@ -94,6 +94,7 @@ add_hpx_executable(
     ${check2silo_header_files}
 )
 
+target_compile_options(octopartlib "-std=-std=c++1z")
 target_include_directories(octopartlib PUBLIC ${PROJECT_SOURCE_DIR})
 target_include_directories(octopart PUBLIC ${PROJECT_SOURCE_DIR})
 target_include_directories(check2silo PUBLIC ${PROJECT_SOURCE_DIR})
