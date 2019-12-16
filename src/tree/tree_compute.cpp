@@ -78,21 +78,26 @@ void tree::compute_gradients() {
 		}
 		if (opts.reflecting) {
 			for (int i = 0; i < 2 * NDIM; i++) {
+				std::vector<particle> rparts;
+				const auto sz = parts.size();
 				const auto dim = i / 2;
 				range this_box;
 				real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
 				if (axis == (i % 2 ? box.max[dim] : box.min[dim])) {
 					this_box = reflect_range(sbox, dim, axis);
 					if (ranges_intersect(this_box, box)) {
-						for ( auto pj : parts) {
-							if (in_range(pj.x, this_box)) {
+						for (int j = 0; j < sz; j++) {
+							auto pj = parts[j];
+							if (in_range(pj.x, this_box) || ranges_intersect(range_around(pj.x, pj.h), box)) {
 								pj.x[dim] = 2.0 * axis - pj.x[dim];
 								pj.u[dim] = -pj.u[dim];
-								parts.push_back(pj);
+								rparts.push_back(pj);
 							}
 						}
 					}
 				}
+				std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
+				parts.insert(parts.end(), rparts.begin(), rparts.end());
 			}
 		}
 		{
@@ -197,26 +202,33 @@ void tree::compute_time_derivatives(real dt) {
 			}
 			if (opts.reflecting) {
 				for (int i = 0; i < 2 * NDIM; i++) {
+					std::vector<gradient> rgrad;
+					std::vector<gradient> rgrad_lim;
+					const auto sz = grad.size();
 					const auto dim = i / 2;
 					range this_box;
 					real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
 					if (axis == (i % 2 ? box.max[dim] : box.min[dim])) {
 						this_box = reflect_range(sbox, dim, axis);
 						if (ranges_intersect(this_box, box)) {
-							for( int j = 0; j < parts.size(); j++) {
-								if (in_range(parts[j].x, this_box)) {
+							for (int j = 0; j < sz; j++) {
+								const auto& pj = parts[j];
+								if (in_range(pj.x, this_box) || ranges_intersect(range_around(pj.x, pj.h), box)) {
 									auto g = grad[j];
 									auto gl = grad_lim[j];
 									g[dim] = -g[dim];
 									gl[dim] = -gl[dim];
 									g[dim].vel()[dim] = -g[dim].vel()[dim];
 									gl[dim].vel()[dim] = -gl[dim].vel()[dim];
-									grad.push_back(g);
-									grad_lim.push_back(gl);
+									rgrad.push_back(g);
+									rgrad_lim.push_back(gl);
 								}
 							}
 						}
 					}
+					std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
+					grad.insert(grad.end(), rgrad.begin(), rgrad.end());
+					grad_lim.insert(grad_lim.end(), rgrad_lim.begin(), rgrad_lim.end());
 				}
 			}
 		}
@@ -441,24 +453,26 @@ void tree::compute_interactions() {
 						pos.insert(pos.end(), tmp.begin(), tmp.end());
 					}
 					if (opts.reflecting) {
-						const auto sz = pos.size();
 						for (int i = 0; i < 2 * NDIM; i++) {
+							std::vector<vect> rpos;
+							const auto sz = pos.size();
 							const auto dim = i / 2;
 							range this_box;
 							real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
 							if (axis == (i % 2 ? box.max[dim] : box.min[dim])) {
 								this_box = reflect_range(sbox, dim, axis);
 								if (ranges_intersect(this_box, box)) {
-									for( int j = 0; j < sz; j++) {
+									for (int j = 0; j < sz; j++) {
 										const auto pix = pos[j];
 										if (in_range(pix, this_box)) {
 											auto this_x = pix;
 											this_x[dim] = 2.0 * axis - this_x[dim];
-											pos.push_back(this_x);
+											rpos.push_back(this_x);
 										}
 									}
 								}
 							}
+							pos.insert(pos.end(), rpos.begin(), rpos.end());
 						}
 					}
 				}
