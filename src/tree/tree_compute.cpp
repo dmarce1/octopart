@@ -344,9 +344,9 @@ real tree::compute_timestep() const {
 				if (r > 0.0 && r < h) {
 					const auto Vi = pi.to_prim();
 					const auto Vj = pj.to_prim();
-					const auto ci = Vi.sound_speed() + Vi.vel().dot(Vi.vel());
-					const auto cj = Vj.sound_speed() + Vj.vel().dot(Vj.vel());
-					const real vsig = ci + cj - min(0.0, (pi.u - pj.u).dot(dx) / r);
+					const auto ci = Vi.sound_speed() + abs(Vi.vel());
+					const auto cj = Vj.sound_speed() + abs(Vj.vel());
+					const real vsig = (ci + cj - min(0.0, (pi.u - pj.u).dot(dx) / r))/2.0;
 					tmin = min(tmin, h / vsig);
 				}
 			}
