@@ -7,6 +7,25 @@
 #include <octopart/particle.hpp>
 #include <octopart/rand.hpp>
 
+std::vector<particle> disc_particle_set(int N) {
+	std::vector<particle> parts;
+	for (int ri = 0; ri < N; ri++) {
+		const real r = real(ri) / real(N) / 2.0;
+		if (r > 0.1 && r < 0.4) {
+			for (int pi = 0; pi < N; pi++) {
+				const auto theta = real(pi) / N * 2.0 * M_PI;
+				const auto x = r * cos(theta);
+				const auto y = r * sin(theta);
+				particle part;
+				part.x[0] = x;
+				part.x[1] = y;
+				parts.push_back(part);
+			}
+		}
+	}
+	return parts;
+}
+
 std::vector<particle> cartesian_particle_set(int N) {
 	std::vector<particle> parts;
 	parts.reserve(std::pow(N, NDIM));
@@ -16,15 +35,15 @@ std::vector<particle> cartesian_particle_set(int N) {
 		part.x[2] = (l + 0.5) / N - 0.5;
 #endif
 #if(NDIM>=2)
-		for (int j = 0; j < N; j++) {
-			part.x[1] = (j + 0.5) / N - 0.5;
+	for (int j = 0; j < N; j++) {
+		part.x[1] = (j + 0.5) / N - 0.5;
 #endif
-			for (int i = 0; i < N; i++) {
-				part.x[0] = (i + 0.5) / N - 0.5;
-				parts.push_back(part);
-			}
-#if(NDIM>=2)
+		for (int i = 0; i < N; i++) {
+			part.x[0] = (i + 0.5) / N - 0.5;
+			parts.push_back(part);
 		}
+#if(NDIM>=2)
+	}
 #endif
 #if(NDIM==3)
 	}
@@ -50,6 +69,7 @@ void particle::write(FILE *fp) const {
 	fwrite(&e, sizeof(real), 1, fp);
 	fwrite(&V, sizeof(real), 1, fp);
 	fwrite(&h, sizeof(real), 1, fp);
+	fwrite(&B, sizeof(real), NDIM * NDIM, fp);
 }
 
 int particle::read(FILE *fp) {
@@ -60,6 +80,7 @@ int particle::read(FILE *fp) {
 	cnt += fread(&e, sizeof(real), 1, fp);
 	cnt += fread(&V, sizeof(real), 1, fp);
 	cnt += fread(&h, sizeof(real), 1, fp);
+	cnt += fread(&B, sizeof(real), NDIM * NDIM, fp);
 	return cnt;
 }
 
@@ -75,8 +96,7 @@ conserved_state particle::to_con() const {
 	return U;
 }
 
-
-particle particle::from_con(const conserved_state& U) const {
+particle particle::from_con(const conserved_state &U) const {
 	particle p;
 	p.V = V;
 	p.e = U.ene() * V;

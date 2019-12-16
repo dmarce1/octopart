@@ -10,6 +10,7 @@
 #include <octopart/delaunay.hpp>
 #include <octopart/math.hpp>
 #include <octopart/particle.hpp>
+#include <octopart/math.hpp>
 
 int main(int argc, char *argv[]) {
 	FILE *fp = fopen(argv[1], "rb");
@@ -30,7 +31,7 @@ int main(int argc, char *argv[]) {
 		const int shapetypes[1] = {DB_ZONETYPE_BEAM};
 	#elif( NDIM ==2)
 		const int shapetypes[1] = { DB_ZONETYPE_TRIANGLE };
-	#else
+#else
 		const int shapetypes[1] = { DB_ZONETYPE_TET };
 #endif
 		const int shapesize[1] = { NDIM + 1 };
@@ -67,6 +68,7 @@ int main(int argc, char *argv[]) {
 		DBPutZonelist2(db, "zonelist", nzones, NDIM, node_list.data(), node_list.size(), 0, 0, 0, shapetypes, shapesize, shapecount, 1,
 		NULL);
 		DBPutUcdmesh(db, "mesh", NDIM, coordnames, coords, nnodes, nzones, "zonelist", NULL, DB_DOUBLE, NULL);
+		std::vector<real> Nc;
 		std::vector<real> h;
 		std::vector<real> rho;
 		std::vector<real> energy;
@@ -80,15 +82,18 @@ int main(int argc, char *argv[]) {
 			rho.push_back(pi.m / pi.V);
 			energy.push_back(pi.e / pi.V);
 			h.push_back(pi.h);
+			std::array<vect, NDIM> E;
+			Nc.push_back(condition_number(pi.B, E));
 			for (int dim = 0; dim < NDIM; dim++) {
 				mom[dim].push_back(pi.u[dim] * pi.m / pi.V);
 			}
 		}
 		DBPutUcdvar1(db, "h", "mesh", h.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
-		DBPutUcdvar1(db, "density", "mesh", rho.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
-		DBPutUcdvar1(db, "energy", "mesh", energy.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
+		DBPutUcdvar1(db, "Nc", "mesh", Nc.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
+		DBPutUcdvar1(db, "rho", "mesh", rho.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
+		DBPutUcdvar1(db, "E", "mesh", energy.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		for (int dim = 0; dim < NDIM; dim++) {
-			std::string mom_name = std::string() + char('x' + char(dim)) + "_momentum";
+			std::string mom_name = std::string() + "s_" + char('x' + char(dim));
 			DBPutUcdvar1(db, mom_name.c_str(), "mesh", mom[dim].data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		}
 		for (int dim = 0; dim < NDIM; dim++) {

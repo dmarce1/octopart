@@ -363,6 +363,7 @@ real tree::compute_timestep() const {
 }
 
 void tree::compute_interactions() {
+	const auto toler = NNGB * sqrt(real::eps());
 	static auto opts = options::get();
 	nparts0 = parts.size();
 	if (leaf) {
@@ -374,7 +375,6 @@ void tree::compute_interactions() {
 				pos.push_back(pi.x);
 				pi.h = h0;
 			}
-			const auto toler = NNGB * 10.0 * real::eps();
 			const auto hmax = box.max[0] - box.min[0];
 			for (int pass = 0; pass < 2; pass++) {
 				{
@@ -521,9 +521,22 @@ void tree::compute_interactions() {
 }
 
 void tree::compute_next_state(real dt) {
+	static auto opts = options::get();
 	if (leaf) {
 		PROFILE();
 		parts.resize(nparts0);
+		if (opts.problem == "kepler") {
+			for (int i = 0; i < nparts0; i++) {
+				const auto& p = parts[i];
+				const auto &x = p.x;
+				const auto r = abs(x);
+				for (int dim = 0; dim < NDIM; dim++) {
+					const auto d = p.m / p.V * x[dim] / (r * r * r);
+					dudt[i].mom()[dim] -= d;
+					dudt[i].ene() -= d * p.u[dim];
+				}
+			}
+		}
 		for (int i = 0; i < nparts0; i++) {
 			auto U = parts[i].to_con();
 			U = U + dudt[i] * dt;

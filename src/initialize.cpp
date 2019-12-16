@@ -56,8 +56,20 @@ void kh(particle &p) {
 //	}
 }
 
+void kepler(particle &p) {
+	p.m = 1.0e-3 * p.V;
+	const auto r = abs(p.x);
+	const auto y = p.x[1];
+	const auto x = p.x[0];
+	p.u = vect(0);
+	p.u[0] = -y / r / sqrt(r);
+	p.u[1] = +x / r / sqrt(r);
+	p.e = 1.0e-10 * p.V + 0.5 * p.u.dot(p.u) * p.m;
+
+}
+
 void sod(particle &p) {
-	if (p.x[0] > 0.0) {
+	if (p.x[0] < 0.0) {
 		p.m = 1.0 * p.V;
 		p.e = 2.5 * p.V;
 	} else {
@@ -89,6 +101,8 @@ init_func_type get_initialization_function(const std::string &name) {
 		return blast;
 	} else if (name == "sod") {
 		return sod;
+	} else if (name == "kepler") {
+		return kepler;
 	} else {
 		printf("Error: Initialization function %s is not known\n", name.c_str());
 		abort();

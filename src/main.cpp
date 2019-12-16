@@ -9,7 +9,12 @@ int hpx_main(int argc, char *argv[]) {
 	options opts;
 	opts.process_options(argc, argv);
 //	std::vector<particle> parts = random_particle_set(N * N);
-	std::vector<particle> parts = cartesian_particle_set(opts.problem_size);
+	std::vector<particle> parts;
+	if( opts.problem == "kepler") {
+		parts = disc_particle_set(opts.problem_size);
+	} else {
+		 parts = cartesian_particle_set(opts.problem_size);
+	}
 	range box;
 	for (int dim = 0; dim < NDIM; dim++) {
 		box.min[dim] = -0.5;
@@ -23,7 +28,7 @@ int hpx_main(int argc, char *argv[]) {
 	tree::write_silo_action()(root, 0);
 	for (int i = 0; t < opts.tmax; i++) {
 		auto dt = tree::compute_timestep_action()(root);
-		dt *= 0.2;
+		dt *= 0.1;
 		tree_stats s = tree::tree_statistics_action()(root);
 		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, t.get(), dt.get(), s.nparts, s.nleaves, s.max_level,
 				s.mass.get());
