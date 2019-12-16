@@ -90,11 +90,9 @@ void tree::compute_gradients() {
 						if (in_range(pj.x, rsbox) || ranges_intersect(range_around(pj.x, pj.h), rbox)) {
 							pj.x[dim] = 2.0 * axis - pj.x[dim];
 							pj.u[dim] = -pj.u[dim];
-							for( int n = 0; n < NDIM; n++) {
-								if( n != dim) {
-									pj.B[n][dim] = -pj.B[n][dim];
-									pj.B[dim][n] = -pj.B[dim][n];
-								}
+							for (int n = 0; n < NDIM; n++) {
+								pj.B[n][dim] = -pj.B[n][dim];
+								pj.B[dim][n] = -pj.B[dim][n];
 							}
 							rparts.push_back(pj);
 						}

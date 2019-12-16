@@ -12,13 +12,15 @@
 #include <algorithm>
 #include <cmath>
 
+using real_type = double;
+
 class real {
-	double r;
+	real_type r;
 public:
 	constexpr real() :
-			r(std::numeric_limits<double>::signaling_NaN()) {
+			r(std::numeric_limits<real_type>::signaling_NaN()) {
 	}
-	constexpr real(double a) :
+	constexpr real(real_type a) :
 			r(a) {
 	}
 	double get() const {
@@ -81,10 +83,10 @@ public:
 		arc & r;
 	}
 	static constexpr real max() {
-		return std::numeric_limits<double>::max();
+		return std::numeric_limits<real_type>::max();
 	}
 	static constexpr real min() {
-		return std::numeric_limits<double>::min();
+		return std::numeric_limits<real_type>::min();
 	}
 	friend real copysign(real a, real b);
 	friend real max(real a, real b);
@@ -95,25 +97,25 @@ public:
 	friend real exp(real a);
 	friend real sqrt(real a);
 	friend real pow(real a, real b);
-	friend real operator+(double a, real b);
-	friend real operator-(double a, real b);
-	friend real operator*(double a, real b);
-	friend real operator/(double a, real b);
+	friend real operator+(real_type a, real b);
+	friend real operator-(real_type a, real b);
+	friend real operator*(real_type a, real b);
+	friend real operator/(real_type a, real b);
 };
 
-inline real operator+(double a, real b) {
+inline real operator+(real_type a, real b) {
 	return real(a + b.r);
 }
 
-inline real operator*(double a, real b) {
+inline real operator*(real_type a, real b) {
 	return real(a * b.r);
 }
 
-inline real operator-(double a, real b) {
+inline real operator-(real_type a, real b) {
 	return real(a - b.r);
 }
 
-inline real operator/(double a, real b) {
+inline real operator/(real_type a, real b) {
 	return real(a / b.r);
 }
 
