@@ -313,70 +313,70 @@ void tree::compute_interactions() {
 	if (leaf) {
 		if (nparts0) {
 			std::vector<vect> pos;
-			pos.reserve(parts.size());
+			pos.reserve(2 * parts.size());
 			const auto h0 = pow(range_volume(box) / (CV * parts.size()), 1.0 / NDIM);
 			for (auto &pi : parts) {
 				pos.push_back(pi.x);
 				pi.h = h0;
 			}
-			for (auto &pi : parts) {
-				pi.h = h0;
-			}
+			const auto toler = NNGB * 10.0 * real::eps();
 			const auto hmax = box.max[0] - box.min[0];
 			for (int pass = 0; pass < 2; pass++) {
 				{
 					PROFILE();
 					for (auto &pi : parts) {
-						bool done = false;
-						auto &h = pi.h;
-						real max_dh = real::max();
-						int iters = 0;
-						real dh = pi.h / 2.0;
-						do {
-							real N = 0.0;
-							real Np = 0.0;
-							real dNdh;
-							const auto eps = 0.1 * abs(dh);
-							for (const auto &pj : pos) {
-								if (pj != pi.x) {
-									const auto r = abs(pj - pi.x);
-									if (r < h) {
-										N += CV * pow(h, NDIM) * W(r, h);
-									}
-									if (r < h + eps) {
-										Np += CV * pow(h + eps, NDIM) * W(r, h + eps);
+						if (!(pass == 1 && in_range(range_around(pi.x, pi.h), box))) {
+							bool done = false;
+							auto &h = pi.h;
+//						real max_dh = real::max();
+							int iters = 0;
+							real dh = pi.h / 2.0;
+							do {
+								real N = 0.0;
+								real Np = 0.0;
+								real dNdh;
+								const auto eps = 0.1 * abs(dh);
+								for (const auto &pj : pos) {
+									if (pj != pi.x) {
+										const auto r = abs(pj - pi.x);
+										if (r < h + eps) {
+											Np += CV * pow(h + eps, NDIM) * W(r, h + eps);
+											if (r < h) {
+												N += CV * pow(h, NDIM) * W(r, h);
+											}
+										}
 									}
 								}
-							}
-							if (abs(NNGB - N) < 1e-12) {
-								done = true;
-							} else {
-								dNdh = (Np - N) / eps;
-								if (dNdh == 0.0) {
-									h *= 2.0;
+								if (abs(NNGB - N) < toler) {
+									done = true;
 								} else {
-									dh = -(N - NNGB) / dNdh;
-									dh = min(h, max(-h / 2.0, dh));
-									max_dh = min(0.999 * max_dh, abs(dh));
-									dh = copysign(min(max_dh, abs(dh)), dh);
-									h += 0.999 * dh;
-								}
-							}
-							iters++;
-							if (pass == 0) {
-								if (iters > 100 || h > hmax) {
-									break;
-								}
-							} else {
-								if (iters > 50) {
-									printf("%e %e %e %e\n", h.get(), dh.get(), max_dh.get(), N.get());
-									if (iters == 100) {
-										printf("Smoothing length failed to converge\n");
-										abort();
+									dNdh = (Np - N) / eps;
+									if (dNdh == 0.0) {
+										h *= 1.2;
+									} else {
+										dh = -(N - NNGB) / dNdh;
+										dh = min(h * 0.5, max(-0.5 * h, dh));
+										//		max_dh = min(0.999 * max_dh, abs(dh));
+										//		dh = copysign(min(max_dh, abs(dh)), dh);
+										h += dh;
 									}
 								}
-							}
-						} while (!done);
+								iters++;
+								if (pass == 0) {
+									if (iters > 100 || h > hmax) {
+										break;
+									}
+								} else {
+									if (iters > 50) {
+										printf("%e %e %e\n", h.get(), dh.get(), /*max_dh.get(), */N.get());
+										if (iters == 100) {
+											printf("Smoothing length failed to converge\n");
+											abort();
+										}
+									}
+								}
+							} while (!done);
+						}
 					}
 				}
 				if (pass == 0) {
@@ -414,9 +414,7 @@ void tree::compute_interactions() {
 					pi.V = 1.0 / pi.V;
 					std::array<vect, NDIM> E, B;
 					for (int n = 0; n < NDIM; n++) {
-						for (int m = 0; m < NDIM; m++) {
-							E[n][m] = 0.0;
-						}
+						E[n] = vect(0.0);
 					}
 					for (const auto &pjx : pos) {
 						const auto r = abs(pi.x - pjx);

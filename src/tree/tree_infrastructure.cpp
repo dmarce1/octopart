@@ -1,5 +1,6 @@
 #include <octopart/initialize.hpp>
 #include <octopart/options.hpp>
+#include <octopart/profiler.hpp>
 #include <octopart/tree.hpp>
 #include <set>
 
@@ -247,10 +248,11 @@ std::array<hpx::id_type, NCHILD> tree::get_children() const {
 }
 
 std::vector<gradient> tree::get_gradients(range big, range small, const vect &shift) const {
+	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
+	PROFILE();
 	std::vector<gradient> gj;
 	big = shift_range(big, -shift);
 	small = shift_range(small, -shift);
-	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
 	for (int i = 0; i < nparts0; i++) {
 		const auto &pi = parts[i];
 		if (in_range(pi.x, big) || ranges_intersect(range_around(pi.x, pi.h), small)) {
@@ -266,6 +268,7 @@ hpx::id_type tree::get_parent() const {
 }
 
 std::vector<vect> tree::get_particle_positions(range search, const vect &shift) const {
+	PROFILE();
 	const int sz = parts.size();
 	std::vector<vect> pos;
 	search = shift_range(search, -shift);
@@ -279,10 +282,11 @@ std::vector<vect> tree::get_particle_positions(range search, const vect &shift) 
 }
 
 std::vector<particle> tree::get_particles(range big, range small, const vect &shift) const {
+	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
+	PROFILE();
 	std::vector<particle> pj;
 	big = shift_range(big, -shift);
 	small = shift_range(small, -shift);
-	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
 	for (int i = 0; i < nparts0; i++) {
 		auto pi = parts[i];
 		if (in_range(pi.x, big) || ranges_intersect(range_around(pi.x, pi.h), small)) {
@@ -326,6 +330,7 @@ void tree::redistribute_workload(int current, int total) {
 
 void tree::send_particles(const std::vector<particle> &pj, const vect &shift) {
 	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
+	PROFILE();
 	for (auto p : pj) {
 		p.x = p.x - shift;
 		new_parts.push_back(std::move(p));
@@ -406,5 +411,7 @@ void tree::write_silo(int num) const {
 	std::string base_name = "Y" + std::to_string(num);
 	std::string command = "./check2silo " + base_name;
 	write_checkpoint(base_name);
-	system(command.c_str());
+	if( system(command.c_str()) != 0 ) {
+		printf( "Unable to convert checkpoint to SILO\n");
+	}
 }

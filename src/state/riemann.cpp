@@ -37,7 +37,7 @@ static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 	const auto uR = VR.vel()[0];
 	const auto P0 = std::max(real(0.0), 0.5 * (PL + PR) - 0.5 * (uR - uL) * rho_bar * a_bar);
 	if (PL <= 0.0 || PR <= 0.0) {
-		printf("HLLC failed %e %e %e\n", PL, P0, PR);
+		printf("HLLC failed %e %e %e\n", PL.get(), P0.get(), PR.get());
 		F = KT(VL, VR);
 	} else {
 		real qR, qL;

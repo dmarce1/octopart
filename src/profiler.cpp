@@ -88,10 +88,10 @@ void profiler_output(FILE* _fp) {
 	for (int f = 0; f != 2; f++) {
 		int r = 1;
 		FILE* fp = fps[f];
-		fprintf(fp, "%f total seconds\n", ttot);
+		fprintf(fp, "%f total seconds\n", ttot.get());
 		for (auto i = ranks.end(); i != ranks.begin(); r <= 10) {
 			i--;
-			fprintf(fp, "%4i %60s %8.2f %% %8.2f\n", r++, i->second.c_str(), i->first * 100.0 / ttot, i->first);
+			fprintf(fp, "%4i %60s %8.2f %% %8.2f\n", r++, i->second.c_str(), (i->first.get() * 100.0 / ttot).get(), i->first.get());
 		}
 		fprintf(fp, "\n");
 	}

@@ -88,6 +88,9 @@ public:
 	static constexpr real min() {
 		return std::numeric_limits<real_type>::min();
 	}
+	static constexpr real eps() {
+		return std::numeric_limits<real_type>::epsilon();
+	}
 	friend real copysign(real a, real b);
 	friend real max(real a, real b);
 	friend real min(real a, real b);

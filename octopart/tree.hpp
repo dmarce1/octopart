@@ -113,20 +113,20 @@ public:
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_workload);
 	HPX_DEFINE_COMPONENT_ACTION(tree,destroy);
 	HPX_DEFINE_COMPONENT_ACTION(tree,form_tree);
-	HPX_DEFINE_COMPONENT_ACTION(tree,get_attributes);
-	HPX_DEFINE_COMPONENT_ACTION(tree,get_gradients);
-	HPX_DEFINE_COMPONENT_ACTION(tree,get_parent);
-	HPX_DEFINE_COMPONENT_ACTION(tree,get_particle_positions);
-	HPX_DEFINE_COMPONENT_ACTION(tree,get_particles);
-	HPX_DEFINE_COMPONENT_ACTION(tree,get_children);
 	HPX_DEFINE_COMPONENT_ACTION(tree,initialize);
 	HPX_DEFINE_COMPONENT_ACTION(tree,finish_drift);
 	HPX_DEFINE_COMPONENT_ACTION(tree,redistribute_workload);
-	HPX_DEFINE_COMPONENT_ACTION(tree,send_particles);
-	HPX_DEFINE_COMPONENT_ACTION(tree,set_self_and_parent);
 	HPX_DEFINE_COMPONENT_ACTION(tree,tree_statistics);
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_checkpoint);
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_silo);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_attributes);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_gradients);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_parent);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_particle_positions);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_particles);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_children);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,send_particles);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,set_self_and_parent);
 
 };
 
