@@ -8,22 +8,15 @@
 #include <octopart/rand.hpp>
 
 std::vector<particle> disc_particle_set(int N) {
-	std::vector<particle> parts;
-	for (int ri = 0; ri < N; ri++) {
-		const real r = real(ri) / real(N) / 2.0;
-		if (r > 0.1 && r < 0.4) {
-			for (int pi = 0; pi < N; pi++) {
-				const auto theta = real(pi) / N * 2.0 * M_PI;
-				const auto x = r * cos(theta);
-				const auto y = r * sin(theta);
-				particle part;
-				part.x[0] = x;
-				part.x[1] = y;
-				parts.push_back(part);
-			}
+	std::vector<particle> rparts;
+	const auto cparts = cartesian_particle_set(N);
+	for( auto p : cparts) {
+		const auto r = abs(p.x);
+		if( r < 0.45 && r > 0.05 ) {
+			rparts.push_back(p);
 		}
 	}
-	return parts;
+	return rparts;
 }
 
 std::vector<particle> cartesian_particle_set(int N) {

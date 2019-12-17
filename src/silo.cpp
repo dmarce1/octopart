@@ -71,30 +71,31 @@ int main(int argc, char *argv[]) {
 		std::vector<real> Nc;
 		std::vector<real> h;
 		std::vector<real> rho;
-		std::vector<real> energy;
-		std::array<std::vector<real>, NDIM> mom;
+		std::vector<real> pre;
+		std::array<std::vector<real>, NDIM> vel;
 		rho.reserve(nnodes);
-		energy.reserve(nnodes);
+		pre.reserve(nnodes);
 		for (int dim = 0; dim < NDIM; dim++) {
-			mom[dim].reserve(nnodes);
+			vel[dim].reserve(nnodes);
 		}
 		for (const auto &pi : parts) {
-			rho.push_back(pi.m / pi.V);
-			energy.push_back(pi.e / pi.V);
+			const auto V = pi.to_con().to_prim();
+			rho.push_back(V.den());
+			pre.push_back(V.pre());
 			h.push_back(pi.h);
 			std::array<vect, NDIM> E;
 			Nc.push_back(condition_number(pi.B, E));
 			for (int dim = 0; dim < NDIM; dim++) {
-				mom[dim].push_back(pi.u[dim] * pi.m / pi.V);
+				vel[dim].push_back(V.vel()[dim]);
 			}
 		}
 		DBPutUcdvar1(db, "h", "mesh", h.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "Nc", "mesh", Nc.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "rho", "mesh", rho.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
-		DBPutUcdvar1(db, "E", "mesh", energy.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
+		DBPutUcdvar1(db, "P", "mesh", pre.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		for (int dim = 0; dim < NDIM; dim++) {
-			std::string mom_name = std::string() + "s_" + char('x' + char(dim));
-			DBPutUcdvar1(db, mom_name.c_str(), "mesh", mom[dim].data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
+			std::string nm = std::string() + "v_" + char('x' + char(dim));
+			DBPutUcdvar1(db, nm.c_str(), "mesh", vel[dim].data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		}
 		for (int dim = 0; dim < NDIM; dim++) {
 			delete[] coordnames[dim];
