@@ -100,6 +100,7 @@ particle particle::from_con(const conserved_state &U) const {
 	p.u = U.mom() / U.den();
 	p.B = B;
 	p.x = x;
+	p.g = g;
 	return p;
 }
 
