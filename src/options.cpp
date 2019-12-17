@@ -42,6 +42,7 @@ bool options::process_options(int argc, char *argv[]) {
 			("problem_size", po::value<int>(&problem_size)->default_value(100), "problem size")//
 			("problem", po::value<std::string>(&problem)->default_value("sod"), "problem name")//
 			("reflecting", po::value<bool>(&reflecting)->default_value(false), "enable reflecting boundary conditions")//
+			("theta", po::value<double>(&theta)->default_value(0.35), "theta for Barnes-Hut")//
 			("tmax", po::value<double>(&tmax)->default_value(1.0), "time to end simulation")//
 			;
 
@@ -92,6 +93,7 @@ bool options::process_options(int argc, char *argv[]) {
 	SHOW(parts_per_node);
 	SHOW(periodic);
 	SHOW(problem_size);
+	SHOW(theta);
 	SHOW(tmax);
 	return true;
 }

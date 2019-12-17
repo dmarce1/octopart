@@ -15,6 +15,7 @@ public:
 	int parts_per_node;
 	int problem_size;
 	double fgamma;
+	double theta;
 	double tmax;
 	std::string problem;
 
@@ -31,6 +32,7 @@ public:
 		arc & reflecting;
 		arc & problem_size;
 		arc & fgamma;
+		arc & theta;
 		arc & tmax;
 		arc & problem;
 	}

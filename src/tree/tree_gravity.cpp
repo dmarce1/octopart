@@ -1,4 +1,5 @@
 #include <octopart/math.hpp>
+#include <octopart/options.hpp>
 #include <octopart/tree.hpp>
 
 mass_attr tree::compute_mass_attributes() {
@@ -79,8 +80,9 @@ mass_attr tree::get_mass_attributes() const {
 }
 
 void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr> masses) {
+	const static auto opts = options::get();
+	const auto theta = opts.theta;
 	assert(nparts0 == parts.size());
-	constexpr real theta = 0.35;
 	constexpr real G = 1.0;
 	std::vector<hpx::future<mass_attr>> futs;
 	std::vector<hpx::future<std::array<hpx::id_type, NCHILD>>> ncfuts;
@@ -127,7 +129,7 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 			mtot += masses[j].mtot;
 			for (int i = 0; i < parts.size(); i++) {
 				auto &pi = parts[i];
-				const auto r =  pi.x - masses[j].com;
+				const auto r = pi.x - masses[j].com;
 				const auto r3inv = pow(abs(r), -3);
 				pi.g = pi.g - r * (G * masses[j].mtot * r3inv);
 			}
