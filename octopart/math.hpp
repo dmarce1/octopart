@@ -17,6 +17,7 @@ real dW_norm_dh(real);
 bool matrix_inverse(const std::array<vect, NDIM>&, std::array<vect, NDIM> &A);
 vect rotate_to(const vect &u, const vect &n);
 vect rotate_from(const vect &u, vect n);
+real grav_force(real r, real h);
 void enable_floating_point_exceptions();
 #if(NDIM==3)
 vect cross( const vect& a, const vect& b);
@@ -39,10 +40,17 @@ inline real triple_product(const vect &a, const vect &b, const vect &c) {
 }
 #endif
 
-
 inline real W(real r, real h) {
 	auto norm = W_norm(h);
 	return bspline(2 * r / h) / norm;
+}
+
+inline real grav_force(real r, real h) {
+	if (r < h) {
+		return -r / (h * h * h);
+	} else {
+		return -1.0 / r;
+	}
 }
 
 inline real bspline(real r) {
@@ -60,9 +68,9 @@ inline real W_norm(real h) {
 	if constexpr (NDIM == 1) {
 		return 3.0 * h / 4.0;
 	} else if constexpr (NDIM == 2) {
-		return 2 * M_PI * 7 * h * h / 80.0;
+		return M_PI * 7 * h * h / 40.0;
 	} else {
-		return 2 * 2.0 * M_PI * h * h * h / 32.0;
+		return M_PI * h * h * h / 8.0;
 	}
 }
 

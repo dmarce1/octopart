@@ -41,6 +41,34 @@ struct sibling_attr {
 	}
 };
 
+struct mass_attr {
+	vect com;
+	real mtot;
+	real rmaxs;
+	real rmaxb;
+	bool leaf;
+	template<class Arc>
+	void serialize(Arc &&arc, unsigned) {
+		arc & com;
+		arc & mtot;
+		arc & rmaxs;
+		arc & rmaxb;
+		arc & leaf;
+	}
+};
+
+struct gravity_part {
+	real m;
+	real h;
+	vect x;
+	template<class Arc>
+	void serialize(Arc &&arc, unsigned) {
+		arc & h;
+		arc & m;
+		arc & x;
+	}
+};
+
 class tree: public hpx::components::migration_support<hpx::components::component_base<tree>> {
 	std::vector<particle> new_parts;
 	std::vector<particle> parts;
@@ -49,10 +77,10 @@ class tree: public hpx::components::migration_support<hpx::components::component
 	std::vector<conserved_state> dudt;
 	std::vector<vect> mass_flux;
 	std::vector<real> Ncond;
+	std::vector<vect> gforce;
 	std::array<hpx::id_type, NCHILD> children;
 	std::array<int, NCHILD> child_loads;
 	std::vector<sibling_attr> siblings;
-	std::vector<sibling_attr> psiblings;
 	hpx::id_type parent;
 	hpx::id_type self;
 	range root_box;
@@ -60,14 +88,17 @@ class tree: public hpx::components::migration_support<hpx::components::component
 	int nparts0;
 	bool leaf;
 	bool dead;
+	mass_attr mass;
 	std::shared_ptr<hpx::lcos::local::mutex> mtx;
 
 public:
 	tree();
 	tree(std::vector<particle>&&, const range&, const range&);
 
+	mass_attr compute_mass_attributes();
 	void compute_drift(real);
 	void compute_gradients();
+	void compute_gravity(std::vector<hpx::id_type>, std::vector<mass_attr>);
 	void compute_next_state(real);
 	void compute_time_derivatives(real);
 	real compute_timestep() const;
@@ -80,6 +111,8 @@ public:
 	tree_attr get_attributes() const;
 	std::array<hpx::id_type, NCHILD> get_children() const;
 	std::vector<gradient> get_gradients(range, range, const vect&) const;
+	std::vector<gravity_part> get_gravity_particles() const;
+	mass_attr get_mass_attributes() const;
 	hpx::id_type get_parent() const;
 	std::vector<vect> get_particle_positions(range, const vect&) const;
 	std::vector<particle> get_particles(range, range, const vect&) const;
@@ -97,14 +130,15 @@ public:
 		arc & children;
 		arc & child_loads;
 		arc & siblings;
-		arc & psiblings;
 		arc & parent;
 		arc & self;
 		arc & root_box;
 		arc & box;
 		arc & leaf;
+		arc & mass;
 	}
 
+	HPX_DEFINE_COMPONENT_ACTION(tree,compute_mass_attributes);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_drift);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_gradients);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_next_state);
@@ -116,12 +150,15 @@ public:
 	HPX_DEFINE_COMPONENT_ACTION(tree,form_tree);
 	HPX_DEFINE_COMPONENT_ACTION(tree,initialize);
 	HPX_DEFINE_COMPONENT_ACTION(tree,finish_drift);
+	HPX_DEFINE_COMPONENT_ACTION(tree,compute_gravity);
 	HPX_DEFINE_COMPONENT_ACTION(tree,redistribute_workload);
 	HPX_DEFINE_COMPONENT_ACTION(tree,tree_statistics);
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_checkpoint);
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_silo);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_attributes);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_gradients);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_gravity_particles);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_mass_attributes);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_parent);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_particle_positions);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_particles);
