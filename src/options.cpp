@@ -4,7 +4,7 @@
 #include <iostream>
 #include <hpx/runtime/actions/plain_action.hpp>
 #include <hpx/async.hpp>
-#include <hpx/program_options.hpp>
+#include <boost/program_options.hpp>
 #include <hpx/runtime/threads/run_as_os_thread.hpp>
 
 options options::global;
@@ -24,7 +24,7 @@ void options::set(options o) {
 
 bool options::process_options(int argc, char *argv[]) {
 	hpx::threads::run_as_os_thread([argc,argv,this]() {
-		namespace po = hpx::program_options;
+		namespace po = boost::program_options;
 
 		po::options_description command_opts("options");
 
@@ -45,7 +45,7 @@ bool options::process_options(int argc, char *argv[]) {
 			("tmax", po::value<double>(&tmax)->default_value(1.0), "time to end simulation")//
 			;
 
-			hpx::program_options::variables_map vm;
+			boost::program_options::variables_map vm;
 			po::store(po::parse_command_line(argc, argv, command_opts), vm);
 			po::notify(vm);
 			if (vm.count("help")) {

@@ -80,7 +80,7 @@ mass_attr tree::get_mass_attributes() const {
 
 void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr> masses) {
 	assert(nparts0==parts.size());
-	constexpr real theta = 0.00001;
+	constexpr real theta = 0.35;
 	constexpr real G = 1.0;
 	std::vector<hpx::future<mass_attr>> futs;
 	std::vector<hpx::future<std::array<hpx::id_type, NCHILD>>> ncfuts;
@@ -123,7 +123,7 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 			for (int j = 0; j < masses.size(); j++) {
 				const auto r = masses[j].com - pi.x;
 				const auto r3inv = pow(abs(r), -3);
-				pi.g = pi.g - r * (G * masses[i].mtot * r3inv);
+				pi.g = pi.g - r * (G * masses[j].mtot * r3inv);
 			}
 		}
 		for (auto &n : gfuts) {
@@ -147,6 +147,7 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 			const auto rmaxB = min(tmp.rmaxb, tmp.rmaxs);
 			const auto ZB = tmp.com;
 			if (abs(ZA - ZB) > (rmaxA + rmaxB) / theta) {
+				printf( "far\n");
 				masses.push_back(tmp);
 			} else if (tmp.leaf) {
 				leaf_nids.push_back(nids[i]);
