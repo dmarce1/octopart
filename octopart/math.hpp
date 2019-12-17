@@ -49,7 +49,7 @@ inline real grav_force(real r, real h) {
 	if (r < h) {
 		return -r / (h * h * h);
 	} else {
-		return -1.0 / r;
+		return -1.0 / (r * r);
 	}
 }
 

@@ -50,11 +50,11 @@ int hpx_main(int argc, char *argv[]) {
 		tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 		tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
 		tree::compute_interactions_action()(root);
-		tree::write_silo_action()(root, i + 1);
 		if (opts.gravity) {
 			tree::compute_mass_attributes_action()(root);
 			tree::compute_gravity_action()(root, std::vector<hpx::id_type>(1, root), std::vector<mass_attr>());
 		}
+		tree::write_silo_action()(root, i + 1);
 		t += dt;
 	}
 	FILE *fp = fopen("profile.txt", "wt");

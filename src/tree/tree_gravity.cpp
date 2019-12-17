@@ -79,7 +79,7 @@ mass_attr tree::get_mass_attributes() const {
 }
 
 void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr> masses) {
-	assert(nparts0==parts.size());
+	assert(nparts0 == parts.size());
 	constexpr real theta = 0.35;
 	constexpr real G = 1.0;
 	std::vector<hpx::future<mass_attr>> futs;
@@ -110,32 +110,42 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 				const auto tmp = f.get();
 				nids.insert(nids.end(), tmp.begin(), tmp.end());
 			}
+			futs.clear();
+			for (const auto &n : nids) {
+				futs.push_back(hpx::async<get_mass_attributes_action>(n));
+			}
+		}
+		for (auto &pi : parts) {
+			pi.g = vect(0);
 		}
 		std::vector<hpx::future<std::vector<gravity_part>>> gfuts(near.size());
 		for (int i = 0; i < near.size(); i++) {
 			gfuts[i] = hpx::async<get_gravity_particles_action>(near[i]);
 		}
-		for (auto &pi : parts) {
-			pi.g = vect(0);
-		}
-		for (int i = 0; i < parts.size(); i++) {
-			auto &pi = parts[i];
-			for (int j = 0; j < masses.size(); j++) {
-				const auto r = masses[j].com - pi.x;
+		real mtot = 0.0;
+		for (int j = 0; j < masses.size(); j++) {
+			mtot += masses[j].mtot;
+			for (int i = 0; i < parts.size(); i++) {
+				auto &pi = parts[i];
+				const auto r =  pi.x - masses[j].com;
 				const auto r3inv = pow(abs(r), -3);
 				pi.g = pi.g - r * (G * masses[j].mtot * r3inv);
 			}
 		}
 		for (auto &n : gfuts) {
 			const auto list = n.get();
-			for (int i = 0; i < parts.size(); i++) {
-				auto &pi = parts[i];
-				for (int j = 0; j < list.size(); j++) {
-					const auto r = list[j].x - pi.x;
-					const auto h = 0.5 * (pi.h + list[j].h);
-					const auto f = grav_force(abs(r), h);
-					const auto c = f * G * list[j].m;
-					pi.g = pi.g + r * c;
+			for (int j = 0; j < list.size(); j++) {
+				mtot += list[j].m;
+				for (int i = 0; i < parts.size(); i++) {
+					auto &pi = parts[i];
+					const auto r = pi.x - list[j].x;
+					const auto r0 = abs(r);
+					if (r0 > 0.0) {
+						const auto h = 0.5 * (pi.h + list[j].h);
+						const auto f = grav_force(abs(r), h);
+						const auto c = f * G * list[j].m;
+						pi.g = pi.g + r * c / r0;
+					}
 				}
 			}
 		}
@@ -147,7 +157,6 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 			const auto rmaxB = min(tmp.rmaxb, tmp.rmaxs);
 			const auto ZB = tmp.com;
 			if (abs(ZA - ZB) > (rmaxA + rmaxB) / theta) {
-				printf( "far\n");
 				masses.push_back(tmp);
 			} else if (tmp.leaf) {
 				leaf_nids.push_back(nids[i]);
