@@ -73,10 +73,12 @@ int main(int argc, char *argv[]) {
 		std::vector<real> rho;
 		std::vector<real> pre;
 		std::array<std::vector<real>, NDIM> vel;
+		std::array<std::vector<real>, NDIM> g;
 		rho.reserve(nnodes);
 		pre.reserve(nnodes);
 		for (int dim = 0; dim < NDIM; dim++) {
 			vel[dim].reserve(nnodes);
+			g[dim].reserve(nnodes);
 		}
 		for (const auto &pi : parts) {
 			const auto V = pi.to_con().to_prim();
@@ -87,6 +89,7 @@ int main(int argc, char *argv[]) {
 			Nc.push_back(condition_number(pi.B, E));
 			for (int dim = 0; dim < NDIM; dim++) {
 				vel[dim].push_back(V.vel()[dim]);
+				g[dim].push_back(pi.g[dim]);
 			}
 		}
 		DBPutUcdvar1(db, "h", "mesh", h.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
@@ -96,6 +99,10 @@ int main(int argc, char *argv[]) {
 		for (int dim = 0; dim < NDIM; dim++) {
 			std::string nm = std::string() + "v_" + char('x' + char(dim));
 			DBPutUcdvar1(db, nm.c_str(), "mesh", vel[dim].data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
+		}
+		for (int dim = 0; dim < NDIM; dim++) {
+			std::string nm = std::string() + "g_" + char('x' + char(dim));
+			DBPutUcdvar1(db, nm.c_str(), "mesh", g[dim].data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		}
 		for (int dim = 0; dim < NDIM; dim++) {
 			delete[] coordnames[dim];

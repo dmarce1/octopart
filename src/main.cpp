@@ -10,10 +10,10 @@ int hpx_main(int argc, char *argv[]) {
 	opts.process_options(argc, argv);
 //	std::vector<particle> parts = random_particle_set(N * N);
 	std::vector<particle> parts;
-	if( opts.problem == "kepler") {
+	if (opts.problem == "kepler") {
 		parts = disc_particle_set(opts.problem_size);
 	} else {
-		 parts = cartesian_particle_set(opts.problem_size);
+		parts = cartesian_particle_set(opts.problem_size);
 	}
 	range box;
 	for (int dim = 0; dim < NDIM; dim++) {
@@ -25,17 +25,21 @@ int hpx_main(int argc, char *argv[]) {
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
 	tree::compute_interactions_action()(root);
 	tree::initialize_action()(root, opts.problem);
+	if (opts.gravity) {
+		tree::compute_mass_attributes_action()(root);
+		tree::compute_gravity_action()(root, std::vector<hpx::id_type>(1, root), std::vector<mass_attr>());
+	}
 	tree::write_silo_action()(root, 0);
 	for (int i = 0; t < opts.tmax; i++) {
 		auto dt = tree::compute_timestep_action()(root);
 		dt *= 0.1;
 		tree_stats s = tree::tree_statistics_action()(root);
-		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, t.get(), dt.get(), s.nparts, s.nleaves, s.max_level,
-				s.mass.get());
-		for( int dim = 0; dim < NDIM; dim++) {
-			printf( "%e ", s.momentum[dim].get());
+		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, t.get(), dt.get(), s.nparts, s.nleaves,
+				s.max_level, s.mass.get());
+		for (int dim = 0; dim < NDIM; dim++) {
+			printf("%e ", s.momentum[dim].get());
 		}
-		printf( "Energy = %e\n", s.energy.get());
+		printf("Energy = %e\n", s.energy.get());
 		if (!opts.dust_only) {
 			tree::compute_gradients_action()(root);
 			tree::compute_time_derivatives_action()(root, dt);
@@ -47,6 +51,10 @@ int hpx_main(int argc, char *argv[]) {
 		tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
 		tree::compute_interactions_action()(root);
 		tree::write_silo_action()(root, i + 1);
+		if (opts.gravity) {
+			tree::compute_mass_attributes_action()(root);
+			tree::compute_gravity_action()(root, std::vector<hpx::id_type>(1, root), std::vector<mass_attr>());
+		}
 		t += dt;
 	}
 	FILE *fp = fopen("profile.txt", "wt");

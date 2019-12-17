@@ -2,23 +2,28 @@
 #include <octopart/tree.hpp>
 
 mass_attr tree::compute_mass_attributes() {
-	auto& Xcom = mass.com;
-	auto& mtot = mass.mtot;
-	auto& rmaxs = mass.rmaxs;
-	auto& rmaxb = mass.rmaxb;
+	auto &Xcom = mass.com;
+	auto &mtot = mass.mtot;
+	auto &rmaxs = mass.rmaxs;
+	auto &rmaxb = mass.rmaxb;
 	Xcom = vect(0);
 	mtot = 0.0;
 	rmaxs = 0.0;
 	rmaxb = 0.0;
 	mass.leaf = leaf;
 	if (leaf) {
-		for (const auto &p : parts) {
-			Xcom = Xcom + p.x * p.m;
-			mtot += p.m;
-		}
-		Xcom = Xcom / mtot;
-		for (const auto &p : parts) {
-			rmaxb = max(rmaxb, abs(p.x - Xcom));
+		if (parts.size()) {
+			for (const auto &p : parts) {
+				Xcom = Xcom + p.x * p.m;
+				mtot += p.m;
+			}
+			Xcom = Xcom / mtot;
+			for (const auto &p : parts) {
+				rmaxb = max(rmaxb, abs(p.x - Xcom));
+			}
+		} else {
+			Xcom = range_center(box);
+			rmaxb = 0.0;
 		}
 	} else {
 		std::array<hpx::future<mass_attr>, NCHILD> futs;
@@ -32,10 +37,15 @@ mass_attr tree::compute_mass_attributes() {
 			Xcom = Xcom + c.com * c.mtot;
 			mtot += c.mtot;
 		}
-		Xcom = Xcom / mtot;
-		for (int ci = 0; ci < NCHILD; ci++) {
-			const auto &c = child_attr[ci];
-			rmaxb = max(rmaxb, c.rmaxb + abs(Xcom - c.com));
+		if (mtot > 0.0) {
+			Xcom = Xcom / mtot;
+			for (int ci = 0; ci < NCHILD; ci++) {
+				const auto &c = child_attr[ci];
+				rmaxb = max(rmaxb, c.rmaxb + abs(Xcom - c.com));
+			}
+		} else {
+			Xcom = range_center(box);
+			rmaxb = 0.0;
 		}
 	}
 	vect Xv;
@@ -69,7 +79,8 @@ mass_attr tree::get_mass_attributes() const {
 }
 
 void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr> masses) {
-	constexpr real theta = 0.25;
+	assert(nparts0==parts.size());
+	constexpr real theta = 0.00001;
 	constexpr real G = 1.0;
 	std::vector<hpx::future<mass_attr>> futs;
 	std::vector<hpx::future<std::array<hpx::id_type, NCHILD>>> ncfuts;
@@ -80,8 +91,8 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 	const auto ZA = mass.com;
 	if (leaf) {
 		std::vector<hpx::id_type> near;
-		ncfuts.clear();
 		while (nids.size()) {
+			ncfuts.clear();
 			for (int i = 0; i < nids.size(); i++) {
 				const auto tmp = futs[i].get();
 				const auto rmaxB = min(tmp.rmaxb, tmp.rmaxs);
@@ -93,35 +104,38 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 				} else {
 					ncfuts.push_back(hpx::async<get_children_action>(nids[i]));
 				}
-				nids.clear();
-				for (auto &f : ncfuts) {
-					const auto tmp = f.get();
-					nids.insert(nids.end(), tmp.begin(), tmp.end());
-				}
+			}
+			nids.clear();
+			for (auto &f : ncfuts) {
+				const auto tmp = f.get();
+				nids.insert(nids.end(), tmp.begin(), tmp.end());
 			}
 		}
 		std::vector<hpx::future<std::vector<gravity_part>>> gfuts(near.size());
 		for (int i = 0; i < near.size(); i++) {
 			gfuts[i] = hpx::async<get_gravity_particles_action>(near[i]);
 		}
-		gforce.resize(parts.size(), vect(0.0));
+		for (auto &pi : parts) {
+			pi.g = vect(0);
+		}
 		for (int i = 0; i < parts.size(); i++) {
-			const auto &pi = parts[i];
+			auto &pi = parts[i];
 			for (int j = 0; j < masses.size(); j++) {
 				const auto r = masses[j].com - pi.x;
 				const auto r3inv = pow(abs(r), -3);
-				gforce[i] = gforce[i] - r * (G * masses[i].mtot * r3inv);
+				pi.g = pi.g - r * (G * masses[i].mtot * r3inv);
 			}
 		}
 		for (auto &n : gfuts) {
 			const auto list = n.get();
 			for (int i = 0; i < parts.size(); i++) {
-				const auto &pi = parts[i];
+				auto &pi = parts[i];
 				for (int j = 0; j < list.size(); j++) {
 					const auto r = list[j].x - pi.x;
 					const auto h = 0.5 * (pi.h + list[j].h);
 					const auto f = grav_force(abs(r), h);
-					gforce[i] = gforce[i] + r * f * G * list[i].m;
+					const auto c = f * G * list[j].m;
+					pi.g = pi.g + r * c;
 				}
 			}
 		}

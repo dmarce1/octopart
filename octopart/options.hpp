@@ -9,6 +9,7 @@ public:
 	bool first_order_space;
 	bool first_order_time;
 	bool fpe;
+	bool gravity;
 	bool periodic;
 	bool reflecting;
 	int parts_per_node;
@@ -24,6 +25,7 @@ public:
 		arc & first_order_space;
 		arc & first_order_time;
 		arc & fpe;
+		arc & gravity;
 		arc & parts_per_node;
 		arc & periodic;
 		arc & reflecting;

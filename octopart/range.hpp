@@ -22,7 +22,7 @@ struct range {
 };
 
 range reflect_range(const range&, int dim, real axis);
-
+vect range_center(const range &r);
 range shift_range(const range& r, const vect&);
 vect range_span(const range&);
 bool in_range(const vect&, const range&);

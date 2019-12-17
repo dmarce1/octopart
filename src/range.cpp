@@ -7,6 +7,14 @@
 
 #include <octopart/range.hpp>
 
+vect range_center(const range &r) {
+	vect c;
+	for (int dim = 0; dim < NDIM; dim++) {
+		c[dim] = (r.min[dim] + r.max[dim]) / 2.0;
+	}
+	return c;
+}
+
 range reflect_range(const range &r_, int dim, real x) {
 	range r = r_;
 	r.min[dim] = 2 * x - r_.max[dim];

@@ -17,6 +17,7 @@ struct particle {
 	vect x;
 	real m;
 	vect u;
+	vect g;
 	real e;
 	real V;
 	real h;
@@ -25,6 +26,7 @@ struct particle {
 	int read(FILE*);
 	template<class Arc>
 	void serialize(Arc &&a, unsigned) {
+		a & g;
 		a & x;
 		a & m;
 		a & u;

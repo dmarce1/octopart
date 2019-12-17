@@ -77,7 +77,6 @@ class tree: public hpx::components::migration_support<hpx::components::component
 	std::vector<conserved_state> dudt;
 	std::vector<vect> mass_flux;
 	std::vector<real> Ncond;
-	std::vector<vect> gforce;
 	std::array<hpx::id_type, NCHILD> children;
 	std::array<int, NCHILD> child_loads;
 	std::vector<sibling_attr> siblings;

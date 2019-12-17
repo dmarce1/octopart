@@ -35,6 +35,7 @@ bool options::process_options(int argc, char *argv[]) {
 	("first_order_space", po::value<bool>(&first_order_space)->default_value(false), "use 1st order spatial scheme")           //
 	("first_order_time", po::value<bool>(&first_order_time)->default_value(false), "use 1st order time integration")           //
 	("fpe", po::value<bool>(&fpe)->default_value(true), "enable floating point exceptions")           //
+	("gravity", po::value<bool>(&gravity)->default_value(false), "enable gravity")           //
 	("parts_per_node", po::value<int>(&parts_per_node)->default_value(1000), "maximum number of particles on a node")           //
 	("periodic", po::value<bool>(&periodic)->default_value(false), "enable periodic boundary conditions")           //
 	("problem_size", po::value<int>(&problem_size)->default_value(100), "problem size")           //
@@ -72,9 +73,10 @@ bool options::process_options(int argc, char *argv[]) {
 
 	const auto loc = hpx::find_all_localities();
 	const auto sz = loc.size();
-	std::vector<hpx::future<void>> futs(sz);
-	for( int i = 0; i < sz; i++) {
-		futs[i] = hpx::async<set_options_action>(loc[i], *this);
+	std::vector<hpx::future<void>> futs;
+	set(*this);
+	for( int i = 1; i < sz; i++) {
+		futs.push_back(hpx::async<set_options_action>(loc[i], *this));
 	}
 	hpx::wait_all(futs);
 #define SHOW( opt ) std::cout << std::string( #opt ) << " = " << std::to_string(opt) << '\n';
@@ -83,6 +85,7 @@ bool options::process_options(int argc, char *argv[]) {
 	SHOW(first_order_space);
 	SHOW(first_order_time);
 	SHOW(fpe);
+	SHOW(gravity);
 	SHOW(parts_per_node);
 	SHOW(periodic);
 	SHOW(problem_size);
