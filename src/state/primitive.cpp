@@ -11,7 +11,6 @@ flux_state primitive_state::to_flux() const {
 	flux_state f;
 	const auto v = (*this)[v_i];
 	f[d_i] = den() * v;
-	f[t_i] = den() * v;
 	for (int dim = 0; dim < NDIM; dim++) {
 		f[v_i + dim] = den() * v * (*this)[v_i + dim];
 	}
@@ -28,7 +27,6 @@ conserved_state primitive_state::to_con() const {
 	U.den() = den();
 	U.ene() = pre() / (fgamma - 1.0) + vel().dot(vel()) * den() * 0.5;
 	U.mom() = vel() * den();
-	U.tau() = tau();
 	return U;
 }
 
@@ -56,8 +54,6 @@ primitive_state primitive_state::dW_dt(const gradient &dW_dx) const {
 		const auto u = (*this)[v_i + dim];
 		V[d_i] -= u * dW_dx[dim][d_i];
 		V[d_i] -= (*this)[d_i] * dW_dx[dim][v_i + dim];
-		V[t_i] -= u * dW_dx[dim][t_i];
-		V[t_i] -= (*this)[t_i] * dW_dx[dim][v_i + dim];
 		V[p_i] -= u * dW_dx[dim][p_i];
 		V[p_i] -= fgamma * (*this)[p_i] * dW_dx[dim][v_i + dim];
 		for (int n = 0; n < NDIM; n++) {

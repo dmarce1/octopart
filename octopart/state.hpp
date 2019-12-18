@@ -10,7 +10,7 @@
 
 #include "vect.hpp"
 
-static constexpr int STATE_SIZE = NDIM + 3;
+static constexpr int STATE_SIZE = NDIM + 2;
 
 
 using state = general_vect<real, STATE_SIZE>;
@@ -22,8 +22,7 @@ using gradient = general_vect<primitive_state,NDIM>;
 class flux_state: public state {
 	static constexpr int mas_i = 0;
 	static constexpr int ene_i = 1;
-	static constexpr int tau_i = 2;
-	static constexpr int mom_i = 3;
+	static constexpr int mom_i = 2;
 public:
 	flux_state() = default;
 	flux_state(const general_vect<real, STATE_SIZE> &other) {
@@ -46,12 +45,6 @@ public:
 	inline real mass() const {
 		return (*this)[mas_i];
 	}
-	inline real& tau() {
-		return (*this)[tau_i];
-	}
-	inline real tau() const {
-		return (*this)[tau_i];
-	}
 	inline real energy() const {
 		return (*this)[ene_i];
 	}
@@ -73,8 +66,7 @@ public:
 class conserved_state: public state {
 	static constexpr int d_i = 0;
 	static constexpr int e_i = 1;
-	static constexpr int t_i = 2;
-	static constexpr int s_i = 3;
+	static constexpr int s_i = 2;
 public:
 	conserved_state& operator=(const general_vect<real, STATE_SIZE> &other) {
 		for( int i = 0; i < STATE_SIZE; i++) {
@@ -87,12 +79,6 @@ public:
 	}
 	inline real& ene() {
 		return (*this)[e_i];
-	}
-	inline real& tau() {
-		return (*this)[t_i];
-	}
-	inline real tau() const {
-		return (*this)[t_i];
 	}
 	inline real den() const {
 		return (*this)[d_i];
@@ -117,8 +103,7 @@ public:
 class primitive_state: public state {
 	static constexpr int d_i = 0;
 	static constexpr int p_i = 1;
-	static constexpr int t_i = 2;
-	static constexpr int v_i = 3;
+	static constexpr int v_i = 2;
 public:
 	primitive_state& operator=(const general_vect<real, STATE_SIZE> &other) {
 		for( int i = 0; i < STATE_SIZE; i++) {
@@ -131,12 +116,6 @@ public:
 	}
 	inline real& pre() {
 		return (*this)[p_i];
-	}
-	inline real& tau() {
-		return (*this)[t_i];
-	}
-	inline real tau() const {
-		return (*this)[t_i];
 	}
 	inline real den() const {
 		return (*this)[d_i];

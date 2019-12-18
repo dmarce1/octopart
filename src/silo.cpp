@@ -7,14 +7,12 @@
 
 #include <cstdio>
 #include <silo.h>
-#include <octopart/options.hpp>
 #include <octopart/delaunay.hpp>
 #include <octopart/math.hpp>
 #include <octopart/particle.hpp>
 #include <octopart/math.hpp>
 
 int main(int argc, char *argv[]) {
-	static auto opts = options::get();
 	FILE *fp = fopen(argv[1], "rb");
 	if (fp == NULL) {
 		printf("File not found\n");
@@ -23,8 +21,6 @@ int main(int argc, char *argv[]) {
 		particle p;
 		std::string filename = argv[1];
 		filename += ".silo";
-		fread(&opts.fgamma, sizeof(real), 1, fp);
-		opts.set(opts);
 		while (p.read(fp)) {
 			parts.push_back(p);
 		}
@@ -75,11 +71,9 @@ int main(int argc, char *argv[]) {
 		std::vector<real> Nc;
 		std::vector<real> h;
 		std::vector<real> rho;
-		std::vector<real> tau;
 		std::vector<real> ein;
 		std::array<std::vector<real>, NDIM> vel;
 		std::array<std::vector<real>, NDIM> g;
-		tau.reserve(nnodes);
 		rho.reserve(nnodes);
 		ein.reserve(nnodes);
 		for (int dim = 0; dim < NDIM; dim++) {
@@ -90,7 +84,6 @@ int main(int argc, char *argv[]) {
 			const auto U = pi.to_con();
 			const auto V = U.to_prim();
 			rho.push_back(V.den());
-			tau.push_back(V.tau());
 			ein.push_back(U.ene() - V.vel().dot(U.mom()) / 2.0);
 			h.push_back(pi.h);
 			std::array<vect, NDIM> E;
@@ -102,7 +95,6 @@ int main(int argc, char *argv[]) {
 		}
 		DBPutUcdvar1(db, "h", "mesh", h.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "Nc", "mesh", Nc.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
-		DBPutUcdvar1(db, "tau", "mesh", tau.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "rho", "mesh", rho.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "e", "mesh", ein.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		for (int dim = 0; dim < NDIM; dim++) {

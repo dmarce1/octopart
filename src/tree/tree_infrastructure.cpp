@@ -362,7 +362,7 @@ tree_stats tree::tree_statistics() const {
 	if (leaf) {
 		stats.nparts = parts.size();
 		stats.nleaves = 1;
-		for (const auto &p : parts) {
+		for( const auto& p : parts) {
 			stats.mass += p.m;
 			stats.energy += p.E;
 			stats.momentum = stats.momentum + p.v * p.m;
@@ -390,10 +390,8 @@ tree_stats tree::tree_statistics() const {
 
 void tree::write_checkpoint(const std::string &filename) const {
 	FILE *fp;
-	static const auto opts = options::get();
 	if (parent == hpx::invalid_id) {
 		fp = fopen(filename.c_str(), "wb");
-		fwrite(&opts.fgamma, sizeof(real), 1, fp);
 		fclose(fp);
 	}
 	if (leaf) {
@@ -413,7 +411,7 @@ void tree::write_silo(int num) const {
 	std::string base_name = "Y" + std::to_string(num);
 	std::string command = "./check2silo " + base_name;
 	write_checkpoint(base_name);
-	if (system(command.c_str()) != 0) {
-		printf("Unable to convert checkpoint to SILO\n");
+	if( system(command.c_str()) != 0 ) {
+		printf( "Unable to convert checkpoint to SILO\n");
 	}
 }
