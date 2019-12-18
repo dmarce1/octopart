@@ -24,13 +24,19 @@ void tree::compute_drift(real dt) {
 			int sz = parts.size();
 			for (int i = 0; i < sz; i++) {
 				auto &pi = parts[i];
-				pi.x = pi.x + pi.u * dt;
+				pi.x = pi.x + pi.v * dt;
 				if (!in_range(pi.x, box)) {
+					bool found = false;
 					for (int j = 0; j < siblings.size(); j++) {
 						if (in_range(pi.x, shift_range(siblings[j].box, siblings[j].pshift))) {
 							send_parts[j].push_back(pi);
+							found = true;
 							break;
 						}
+					}
+					if (!found) {
+						printf("Something's wrong, unable to send particle to one of %i neighbors\n", int(siblings.size()));
+						abort();
 					}
 					sz--;
 					parts[i] = parts[sz];
@@ -89,7 +95,7 @@ void tree::compute_gradients() {
 						auto pj = parts[j];
 						if (in_range(pj.x, rsbox) || ranges_intersect(range_around(pj.x, pj.h), rbox)) {
 							pj.x[dim] = 2.0 * axis - pj.x[dim];
-							pj.u[dim] = -pj.u[dim];
+							pj.v[dim] = -pj.v[dim];
 							for (int n = 0; n < NDIM; n++) {
 								pj.B[n][dim] = -pj.B[n][dim];
 								pj.B[dim][n] = -pj.B[dim][n];
@@ -296,7 +302,7 @@ void tree::compute_time_derivatives(real dt) {
 							}
 						}
 						const auto dx = pj.x - pi.x;
-						const auto uij = (pi.u * (pj.x - xij).dot(dx) + pj.u * (xij - pi.x).dot(dx)) / (dx.dot(dx));
+						const auto uij = (pi.v * (pj.x - xij).dot(dx) + pj.v * (xij - pi.x).dot(dx)) / (dx.dot(dx));
 						vect psi_a_ij;
 						vect psi_a_ji;
 						for (int n = 0; n < NDIM; n++) {
@@ -361,7 +367,7 @@ real tree::compute_timestep() const {
 					const auto Vj = pj.to_prim();
 					const auto ci = Vi.sound_speed() + abs(Vi.vel());
 					const auto cj = Vj.sound_speed() + abs(Vj.vel());
-					const real vsig = (ci + cj - min(0.0, (pi.u - pj.u).dot(dx) / r)) / 2.0;
+					const real vsig = (ci + cj - min(0.0, (pi.v - pj.v).dot(dx) / r)) / 2.0;
 					tmin = min(tmin, std::min(pi.h, pj.h) / vsig);
 				}
 			}
@@ -551,7 +557,7 @@ void tree::compute_next_state(real dt) {
 					const auto f = r > r0 ? 1.0 / (r * r) : r / (r0 * r0 * r0);
 					const auto d = p.m / p.V * f * x[dim] / r;
 					dudt[i].mom()[dim] -= d;
-					dudt[i].ene() -= d * (p.u[dim] + mass_flux[i][dim] / p.m);
+					dudt[i].ene() -= d * (p.v[dim] + mass_flux[i][dim] / p.m);
 				}
 			}
 		}
@@ -561,8 +567,8 @@ void tree::compute_next_state(real dt) {
 			parts[i] = parts[i].from_con(U);
 			if (opts.gravity) {
 				auto &m = parts[i].m;
-				auto &u = parts[i].u;
-				auto &e = parts[i].e;
+				auto &u = parts[i].v;
+				auto &e = parts[i].E;
 				const auto &dm = mass_flux[i];
 				const auto &g = parts[i].g;
 				e = e + (u * m + dm).dot(g) * dt;

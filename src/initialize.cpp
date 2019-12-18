@@ -3,11 +3,11 @@
 
 void drift(particle &p) {
 	p.m = 1.0;
-	p.e = 0.0;
+	p.E = 0.0;
 	const auto r = abs(p.x);
-	p.u = vect(0);
-	p.u[0] = rand_unit_box();
-	p.u[1] = rand_unit_box();
+	p.v = vect(0);
+	p.v[0] = rand_unit_box();
+	p.v[1] = rand_unit_box();
 
 }
 
@@ -34,25 +34,25 @@ void kh(particle &p) {
 		vx = -0.5 + 0.5 * exp((0.25 - y) / dy);
 	}
 	vy = 0.01 * sin(4.0 * M_PI * (x + 0.5));
-	p.u[0] = -vx;
-	p.u[1] = vy;
+	p.v[0] = -vx;
+	p.v[1] = vy;
 #if(NDIM==3)
-	p.u[2] = 0.0;
+	p.v[2] = 0.0;
 #endif
 	p.m = rho * p.V;
-	p.e = E * p.V + p.u.dot(p.u) * 0.5 * p.m;
+	p.E = E * p.V + p.v.dot(p.v) * 0.5 * p.m;
 	;
 //	for (int dim = 0; dim < NDIM; dim++) {
-//		p.u[dim] = rand_unit_box() * 0.01;
+//		p.v[dim] = rand_unit_box() * 0.01;
 //	}
 //	if (abs(p.x[1]) > 0.25) {
-//		p.u[0] += +0.5;
+//		p.v[0] += +0.5;
 //		p.m = p.V;
-//		p.e = 6.25 * p.V + p.u.dot(p.u) * 0.5 * p.m;
+//		p.E = 6.25 * p.V + p.v.dot(p.v) * 0.5 * p.m;
 //	} else {
-//		p.u[0] += -0.5;
+//		p.v[0] += -0.5;
 //		p.m = 2.0 * p.V;
-	//		p.e = 6.25 * p.V + p.u.dot(p.u) * 0.5 * p.m; ;
+	//		p.E = 6.25 * p.V + p.v.dot(p.v) * 0.5 * p.m; ;
 //	}
 }
 
@@ -60,9 +60,9 @@ void kepler(particle &p) {
 	const auto r = abs(p.x);
 	const auto y = p.x[1];
 	const auto x = p.x[0];
-	p.u = vect(0);
-	p.u[0] = -y / r / sqrt(r);
-	p.u[1] = +x / r / sqrt(r);
+	p.v = vect(0);
+	p.v[0] = -y / r / sqrt(r);
+	p.v[1] = +x / r / sqrt(r);
 	if (r < 1.0 / 12.0) {
 		p.m = 0.01 + 12 * r * r * r;
 	} else if (r < 1.0 / 3.0) {
@@ -71,28 +71,28 @@ void kepler(particle &p) {
 		p.m = 0.01 + 1.0 / pow(1.0 + (r - 1.0 / 3.0) / .1, 3.0);
 	}
 	p.m *= p.V;
-	p.e = 1.0e-6 * p.V + 0.5 * p.u.dot(p.u) * p.m;
+	p.E = 1.0e-6 * p.V + 0.5 * p.v.dot(p.v) * p.m;
 }
 
 void sod(particle &p) {
 	if (p.x[0] < 0.0) {
 		p.m = 1.0 * p.V;
-		p.e = 2.5 * p.V;
+		p.E = 2.5 * p.V;
 	} else {
 		p.m = 0.125 * p.V;
-		p.e = 0.25 * p.V;
+		p.E = 0.25 * p.V;
 	}
 	for (int dim = 0; dim < NDIM; dim++) {
-		p.u[dim] = 0.0;
+		p.v[dim] = 0.0;
 	}
 }
 
 void blast(particle &p) {
 	const auto r = sqrt(p.x.dot(p.x));
 	p.m = p.V;
-	p.e = exp(-50.0 * r) * p.V;
+	p.E = exp(-50.0 * r) * p.V;
 	for (int dim = 0; dim < NDIM; dim++) {
-		p.u[dim] = 0.0;
+		p.v[dim] = 0.0;
 	}
 }
 
@@ -100,10 +100,10 @@ void collapse(particle& p) {
 	if( abs(p.x) < 0.4 ) {
 		p.m = 1.0e+6 * p.V;
 	} else {
-		p.m = 1.0e+3 * p.V;
+		p.m = 1.0 * p.V;
 	}
-	p.u = vect(0);
-	p.e = 1.0e+3 * p.V;
+	p.v = vect(0);
+	p.E = 1.0 * p.V;
 }
 
 init_func_type get_initialization_function(const std::string &name) {

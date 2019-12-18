@@ -364,8 +364,8 @@ tree_stats tree::tree_statistics() const {
 		stats.nleaves = 1;
 		for( const auto& p : parts) {
 			stats.mass += p.m;
-			stats.energy += p.e;
-			stats.momentum = stats.momentum + p.u * p.m;
+			stats.energy += p.E;
+			stats.momentum = stats.momentum + p.v * p.m;
 		}
 	} else {
 		stats.nparts = 0;
