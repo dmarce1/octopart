@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
 		DBPutUcdvar1(db, "h", "mesh", h.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "Nc", "mesh", Nc.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "rho", "mesh", rho.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
-		DBPutUcdvar1(db, "P", "mesh", ein.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
+		DBPutUcdvar1(db, "e", "mesh", ein.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		for (int dim = 0; dim < NDIM; dim++) {
 			std::string nm = std::string() + "v_" + char('x' + char(dim));
 			DBPutUcdvar1(db, nm.c_str(), "mesh", vel[dim].data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);

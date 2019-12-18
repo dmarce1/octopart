@@ -327,11 +327,11 @@ void tree::compute_time_derivatives(real dt) {
 						F = F.boost_from(uij);
 						if (i < nparts0) {
 							dudt[i] = dudt[i] - F * abs(da) / pi.V;
-							mass_flux[i] = mass_flux[i] - (pi.x - pj.x) * F.mass();
+							mass_flux[i] = mass_flux[i] - (pi.x - pj.x) * F.mass() * abs(da);
 						}
 						if (j < nparts0) {
 							dudt[j] = dudt[j] + F * abs(da) / pj.V;
-							mass_flux[j] = mass_flux[j] + (pj.x - pi.x) * F.mass();
+							mass_flux[j] = mass_flux[j] + (pj.x - pi.x) * F.mass() * abs(da);
 						}
 					}
 				}
@@ -559,6 +559,15 @@ void tree::compute_next_state(real dt) {
 			auto U = parts[i].to_con();
 			U = U + dudt[i] * dt;
 			parts[i] = parts[i].from_con(U);
+			if (opts.gravity) {
+				auto &m = parts[i].m;
+				auto &u = parts[i].u;
+				auto &e = parts[i].e;
+				const auto &dm = mass_flux[i];
+				const auto &g = parts[i].g;
+				e = e + (u * m + dm).dot(g) * dt;
+				u = u + g * dt;
+			}
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;

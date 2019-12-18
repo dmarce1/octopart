@@ -96,6 +96,16 @@ void blast(particle &p) {
 	}
 }
 
+void collapse(particle& p) {
+	if( abs(p.x) < 0.4 ) {
+		p.m = 1.0e+6 * p.V;
+	} else {
+		p.m = 1.0e+3 * p.V;
+	}
+	p.u = vect(0);
+	p.e = 1.0e+3 * p.V;
+}
+
 init_func_type get_initialization_function(const std::string &name) {
 	if (name == "drift") {
 		return drift;
@@ -103,6 +113,8 @@ init_func_type get_initialization_function(const std::string &name) {
 	} else if (name == "kh") {
 		return kh;
 #endif
+	} else if (name == "collapse") {
+		return collapse;
 	} else if (name == "blast") {
 		return blast;
 	} else if (name == "sod") {

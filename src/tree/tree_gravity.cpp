@@ -2,6 +2,8 @@
 #include <octopart/options.hpp>
 #include <octopart/tree.hpp>
 
+constexpr real G = 6.67259e-8;
+
 mass_attr tree::compute_mass_attributes() {
 	auto &Xcom = mass.com;
 	auto &mtot = mass.mtot;
@@ -83,7 +85,6 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 	const static auto opts = options::get();
 	const auto theta = opts.theta;
 	assert(nparts0 == parts.size());
-	constexpr real G = 1.0;
 	std::vector<hpx::future<mass_attr>> futs;
 	std::vector<hpx::future<std::array<hpx::id_type, NCHILD>>> ncfuts;
 	for (const auto &n : nids) {
