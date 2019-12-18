@@ -4,15 +4,16 @@
  *  Created on: Dec 6, 2019
  *      Author: dmarce1
  */
+#include <octopart/options.hpp>
 #include <octopart/particle.hpp>
 #include <octopart/rand.hpp>
 
 std::vector<particle> disc_particle_set(int N) {
 	std::vector<particle> rparts;
 	const auto cparts = cartesian_particle_set(N);
-	for( auto p : cparts) {
+	for (auto p : cparts) {
 		const auto r = abs(p.x);
-		if( r < 0.45 && r > 0.05 ) {
+		if (r < 0.45 && r > 0.05) {
 			rparts.push_back(p);
 		}
 	}
@@ -61,6 +62,7 @@ void particle::write(FILE *fp) const {
 	fwrite(&g, sizeof(real), NDIM, fp);
 	fwrite(&m, sizeof(real), 1, fp);
 	fwrite(&E, sizeof(real), 1, fp);
+	fwrite(&U, sizeof(real), 1, fp);
 	fwrite(&V, sizeof(real), 1, fp);
 	fwrite(&h, sizeof(real), 1, fp);
 	fwrite(&B, sizeof(real), NDIM * NDIM, fp);
@@ -73,6 +75,7 @@ int particle::read(FILE *fp) {
 	cnt += fread(&g, sizeof(real), NDIM, fp);
 	cnt += fread(&m, sizeof(real), 1, fp);
 	cnt += fread(&E, sizeof(real), 1, fp);
+	cnt += fread(&U, sizeof(real), 1, fp);
 	cnt += fread(&V, sizeof(real), 1, fp);
 	cnt += fread(&h, sizeof(real), 1, fp);
 	cnt += fread(&B, sizeof(real), NDIM * NDIM, fp);
@@ -84,14 +87,17 @@ primitive_state particle::to_prim() const {
 }
 
 conserved_state particle::to_con() const {
-	conserved_state U;
-	U.den() = m / V;
-	U.mom() = v * (m / V);
-	U.ene() = E / V;
-	return U;
+	static const auto fgamma = options::get().fgamma;
+	conserved_state U0;
+	U0.den() = m / V;
+	U0.mom() = v * (m / V);
+	U0.ene() = E / V;
+	U0.tau() = pow(U / V, 1.0 / fgamma);
+	return U0;
 }
 
 particle particle::from_con(const conserved_state &U) const {
+	static const auto fgamma = options::get().fgamma;
 	particle p;
 	p.V = V;
 	p.E = U.ene() * V;
@@ -101,6 +107,12 @@ particle particle::from_con(const conserved_state &U) const {
 	p.B = B;
 	p.x = x;
 	p.g = g;
+	auto u = p.E - p.v.dot(p.v) * p.m / 2.0;
+	if( u > p.E / 10.0) {
+		p.U = u;
+	} else {
+		p.U = pow(U.tau(), fgamma) * p.V;
+	}
 	return p;
 }
 
