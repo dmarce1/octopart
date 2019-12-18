@@ -77,10 +77,13 @@ vect rotate_to(const vect &u, const vect &n) {
 #else
 	vect m;
 	vect l;
-#error 'fix this'
 	m = cross(u,n);
 	if( m.dot(m)==0.0) {
-		return u;
+		if( u.dot(n) > 0.0 ) {
+			return u;
+		} else {
+			return -u;
+		}
 	} else {
 		vect v;
 		m = m / abs(m);
@@ -111,7 +114,11 @@ vect rotate_from(const vect &u, vect n) {
 	vect l;
 	m = cross(u,n);
 	if( m.dot(m)==0.0) {
-		return u;
+		if( u.dot(n) > 0.0 ) {
+			return u;
+		} else {
+			return -u;
+		}
 	} else {
 		vect v;
 		m = m / abs(m);

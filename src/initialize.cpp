@@ -90,7 +90,7 @@ void sod(particle &p) {
 void blast(particle &p) {
 	const auto r = sqrt(p.x.dot(p.x));
 	p.m = p.V;
-	p.e = exp(-500.0 * r) * p.V;
+	p.e = exp(-50.0 * r) * p.V;
 	for (int dim = 0; dim < NDIM; dim++) {
 		p.u[dim] = 0.0;
 	}
