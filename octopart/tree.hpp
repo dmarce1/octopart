@@ -95,7 +95,7 @@ public:
 	tree(std::vector<particle>&&, const range&, const range&);
 
 	mass_attr compute_mass_attributes();
-	void compute_drift(real);
+	void compute_drift(real,bool);
 	void compute_gradients();
 	void compute_gravity(std::vector<hpx::id_type>, std::vector<mass_attr>);
 	void compute_next_state(real);

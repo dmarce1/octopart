@@ -12,7 +12,7 @@ std::vector<particle> disc_particle_set(int N) {
 	const auto cparts = cartesian_particle_set(N);
 	for( auto p : cparts) {
 		const auto r = abs(p.x);
-		if( r < 0.45 && r > 0.05 ) {
+		if( r < 0.4 && r > 0.1 ) {
 			rparts.push_back(p);
 		}
 	}
@@ -101,6 +101,8 @@ particle particle::from_con(const conserved_state &U) const {
 	p.B = B;
 	p.x = x;
 	p.g = g;
+	p.c = c;
+	p.vf = vf;
 	return p;
 }
 

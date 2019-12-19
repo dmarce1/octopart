@@ -63,14 +63,7 @@ void kepler(particle &p) {
 	p.v = vect(0);
 	p.v[0] = -y / r / sqrt(r);
 	p.v[1] = +x / r / sqrt(r);
-	if (r < 1.0 / 12.0) {
-		p.m = 0.01 + 12 * r * r * r;
-	} else if (r < 1.0 / 3.0) {
-		p.m = 0.01 + 1.0;
-	} else {
-		p.m = 0.01 + 1.0 / pow(1.0 + (r - 1.0 / 3.0) / .1, 3.0);
-	}
-	p.m *= p.V;
+	p.m = p.V;
 	p.E = 1.0e-6 * p.V + 0.5 * p.v.dot(p.v) * p.m;
 }
 

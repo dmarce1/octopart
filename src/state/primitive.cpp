@@ -57,8 +57,8 @@ primitive_state primitive_state::dW_dt(const gradient &dW_dx) const {
 		V[p_i] -= u * dW_dx[dim][p_i];
 		V[p_i] -= fgamma * (*this)[p_i] * dW_dx[dim][v_i + dim];
 		for (int n = 0; n < NDIM; n++) {
-			V[v_i + n] -= u * (*this)[v_i + n];
-			V[v_i + n] -= u * dW_dx[dim][p_i] * (*this)[d_i + n];
+			V[v_i + n] -= u * dW_dx[dim][v_i + n];
+			V[v_i + n] -= dW_dx[dim][p_i] / (*this)[d_i];
 		}
 	}
 	return V;

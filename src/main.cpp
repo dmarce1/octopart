@@ -15,8 +15,17 @@ void solve_gravity() {
 	}
 }
 
-void drift(real dt) {
-	tree::compute_drift_action()(root, dt);
+void first_drift(real dt) {
+	tree::compute_drift_action()(root, dt, true);
+	tree::finish_drift_action()(root);
+	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
+	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
+	tree::compute_interactions_action()(root);
+}
+
+
+void second_drift(real dt) {
+	tree::compute_drift_action()(root, dt, false);
 	tree::finish_drift_action()(root);
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
@@ -46,7 +55,7 @@ void write_checkpoint(int i) {
 
 real timestep() {
 	auto dt = tree::compute_timestep_action()(root);
-	return dt * 0.4;
+	return dt * 0.1;
 }
 
 auto statistics() {
@@ -83,9 +92,10 @@ int hpx_main(int argc, char *argv[]) {
 			printf("%e ", s.momentum[dim].get());
 		}
 		printf("Energy = %e\n", s.energy.get());
-		hydro(dt);
-		drift(dt);
+		first_drift(dt/2.0);
 		solve_gravity();
+		hydro(dt);
+		second_drift(dt/2.0);
 		write_checkpoint(i + 1);
 		t += dt;
 	}

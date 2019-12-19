@@ -16,7 +16,7 @@ constexpr int NNGB = 32;
 #endif
 #endif
 
-void tree::compute_drift(real dt) {
+void tree::compute_drift(real dt, bool set) {
 	static const auto opts = options::get();
 	if (leaf) {
 		std::vector<std::vector<particle>> send_parts(siblings.size());
@@ -25,7 +25,10 @@ void tree::compute_drift(real dt) {
 			int sz = parts.size();
 			for (int i = 0; i < sz; i++) {
 				auto &pi = parts[i];
-				pi.x = pi.x + pi.v * dt;
+				if( set ) {
+					pi.vf = pi.v;
+				}
+				pi.x = pi.x + pi.vf * dt;
 				if (!in_range(pi.x, box)) {
 					bool found = false;
 					for (int j = 0; j < siblings.size(); j++) {
@@ -54,7 +57,7 @@ void tree::compute_drift(real dt) {
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_drift_action>(children[ci], dt);
+			futs[ci] = hpx::async<compute_drift_action>(children[ci], dt, set);
 		}
 		hpx::wait_all(futs);
 	}
@@ -303,7 +306,7 @@ void tree::compute_time_derivatives(real dt) {
 							}
 						}
 						const auto dx = pj.x - pi.x;
-						const auto uij = (pi.v * (pj.x - xij).dot(dx) + pj.v * (xij - pi.x).dot(dx)) / (dx.dot(dx));
+						const auto uij = (pi.vf * (pj.x - xij).dot(dx) + pj.vf * (xij - pi.x).dot(dx)) / (dx.dot(dx));
 						vect psi_a_ij;
 						vect psi_a_ji;
 						for (int n = 0; n < NDIM; n++) {
@@ -524,6 +527,7 @@ void tree::compute_interactions() {
 					for (int n = 0; n < NDIM; n++) {
 						E[n] = vect(0.0);
 					}
+					pi.c = vect(0.0);
 					for (const auto &pjx : pos) {
 						const auto r = abs(pi.x - pjx);
 						const auto h = pi.h;
@@ -534,6 +538,7 @@ void tree::compute_interactions() {
 									E[n][m] += (pjx[n] - pi.x[n]) * (pjx[m] - pi.x[m]) * psi_j;
 								}
 							}
+							pi.c = pi.c + (pi.x * W(r,h) * pi.V);
 						}
 					}
 					Ncond[i] = condition_number(E, pi.B);
@@ -562,7 +567,7 @@ void tree::compute_next_state(real dt) {
 			auto &du = dudt[i];
 			if (use_grav) {
 				du.mom() = du.mom() + p.g * (p.m / p.V);
-				du.ene() = du.ene() + ((p.v + p.g * dt / 2.0) * p.m + mass_flux[i]).dot(p.g) / p.V;
+				du.ene() = du.ene() + ((p.v + p.g*dt/2.0) * p.m + mass_flux[i]).dot(p.g) / p.V;
 			}
 			U = U + du * dt;
 			if( U.den() <= 0.0 ) {
