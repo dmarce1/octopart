@@ -17,6 +17,7 @@ constexpr int NNGB = 32;
 #endif
 
 void tree::compute_drift(real dt) {
+	static const auto opts = options::get();
 	if (leaf) {
 		std::vector<std::vector<particle>> send_parts(siblings.size());
 		{
@@ -34,7 +35,7 @@ void tree::compute_drift(real dt) {
 							break;
 						}
 					}
-					if (!found) {
+					if (!found && (opts.periodic || opts.reflecting)) {
 						printf("Something's wrong, unable to send particle to one of %i neighbors\n", int(siblings.size()));
 						abort();
 					}
@@ -354,6 +355,7 @@ void tree::compute_time_derivatives(real dt) {
 }
 
 real tree::compute_timestep() const {
+	const static auto opts = options::get();
 	real tmin = real::max();
 	if (leaf) {
 		PROFILE();
@@ -369,6 +371,12 @@ real tree::compute_timestep() const {
 					const auto cj = Vj.sound_speed() + abs(Vj.vel());
 					const real vsig = (ci + cj - min(0.0, (pi.v - pj.v).dot(dx) / r)) / 2.0;
 					tmin = min(tmin, std::min(pi.h, pj.h) / vsig);
+					if (opts.gravity) {
+						const auto a = abs(pi.g);
+						if (a > 0.0) {
+							tmin = min(tmin, sqrt(pi.h / a));
+						}
+					}
 				}
 			}
 		}
@@ -544,36 +552,24 @@ void tree::compute_interactions() {
 
 void tree::compute_next_state(real dt) {
 	static auto opts = options::get();
+	const auto use_grav = opts.gravity || opts.problem == "kepler";
 	if (leaf) {
 		PROFILE();
 		parts.resize(nparts0);
-		if (opts.problem == "kepler") {
-			for (int i = 0; i < nparts0; i++) {
-				const auto &p = parts[i];
-				const auto &x = p.x;
-				const auto r = abs(x);
-				for (int dim = 0; dim < NDIM; dim++) {
-					constexpr auto r0 = 0.05;
-					const auto f = r > r0 ? 1.0 / (r * r) : r / (r0 * r0 * r0);
-					const auto d = p.m / p.V * f * x[dim] / r;
-					dudt[i].mom()[dim] -= d;
-					dudt[i].ene() -= d * (p.v[dim] + mass_flux[i][dim] / p.m);
-				}
-			}
-		}
 		for (int i = 0; i < nparts0; i++) {
-			auto U = parts[i].to_con();
-			U = U + dudt[i] * dt;
-			parts[i] = parts[i].from_con(U);
-			if (opts.gravity) {
-				auto &m = parts[i].m;
-				auto &u = parts[i].v;
-				auto &e = parts[i].E;
-				const auto &dm = mass_flux[i];
-				const auto &g = parts[i].g;
-				e = e + (u * m + dm).dot(g) * dt;
-				u = u + g * dt;
+			auto &p = parts[i];
+			auto U = p.to_con();
+			auto &du = dudt[i];
+			if (use_grav) {
+				du.mom() = du.mom() + p.g * (p.m / p.V);
+				du.ene() = du.ene() + ((p.v + p.g * dt / 2.0) * p.m + mass_flux[i]).dot(p.g) / p.V;
 			}
+			U = U + du * dt;
+			if( U.den() <= 0.0 ) {
+				printf( "Negative density! %e\n", U.den());
+				abort();
+			}
+			p = p.from_con(U);
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;

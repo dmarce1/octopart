@@ -6,6 +6,7 @@
 #include <hpx/async.hpp>
 #include <boost/program_options.hpp>
 #include <hpx/runtime/threads/run_as_os_thread.hpp>
+#include <thread>
 
 options options::global;
 
@@ -23,7 +24,7 @@ void options::set(options o) {
 }
 
 bool options::process_options(int argc, char *argv[]) {
-	hpx::threads::run_as_os_thread([argc,argv,this]() {
+	std::thread([&]() {
 		namespace po = boost::program_options;
 
 		po::options_description command_opts("options");
@@ -74,7 +75,7 @@ bool options::process_options(int argc, char *argv[]) {
 			}
 			return true;
 		}
-	).get();
+	).join();
 	const auto loc = hpx::find_all_localities();
 	const auto sz = loc.size();
 	std::vector<hpx::future<void>> futs;

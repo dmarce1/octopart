@@ -118,6 +118,7 @@ public:
 	void initialize(const std::string&);
 	void redistribute_workload(int, int);
 	void send_particles(const std::vector<particle>&, const vect&);
+	void set_central_force();
 	void set_self_and_parent(const hpx::id_type, const hpx::id_type);
 	tree_stats tree_statistics() const;
 	void write_checkpoint(const std::string&) const;
@@ -151,6 +152,7 @@ public:
 	HPX_DEFINE_COMPONENT_ACTION(tree,finish_drift);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_gravity);
 	HPX_DEFINE_COMPONENT_ACTION(tree,redistribute_workload);
+	HPX_DEFINE_COMPONENT_ACTION(tree,set_central_force);
 	HPX_DEFINE_COMPONENT_ACTION(tree,tree_statistics);
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_checkpoint);
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_silo);

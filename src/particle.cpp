@@ -29,7 +29,7 @@ std::vector<particle> cartesian_particle_set(int N) {
 #endif
 #if(NDIM>=2)
 	for (int j = 0; j < N; j++) {
-		part.x[1] = (j + 0.5) / N - 0.5;
+		part.x[1] = (real(j) + 0.5) / real(N) - real(0.5);
 #endif
 		for (int i = 0; i < N; i++) {
 			part.x[0] = (i + 0.5) / N - 0.5;

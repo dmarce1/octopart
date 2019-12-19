@@ -179,3 +179,23 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 		hpx::wait_all(cfuts);
 	}
 }
+
+void tree::set_central_force() {
+	if (leaf) {
+		for (auto &p : parts) {
+			constexpr auto r0 = 0.05;
+			const auto r = abs(p.x);
+			if( r < r0) {
+				p.g = -p.x / (r0 * r0 * r0);
+			} else {
+				p.g = -p.x / (r * r * r);
+			}
+		}
+	} else {
+		std::array<hpx::future<void>, NCHILD> futs;
+		for (int ci = 0; ci < NCHILD; ci++) {
+			futs[ci] = hpx::async<set_central_force_action>(children[ci]);
+		}
+		hpx::wait_all(futs);
+	}
+}
