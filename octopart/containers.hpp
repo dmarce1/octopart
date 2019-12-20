@@ -10,12 +10,12 @@ class vector: public std::vector<T> {
 	using base_type::base_type;
 
 public:
-	T operator[](int i) const {
+	inline T operator[](int i) const {
 		assert(i >= 0);
 		assert(i < base_type::size());
 		return base_type::operator [](i);
 	}
-	T& operator[](int i) {
+	inline T& operator[](int i) {
 		assert(i >= 0);
 		assert(i < base_type::size());
 		return base_type::operator [](i);
@@ -29,12 +29,12 @@ class array: public std::array<T, N> {
 	using base_type::base_type;
 
 public:
-	T operator[](int i) const {
+	inline T operator[](int i) const {
 		assert(i >= 0);
 		assert(i < base_type::size());
 		return base_type::operator [](i);
 	}
-	T& operator[](int i) {
+	inline T& operator[](int i) {
 		assert(i >= 0);
 		assert(i < base_type::size());
 		return base_type::operator [](i);
