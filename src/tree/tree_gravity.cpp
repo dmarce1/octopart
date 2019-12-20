@@ -183,7 +183,7 @@ void tree::compute_gravity(vector<hpx::id_type> nids, vector<mass_attr> masses) 
 void tree::set_central_force() {
 	if (leaf) {
 		for (auto &p : parts) {
-			constexpr auto r0 = 0.05;
+			constexpr auto r0 = 0.1;
 			const auto r = abs(p.x);
 			if( r < r0) {
 				p.g = -p.x / (r0 * r0 * r0);

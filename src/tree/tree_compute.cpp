@@ -245,8 +245,8 @@ void tree::compute_time_derivatives(real dt) {
 			}
 		}
 		PROFILE();
-		constexpr auto psi1 = 0.5;
-		constexpr auto psi2 = 0.25;
+		constexpr auto psi1 = 0.0;
+		constexpr auto psi2 = 0.0;
 		dudt.resize(nparts0);
 		mass_flux.resize(nparts0, vect(0));
 		for (auto &du : dudt) {
@@ -269,6 +269,16 @@ void tree::compute_time_derivatives(real dt) {
 						const auto V_j = pj.to_prim();
 						auto VL = V_i;
 						auto VR = V_j;
+						const auto dx = pj.x - pi.x;
+						const auto uij = (pi.vf * (pj.x - xij).dot(dx) + pj.vf * (xij - pi.x).dot(dx)) / (dx.dot(dx));
+						if (!opts.first_order_time) {
+							VL = VL.boost_to(uij);
+							VR = VR.boost_to(uij);
+							VL = VL + VL.dW_dt(grad[i], pi.g) * 0.5 * dt;
+							VR = VR + VR.dW_dt(grad[j], pj.g) * 0.5 * dt;
+							VL = VL.boost_to(-uij);
+							VR = VR.boost_to(-uij);
+						}
 						if (!opts.first_order_space) {
 							const auto dxi = xij - pi.x;
 							const auto dxj = xij - pj.x;
@@ -307,8 +317,6 @@ void tree::compute_time_derivatives(real dt) {
 								}
 							}
 						}
-						const auto dx = pj.x - pi.x;
-						const auto uij = (pi.vf * (pj.x - xij).dot(dx) + pj.vf * (xij - pi.x).dot(dx)) / (dx.dot(dx));
 						vect psi_a_ij;
 						vect psi_a_ji;
 						for (int n = 0; n < NDIM; n++) {
@@ -323,10 +331,6 @@ void tree::compute_time_derivatives(real dt) {
 						const auto norm = da / abs(da);
 						VL = VL.boost_to(uij);
 						VR = VR.boost_to(uij);
-						if (!opts.first_order_time) {
-							VL = VL + VL.dW_dt(grad[i], pi.g) * 0.5 * dt;
-							VR = VR + VR.dW_dt(grad[j], pj.g) * 0.5 * dt;
-						}
 						VL = VL.rotate_to(norm);
 						VR = VR.rotate_to(norm);
 						auto F = riemann_solver(VL, VR);

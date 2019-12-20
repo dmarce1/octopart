@@ -55,7 +55,7 @@ void write_checkpoint(int i) {
 
 real timestep() {
 	auto dt = tree::compute_timestep_action()(root);
-	return dt * 0.1;
+	return dt * 0.4;
 }
 
 auto statistics() {
