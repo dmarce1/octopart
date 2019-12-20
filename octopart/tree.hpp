@@ -96,7 +96,7 @@ public:
 	tree(vector<particle>&&, const range&, const range&);
 
 	mass_attr compute_mass_attributes();
-	void compute_drift(real,bool);
+	void compute_drift(real);
 	void compute_gradients();
 	void compute_gravity(vector<hpx::id_type>, vector<mass_attr>);
 	void compute_next_state(real);
@@ -120,6 +120,7 @@ public:
 	void redistribute_workload(int, int);
 	void send_particles(const vector<particle>&, const vect&);
 	void set_central_force();
+	void set_drift_velocity();
 	void set_self_and_parent(const hpx::id_type, const hpx::id_type);
 	tree_stats tree_statistics() const;
 	void write_checkpoint(const std::string&) const;
@@ -166,6 +167,7 @@ public:
 	HPX_DEFINE_COMPONENT_ACTION(tree,get_particles);
 	HPX_DEFINE_COMPONENT_ACTION(tree,get_children);
 	HPX_DEFINE_COMPONENT_ACTION(tree,send_particles);
+	HPX_DEFINE_COMPONENT_ACTION(tree,set_drift_velocity);
 	HPX_DEFINE_COMPONENT_ACTION(tree,set_self_and_parent);
 
 };

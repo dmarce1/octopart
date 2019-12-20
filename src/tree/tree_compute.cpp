@@ -17,7 +17,7 @@ constexpr int NNGB = 32;
 #endif
 #endif
 
-void tree::compute_drift(real dt, bool set) {
+void tree::compute_drift(real dt) {
 	static const auto opts = options::get();
 	if (leaf) {
 		vector<vector<particle>> send_parts(siblings.size());
@@ -26,9 +26,6 @@ void tree::compute_drift(real dt, bool set) {
 			int sz = parts.size();
 			for (int i = 0; i < sz; i++) {
 				auto &pi = parts[i];
-				if( set ) {
-					pi.vf = pi.u;
-				}
 				pi.x = pi.x + pi.vf * dt;
 				if (!in_range(pi.x, box)) {
 					bool found = false;
@@ -54,13 +51,13 @@ void tree::compute_drift(real dt, bool set) {
 		for (int j = 0; j < siblings.size(); j++) {
 			futs[j] = hpx::async<send_particles_action>(siblings[j].id, std::move(send_parts[j]), siblings[j].pshift);
 		}
-		hpx::wait_all(futs.begin(),futs.end());
+		hpx::wait_all(futs.begin(), futs.end());
 	} else {
 		array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_drift_action>(children[ci], dt, set);
+			futs[ci] = hpx::async<compute_drift_action>(children[ci], dt);
 		}
-		hpx::wait_all(futs.begin(),futs.end());
+		hpx::wait_all(futs.begin(), futs.end());
 	}
 
 }
@@ -185,7 +182,7 @@ void tree::compute_gradients() {
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<compute_gradients_action>(children[ci]);
 		}
-		hpx::wait_all(futs.begin(),futs.end());
+		hpx::wait_all(futs.begin(), futs.end());
 	}
 }
 
@@ -242,8 +239,7 @@ void tree::compute_time_derivatives(real dt) {
 					grad_lim.insert(grad_lim.end(), rgrad_lim.begin(), rgrad_lim.end());
 				}
 			}
-		}
-		PROFILE();
+		} PROFILE();
 		constexpr auto psi1 = 0.0;
 		constexpr auto psi2 = 0.0;
 		dudt.resize(nparts0);
@@ -343,8 +339,8 @@ void tree::compute_time_derivatives(real dt) {
 							dudt[j] = dudt[j] + F * abs(da) / pj.V;
 							mass_flux[j] = mass_flux[j] + (pj.x - pi.x) * F.mass() * abs(da);
 						}
-		//				if( F.mass() != 0.0 )
-	//					printf( "%e\n", F.mass());
+						//				if( F.mass() != 0.0 )
+						//					printf( "%e\n", F.mass());
 					}
 				}
 			}
@@ -355,7 +351,7 @@ void tree::compute_time_derivatives(real dt) {
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<compute_time_derivatives_action>(children[ci], dt);
 		}
-		hpx::wait_all(futs.begin(),futs.end());
+		hpx::wait_all(futs.begin(), futs.end());
 	}
 }
 
@@ -551,7 +547,7 @@ void tree::compute_interactions() {
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<compute_interactions_action>(children[ci]);
 		}
-		hpx::wait_all(futs.begin(),futs.end());
+		hpx::wait_all(futs.begin(), futs.end());
 	}
 }
 
@@ -567,11 +563,11 @@ void tree::compute_next_state(real dt) {
 			auto &du = dudt[i];
 			if (use_grav) {
 				du.mom() = du.mom() + p.g * (p.m / p.V);
-				du.ene() = du.ene() + (p.u * p.m).dot(p.g) / p.V;
+				du.ene() = du.ene() + ((p.u + p.g * dt / 2.0)*p.m).dot(p.g) / p.V;
 			}
 			U = U + du * dt;
-			if( U.den() <= 0.0 ) {
-				printf( "Negative density! %e\n", U.den().get());
+			if (U.den() <= 0.0) {
+				printf("Negative density! %e\n", U.den().get());
 				abort();
 			}
 			p = p.from_con(U);
@@ -580,6 +576,21 @@ void tree::compute_next_state(real dt) {
 		array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<compute_next_state_action>(children[ci], dt);
+		}
+		hpx::wait_all(futs.begin(), futs.end());
+	}
+}
+
+
+void tree::set_drift_velocity() {
+	if( leaf ) {
+		for( auto& p : parts) {
+			p.vf = p.u;
+		}
+	} else {
+		array<hpx::future<void>, NCHILD> futs;
+		for( int ci = 0; ci < NCHILD; ci++) {
+			futs[ci] = hpx::async<set_drift_velocity_action>(children[ci]);
 		}
 		hpx::wait_all(futs.begin(),futs.end());
 	}
