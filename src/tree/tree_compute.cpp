@@ -27,8 +27,7 @@ void tree::compute_drift(real dt, bool set) {
 			for (int i = 0; i < sz; i++) {
 				auto &pi = parts[i];
 				if( set ) {
-					pi.vf = pi.v;
-					pi.vf = vect(0);
+					pi.vf = pi.u;
 				}
 				pi.x = pi.x + pi.vf * dt;
 				if (!in_range(pi.x, box)) {
@@ -101,7 +100,7 @@ void tree::compute_gradients() {
 						auto pj = parts[j];
 						if (in_range(pj.x, rsbox) || ranges_intersect(range_around(pj.x, pj.h), rbox)) {
 							pj.x[dim] = 2.0 * axis - pj.x[dim];
-							pj.v[dim] = -pj.v[dim];
+							pj.u[dim] = -pj.u[dim];
 							for (int n = 0; n < NDIM; n++) {
 								pj.B[n][dim] = -pj.B[n][dim];
 								pj.B[dim][n] = -pj.B[dim][n];
@@ -375,7 +374,7 @@ real tree::compute_timestep() const {
 					const auto Vj = pj.to_prim();
 					const auto ci = Vi.sound_speed() + abs(Vi.vel());
 					const auto cj = Vj.sound_speed() + abs(Vj.vel());
-					const real vsig = (ci + cj - min(0.0, (pi.v - pj.v).dot(dx) / r)) / 2.0;
+					const real vsig = (ci + cj - min(0.0, (pi.u - pj.u).dot(dx) / r)) / 2.0;
 					tmin = min(tmin, std::min(pi.h, pj.h) / vsig);
 					if (opts.gravity) {
 						const auto a = abs(pi.g);
@@ -568,7 +567,7 @@ void tree::compute_next_state(real dt) {
 			auto &du = dudt[i];
 			if (use_grav) {
 				du.mom() = du.mom() + p.g * (p.m / p.V);
-				du.ene() = du.ene() + (p.v * p.m).dot(p.g) / p.V;
+				du.ene() = du.ene() + (p.u * p.m).dot(p.g) / p.V;
 			}
 			U = U + du * dt;
 			if( U.den() <= 0.0 ) {

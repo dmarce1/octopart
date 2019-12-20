@@ -5,9 +5,9 @@ void drift(particle &p) {
 	p.m = 1.0;
 	p.E = 0.0;
 	const auto r = abs(p.x);
-	p.v = vect(0);
-	p.v[0] = rand_unit_box();
-	p.v[1] = rand_unit_box();
+	p.u = vect(0);
+	p.u[0] = rand_unit_box();
+	p.u[1] = rand_unit_box();
 
 }
 
@@ -34,25 +34,25 @@ void kh(particle &p) {
 		vx = -0.5 + 0.5 * exp((0.25 - y) / dy);
 	}
 	vy = 0.01 * sin(4.0 * M_PI * (x + 0.5));
-	p.v[0] = -vx;
-	p.v[1] = vy;
+	p.u[0] = -vx;
+	p.u[1] = vy;
 #if(NDIM==3)
-	p.v[2] = 0.0;
+	p.u[2] = 0.0;
 #endif
 	p.m = rho * p.V;
-	p.E = E * p.V + p.v.dot(p.v) * 0.5 * p.m;
+	p.E = E * p.V + p.u.dot(p.u) * 0.5 * p.m;
 	;
 //	for (int dim = 0; dim < NDIM; dim++) {
-//		p.v[dim] = rand_unit_box() * 0.01;
+//		p.u[dim] = rand_unit_box() * 0.01;
 //	}
 //	if (abs(p.x[1]) > 0.25) {
-//		p.v[0] += +0.5;
+//		p.u[0] += +0.5;
 //		p.m = p.V;
-//		p.E = 6.25 * p.V + p.v.dot(p.v) * 0.5 * p.m;
+//		p.E = 6.25 * p.V + p.u.dot(p.u) * 0.5 * p.m;
 //	} else {
-//		p.v[0] += -0.5;
+//		p.u[0] += -0.5;
 //		p.m = 2.0 * p.V;
-	//		p.E = 6.25 * p.V + p.v.dot(p.v) * 0.5 * p.m; ;
+	//		p.E = 6.25 * p.V + p.u.dot(p.u) * 0.5 * p.m; ;
 //	}
 }
 
@@ -60,11 +60,11 @@ void kepler(particle &p) {
 	const auto r = abs(p.x);
 	const auto y = p.x[1];
 	const auto x = p.x[0];
-	p.v = vect(0);
-	p.v[0] = -y / r / sqrt(r);
-	p.v[1] = +x / r / sqrt(r);
+	p.u = vect(0);
+	p.u[0] = -y / r / sqrt(r);
+	p.u[1] = +x / r / sqrt(r);
 	p.m = (r > 0.1 && r < 0.4) ? p.V : 0.01 * p.V;
-	p.E = 1.0e-6 * p.V + 0.5 * p.v.dot(p.v) * p.m;
+	p.E = 1.0e-6 * p.V + 0.5 * p.u.dot(p.u) * p.m;
 }
 
 void sod(particle &p) {
@@ -76,7 +76,7 @@ void sod(particle &p) {
 		p.E = 0.25 * p.V;
 	}
 	for (int dim = 0; dim < NDIM; dim++) {
-		p.v[dim] = 0.0;
+		p.u[dim] = 0.0;
 	}
 }
 
@@ -85,7 +85,7 @@ void blast(particle &p) {
 	p.m = p.V;
 	p.E = exp(-50.0 * r) * p.V;
 	for (int dim = 0; dim < NDIM; dim++) {
-		p.v[dim] = 0.0;
+		p.u[dim] = 0.0;
 	}
 }
 
@@ -95,7 +95,7 @@ void collapse(particle &p) {
 	} else {
 		p.m = 1.0 * p.V;
 	}
-	p.v = vect(0);
+	p.u = vect(0);
 	p.E = 1.0 * p.V;
 }
 

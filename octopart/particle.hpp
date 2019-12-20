@@ -17,7 +17,7 @@
 struct particle {
 	vect x;
 	real m;
-	vect v;
+	vect u;
 	vect vf;
 	vect g;
 	real E;
@@ -33,7 +33,7 @@ struct particle {
 		a & g;
 		a & x;
 		a & m;
-		a & v;
+		a & u;
 		a & E;
 		a & U;
 		a & V;
