@@ -13,7 +13,7 @@ int hpx_main(int argc, char *argv[]) {
 	if( opts.problem == "kepler") {
 		parts = disc_particle_set(opts.problem_size);
 	} else {
-		 parts = cartesian_particle_set(opts.problem_size);
+		 parts = random_particle_set(opts.problem_size);
 	}
 	range box;
 	for (int dim = 0; dim < NDIM; dim++) {
@@ -23,8 +23,9 @@ int hpx_main(int argc, char *argv[]) {
 	auto root = hpx::new_<tree>(hpx::find_here(), std::move(parts), box, null_range()).get();
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
-	tree::compute_interactions_action()(root);
+	tree::compute_interactions_action()(root, false);
 	tree::initialize_action()(root, opts.problem);
+	tree::compute_interactions_action()(root, true);
 	tree::write_silo_action()(root, 0);
 	for (int i = 0; t < opts.tmax; i++) {
 		auto dt = tree::compute_timestep_action()(root);
@@ -45,7 +46,7 @@ int hpx_main(int argc, char *argv[]) {
 		tree::finish_drift_action()(root);
 		tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 		tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
-		tree::compute_interactions_action()(root);
+		tree::compute_interactions_action()(root, true);
 		tree::write_silo_action()(root, i + 1);
 		t += dt;
 	}

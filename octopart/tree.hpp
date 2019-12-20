@@ -70,7 +70,7 @@ public:
 	void compute_next_state(real);
 	void compute_time_derivatives(real);
 	real compute_timestep() const;
-	void compute_interactions();
+	void compute_interactions(bool);
 	int compute_workload();
 	void create_children();
 	std::vector<particle> destroy();

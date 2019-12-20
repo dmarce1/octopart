@@ -24,7 +24,7 @@ void tree::compute_drift(real dt) {
 			int sz = parts.size();
 			for (int i = 0; i < sz; i++) {
 				auto &pi = parts[i];
-				pi.x = pi.x + pi.u * dt;
+				pi.x = pi.x + pi.vf * dt;
 				if (!in_range(pi.x, box)) {
 					for (int j = 0; j < siblings.size(); j++) {
 						if (in_range(pi.x, shift_range(siblings[j].box, siblings[j].pshift))) {
@@ -292,7 +292,7 @@ void tree::compute_time_derivatives(real dt) {
 							}
 						}
 						const auto dx = pj.x - pi.x;
-						const auto uij = pi.u + (pj.u - pi.u) * (xij - pi.x).dot(dx) / (dx.dot(dx));
+						const auto uij = pi.vf + (pj.vf - pi.vf) * (xij - pi.x).dot(dx) / (dx.dot(dx));
 						vect psi_a_ij;
 						vect psi_a_ji;
 						for (int n = 0; n < NDIM; n++) {
@@ -362,17 +362,20 @@ real tree::compute_timestep() const {
 	return tmin;
 }
 
-void tree::compute_interactions() {
+void tree::compute_interactions(bool compute_vframe) {
 	const auto toler = NNGB * sqrt(real::eps());
 	static auto opts = options::get();
 	nparts0 = parts.size();
 	if (leaf) {
 		if (nparts0) {
 			std::vector<vect> pos;
+			std::vector<vect> vel;
 			pos.reserve(2 * parts.size());
+			vel.reserve(2 * parts.size());
 			const auto h0 = pow(range_volume(box) / (CV * parts.size()), 1.0 / NDIM);
 			for (auto &pi : parts) {
 				pos.push_back(pi.x);
+				vel.push_back(pi.u);
 				pi.h = h0;
 			}
 			const auto hmax = box.max[0] - box.min[0];
@@ -449,7 +452,10 @@ void tree::compute_interactions() {
 					}
 					for (int i = 0; i < siblings.size(); i++) {
 						const auto tmp = futs[i].get();
-						pos.insert(pos.end(), tmp.begin(), tmp.end());
+						for (int i = 0; i < tmp.size(); i += 2) {
+							pos.push_back(tmp[i]);
+							vel.push_back(tmp[i + 1]);
+						}
 					}
 					if (opts.reflecting) {
 						for (int i = 0; i < 2 * NDIM; i++) {
@@ -466,12 +472,16 @@ void tree::compute_interactions() {
 										if (in_range(pix, this_box)) {
 											auto this_x = pix;
 											this_x[dim] = 2.0 * axis - this_x[dim];
+											vel[j][dim] = -vel[j][dim];
 											rpos.push_back(this_x);
 										}
 									}
 								}
 							}
-							pos.insert(pos.end(), rpos.begin(), rpos.end());
+							for (int i = 0; i < rpos.size(); i += 2) {
+								pos.push_back(rpos[i]);
+								vel.push_back(rpos[i + 1]);
+							}
 						}
 					}
 				}
@@ -510,11 +520,25 @@ void tree::compute_interactions() {
 					assert(Ncond[i] != 0.0);
 				}
 			}
+			if (compute_vframe) {
+				for (int i = 0; i < nparts0; i++) {
+					vect vf = vect(0);
+					for (int j = 0; j < vel.size(); j++) {
+						auto &pi = parts[i];
+						const auto r = abs(pos[j] - pi.x);
+						if (r < pi.h) {
+							vf = vf + vel[j] * W(r, pi.h) * pi.V;
+						}
+					}
+
+					parts[i].vf = vf;
+				}
+			}
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_interactions_action>(children[ci]);
+			futs[ci] = hpx::async<compute_interactions_action>(children[ci], compute_vframe);
 		}
 		hpx::wait_all(futs);
 	}
@@ -527,7 +551,7 @@ void tree::compute_next_state(real dt) {
 		parts.resize(nparts0);
 		if (opts.problem == "kepler") {
 			for (int i = 0; i < nparts0; i++) {
-				const auto& p = parts[i];
+				const auto &p = parts[i];
 				const auto &x = p.x;
 				const auto r = abs(x);
 				for (int dim = 0; dim < NDIM; dim++) {

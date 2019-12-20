@@ -276,6 +276,7 @@ std::vector<vect> tree::get_particle_positions(range search, const vect &shift) 
 		const auto &pi = parts[i];
 		if (in_range(pi.x, search)) {
 			pos.push_back(parts[i].x + shift);
+			pos.push_back(parts[i].u);
 		}
 	}
 	return pos;
