@@ -7,8 +7,8 @@
 #include <octopart/particle.hpp>
 #include <octopart/rand.hpp>
 
-std::vector<particle> disc_particle_set(int N) {
-	std::vector<particle> rparts;
+vector<particle> disc_particle_set(int N) {
+	vector<particle> rparts;
 	const auto cparts = cartesian_particle_set(N);
 	for( auto p : cparts) {
 		const auto r = abs(p.x);
@@ -19,8 +19,8 @@ std::vector<particle> disc_particle_set(int N) {
 	return rparts;
 }
 
-std::vector<particle> cartesian_particle_set(int N) {
-	std::vector<particle> parts;
+vector<particle> cartesian_particle_set(int N) {
+	vector<particle> parts;
 	parts.reserve(std::pow(N, NDIM));
 	particle part;
 #if(NDIM==3)
@@ -44,8 +44,8 @@ std::vector<particle> cartesian_particle_set(int N) {
 	return std::move(parts);
 }
 
-std::vector<particle> random_particle_set(int N) {
-	std::vector<particle> parts(N);
+vector<particle> random_particle_set(int N) {
+	vector<particle> parts(N);
 	for (auto &part : parts) {
 		for (int dim = 0; dim < NDIM; dim++) {
 			part.x[dim] = rand_unit_box();

@@ -49,6 +49,7 @@ set(check2silo_source_files
 )
 
 set(common_header_files
+    octopart/containers.hpp
 	octopart/dim.hpp
 	octopart/options.hpp
 	octopart/particle.hpp

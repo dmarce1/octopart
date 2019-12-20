@@ -1,3 +1,4 @@
+#include <octopart/containers.hpp>
 #include <octopart/math.hpp>
 #include <octopart/tree.hpp>
 #include <octopart/options.hpp>
@@ -19,7 +20,7 @@ constexpr int NNGB = 32;
 void tree::compute_drift(real dt, bool set) {
 	static const auto opts = options::get();
 	if (leaf) {
-		std::vector<std::vector<particle>> send_parts(siblings.size());
+		vector<vector<particle>> send_parts(siblings.size());
 		{
 			PROFILE();
 			int sz = parts.size();
@@ -50,17 +51,17 @@ void tree::compute_drift(real dt, bool set) {
 				}
 			}
 		}
-		std::vector<hpx::future<void>> futs(siblings.size());
+		vector<hpx::future<void>> futs(siblings.size());
 		for (int j = 0; j < siblings.size(); j++) {
 			futs[j] = hpx::async<send_particles_action>(siblings[j].id, std::move(send_parts[j]), siblings[j].pshift);
 		}
-		hpx::wait_all(futs);
+		hpx::wait_all(futs.begin(),futs.end());
 	} else {
-		std::array<hpx::future<void>, NCHILD> futs;
+		array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<compute_drift_action>(children[ci], dt, set);
 		}
-		hpx::wait_all(futs);
+		hpx::wait_all(futs.begin(),futs.end());
 	}
 
 }
@@ -72,7 +73,7 @@ void tree::compute_gradients() {
 		grad.resize(nparts0);
 		grad_lim.resize(nparts0);
 		range sbox = null_range();
-		std::vector<hpx::future<std::vector<particle>>> futs(siblings.size());
+		vector<hpx::future<vector<particle>>> futs(siblings.size());
 		for (const auto &pi : parts) {
 			for (int dim = 0; dim < NDIM; dim++) {
 				sbox.min[dim] = min(sbox.min[dim], pi.x[dim] - pi.h);
@@ -89,7 +90,7 @@ void tree::compute_gradients() {
 		}
 		if (opts.reflecting) {
 			for (int i = 0; i < 2 * NDIM; i++) {
-				std::vector<particle> rparts;
+				vector<particle> rparts;
 				const auto sz = parts.size();
 				const auto dim = i / 2;
 				real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
@@ -181,11 +182,11 @@ void tree::compute_gradients() {
 			}
 		}
 	} else {
-		std::array<hpx::future<void>, NCHILD> futs;
+		array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<compute_gradients_action>(children[ci]);
 		}
-		hpx::wait_all(futs);
+		hpx::wait_all(futs.begin(),futs.end());
 	}
 }
 
@@ -194,7 +195,7 @@ void tree::compute_time_derivatives(real dt) {
 	if (leaf) {
 		if (!opts.first_order_space) {
 			range sbox = null_range();
-			std::vector<hpx::future<std::vector<gradient>>> futs(siblings.size());
+			vector<hpx::future<vector<gradient>>> futs(siblings.size());
 			for (int i = 0; i < nparts0; i++) {
 				const auto &pi = parts[i];
 				for (int dim = 0; dim < NDIM; dim++) {
@@ -215,8 +216,8 @@ void tree::compute_time_derivatives(real dt) {
 			}
 			if (opts.reflecting) {
 				for (int i = 0; i < 2 * NDIM; i++) {
-					std::vector<gradient> rgrad;
-					std::vector<gradient> rgrad_lim;
+					vector<gradient> rgrad;
+					vector<gradient> rgrad_lim;
 					const auto sz = grad.size();
 					const auto dim = i / 2;
 					real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
@@ -347,11 +348,11 @@ void tree::compute_time_derivatives(real dt) {
 		}
 		parts.resize(nparts0);
 	} else {
-		std::array<hpx::future<void>, NCHILD> futs;
+		array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<compute_time_derivatives_action>(children[ci], dt);
 		}
-		hpx::wait_all(futs);
+		hpx::wait_all(futs.begin(),futs.end());
 	}
 }
 
@@ -382,7 +383,7 @@ real tree::compute_timestep() const {
 			}
 		}
 	} else {
-		std::array<hpx::future<real>, NCHILD> futs;
+		array<hpx::future<real>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<compute_timestep_action>(children[ci]);
 		}
@@ -399,7 +400,7 @@ void tree::compute_interactions() {
 	nparts0 = parts.size();
 	if (leaf) {
 		if (nparts0) {
-			std::vector<vect> pos;
+			vector<vect> pos;
 			pos.reserve(2 * parts.size());
 			const auto h0 = pow(range_volume(box) / (CV * parts.size()), 1.0 / NDIM);
 			for (auto &pi : parts) {
@@ -473,7 +474,7 @@ void tree::compute_interactions() {
 							sbox.max[dim] = max(sbox.max[dim], pi.x[dim] + pi.h);
 						}
 					}
-					std::vector<hpx::future<std::vector<vect>>> futs(siblings.size());
+					vector<hpx::future<vector<vect>>> futs(siblings.size());
 					for (int i = 0; i < siblings.size(); i++) {
 						assert(siblings[i].id != hpx::invalid_id);
 						futs[i] = hpx::async<get_particle_positions_action>(siblings[i].id, sbox, siblings[i].pshift);
@@ -484,7 +485,7 @@ void tree::compute_interactions() {
 					}
 					if (opts.reflecting) {
 						for (int i = 0; i < 2 * NDIM; i++) {
-							std::vector<vect> rpos;
+							vector<vect> rpos;
 							const auto sz = pos.size();
 							const auto dim = i / 2;
 							range this_box;
@@ -521,7 +522,7 @@ void tree::compute_interactions() {
 						}
 					}
 					pi.V = 1.0 / pi.V;
-					std::array<vect, NDIM> E, B;
+					array<vect, NDIM> E, B;
 					for (int n = 0; n < NDIM; n++) {
 						E[n] = vect(0.0);
 					}
@@ -543,11 +544,11 @@ void tree::compute_interactions() {
 			}
 		}
 	} else {
-		std::array<hpx::future<void>, NCHILD> futs;
+		array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<compute_interactions_action>(children[ci]);
 		}
-		hpx::wait_all(futs);
+		hpx::wait_all(futs.begin(),futs.end());
 	}
 }
 
@@ -567,16 +568,16 @@ void tree::compute_next_state(real dt) {
 			}
 			U = U + du * dt;
 			if( U.den() <= 0.0 ) {
-				printf( "Negative density! %e\n", U.den());
+				printf( "Negative density! %e\n", U.den().get());
 				abort();
 			}
 			p = p.from_con(U);
 		}
 	} else {
-		std::array<hpx::future<void>, NCHILD> futs;
+		array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<compute_next_state_action>(children[ci], dt);
 		}
-		hpx::wait_all(futs);
+		hpx::wait_all(futs.begin(),futs.end());
 	}
 }

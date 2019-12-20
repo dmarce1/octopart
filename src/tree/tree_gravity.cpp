@@ -29,8 +29,8 @@ mass_attr tree::compute_mass_attributes() {
 			rmaxb = 0.0;
 		}
 	} else {
-		std::array<hpx::future<mass_attr>, NCHILD> futs;
-		std::array<mass_attr, NCHILD> child_attr;
+		array<hpx::future<mass_attr>, NCHILD> futs;
+		array<mass_attr, NCHILD> child_attr;
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<compute_mass_attributes_action>(children[ci]);
 		}
@@ -67,8 +67,8 @@ mass_attr tree::compute_mass_attributes() {
 	return mass;
 }
 
-std::vector<gravity_part> tree::get_gravity_particles() const {
-	std::vector<gravity_part> gparts(parts.size());
+vector<gravity_part> tree::get_gravity_particles() const {
+	vector<gravity_part> gparts(parts.size());
 	for (int i = 0; i < parts.size(); i++) {
 		gparts[i].m = parts[i].m;
 		gparts[i].x = parts[i].x;
@@ -81,19 +81,19 @@ mass_attr tree::get_mass_attributes() const {
 	return mass;
 }
 
-void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr> masses) {
+void tree::compute_gravity(vector<hpx::id_type> nids, vector<mass_attr> masses) {
 	const static auto opts = options::get();
 	const auto theta = opts.theta;
 	assert(nparts0 == parts.size());
-	std::vector<hpx::future<mass_attr>> futs;
-	std::vector<hpx::future<std::array<hpx::id_type, NCHILD>>> ncfuts;
+	vector<hpx::future<mass_attr>> futs;
+	vector<hpx::future<array<hpx::id_type, NCHILD>>> ncfuts;
 	for (const auto &n : nids) {
 		futs.push_back(hpx::async<get_mass_attributes_action>(n));
 	}
 	const auto rmaxA = min(mass.rmaxb, mass.rmaxs);
 	const auto ZA = mass.com;
 	if (leaf) {
-		std::vector<hpx::id_type> near;
+		vector<hpx::id_type> near;
 		while (nids.size()) {
 			ncfuts.clear();
 			for (int i = 0; i < nids.size(); i++) {
@@ -121,7 +121,7 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 		for (auto &pi : parts) {
 			pi.g = vect(0);
 		}
-		std::vector<hpx::future<std::vector<gravity_part>>> gfuts(near.size());
+		vector<hpx::future<vector<gravity_part>>> gfuts(near.size());
 		for (int i = 0; i < near.size(); i++) {
 			gfuts[i] = hpx::async<get_gravity_particles_action>(near[i]);
 		}
@@ -153,8 +153,8 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 			}
 		}
 	} else {
-		std::array<hpx::future<void>, NCHILD> cfuts;
-		std::vector<hpx::id_type> leaf_nids;
+		array<hpx::future<void>, NCHILD> cfuts;
+		vector<hpx::id_type> leaf_nids;
 		for (int i = 0; i < nids.size(); i++) {
 			const auto tmp = futs[i].get();
 			const auto rmaxB = min(tmp.rmaxb, tmp.rmaxs);
@@ -176,7 +176,7 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 		for (int ci = 0; ci < NCHILD; ci++) {
 			cfuts[ci] = hpx::async<compute_gravity_action>(children[ci], nids, masses);
 		}
-		hpx::wait_all(cfuts);
+		hpx::wait_all(cfuts.begin(), cfuts.end());
 	}
 }
 
@@ -192,10 +192,10 @@ void tree::set_central_force() {
 			}
 		}
 	} else {
-		std::array<hpx::future<void>, NCHILD> futs;
+		array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<set_central_force_action>(children[ci]);
 		}
-		hpx::wait_all(futs);
+		hpx::wait_all(futs.begin(),futs.end());
 	}
 }

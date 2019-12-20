@@ -11,7 +11,7 @@ void solve_gravity() {
 		tree::set_central_force_action()(root);
 	} else if (opts.gravity) {
 		tree::compute_mass_attributes_action()(root);
-		tree::compute_gravity_action()(root, std::vector<hpx::id_type>(1, root), std::vector<mass_attr>());
+		tree::compute_gravity_action()(root, vector<hpx::id_type>(1, root), vector<mass_attr>());
 	}
 }
 
@@ -19,7 +19,7 @@ void first_drift(real dt) {
 	tree::compute_drift_action()(root, dt, true);
 	tree::finish_drift_action()(root);
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
-	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
+	tree::form_tree_action()(root, vector<hpx::id_type>(1, root), true);
 	tree::compute_interactions_action()(root);
 }
 
@@ -28,7 +28,7 @@ void second_drift(real dt) {
 	tree::compute_drift_action()(root, dt, false);
 	tree::finish_drift_action()(root);
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
-	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
+	tree::form_tree_action()(root, vector<hpx::id_type>(1, root), true);
 	tree::compute_interactions_action()(root);
 }
 
@@ -44,7 +44,7 @@ void hydro(real dt) {
 void init() {
 	static const auto opts = options::get();
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
-	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
+	tree::form_tree_action()(root, vector<hpx::id_type>(1, root), true);
 	tree::compute_interactions_action()(root);
 	tree::initialize_action()(root, opts.problem);
 }
@@ -67,8 +67,8 @@ int hpx_main(int argc, char *argv[]) {
 	real t = 0.0;
 	options opts;
 	opts.process_options(argc, argv);
-//	std::vector<particle> parts = random_particle_set(N * N);
-	std::vector<particle> parts;
+//	vector<particle> parts = random_particle_set(N * N);
+	vector<particle> parts;
 //	if (opts.problem == "kepler") {
 //		parts = disc_particle_set(opts.problem_size);
 //	} else {
@@ -109,7 +109,7 @@ int hpx_main(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-	std::vector<std::string> cfg = { "hpx.commandline.allow_unknown=1" };
+	vector<std::string> cfg = { "hpx.commandline.allow_unknown=1" };
 
 	hpx::init(argc, argv, cfg);
 }

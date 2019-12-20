@@ -8,6 +8,7 @@
 #ifndef SRC_PARTICLE_HPP_
 #define SRC_PARTICLE_HPP_
 
+#include <octopart/containers.hpp>
 #include <octopart/vect.hpp>
 #include <vector>
 
@@ -23,7 +24,7 @@ struct particle {
 	real U;
 	real V;
 	real h;
-	std::array<vect, NDIM> B;
+	array<vect, NDIM> B;
 	void write(FILE*) const;
 	int read(FILE*);
 	template<class Arc>
@@ -44,8 +45,8 @@ struct particle {
 	particle from_con(const conserved_state&) const;
 };
 
-std::vector<particle> cartesian_particle_set(int);
-std::vector<particle> random_particle_set(int);
-std::vector<particle> disc_particle_set( int N);
+vector<particle> cartesian_particle_set(int);
+vector<particle> random_particle_set(int);
+vector<particle> disc_particle_set( int N);
 
 #endif /* SRC_PARTICLE_HPP_ */
