@@ -44,8 +44,8 @@ static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 	const auto hbar = (hR * wR + hL * wL) / (wL + wR);
 	const auto abar = sqrt(max((fgamma - 1.0) * (hbar - ubar.dot(ubar) / 2.0), real(0.0)));
 
-	sR = ubar[0] + abar;
-	sL = ubar[0] - abar;
+	sR = max(uR + aR, ubar[0] + abar);
+	sL = min(uL - aL, ubar[0] - abar);
 
 	if (sL == 0.0 && sR == 0.0) {
 		F = (VL.to_flux() + VR.to_flux()) / 2.0;
