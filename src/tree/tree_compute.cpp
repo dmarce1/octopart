@@ -27,6 +27,7 @@ void tree::compute_drift(real dt, bool set) {
 				auto &pi = parts[i];
 				if( set ) {
 					pi.vf = pi.v;
+					pi.vf = vect(0);
 				}
 				pi.x = pi.x + pi.vf * dt;
 				if (!in_range(pi.x, box)) {
@@ -322,18 +323,13 @@ void tree::compute_time_derivatives(real dt) {
 						VL = VL.boost_to(uij);
 						VR = VR.boost_to(uij);
 						if (!opts.first_order_time) {
-							VL = VL + VL.dW_dt(grad[i]) * 0.5 * dt;
-							VR = VR + VR.dW_dt(grad[j]) * 0.5 * dt;
+							VL = VL + VL.dW_dt(grad[i], pi.g) * 0.5 * dt;
+							VR = VR + VR.dW_dt(grad[j], pj.g) * 0.5 * dt;
 						}
-						auto VL1 = VL.rotate_to(norm);
-						auto VR1 = VR.rotate_to(norm);
-						auto VL2 = VL.rotate_to(-norm);
-						auto VR2 = VR.rotate_to(-norm);
-						auto F1 = riemann_solver(VL1, VR1);
-						auto F2 = riemann_solver(VR2, VL2);
-						F1 = F1.rotate_from(norm);
-						F2 = F2.rotate_from(norm);
-						flux_state F = (F1 + F2) * 0.5;
+						VL = VL.rotate_to(norm);
+						VR = VR.rotate_to(norm);
+						auto F = riemann_solver(VL, VR);
+						F = F.rotate_from(norm);
 						F = F.boost_from(uij);
 						if (i < nparts0) {
 							dudt[i] = dudt[i] - F * abs(da) / pi.V;
@@ -343,6 +339,8 @@ void tree::compute_time_derivatives(real dt) {
 							dudt[j] = dudt[j] + F * abs(da) / pj.V;
 							mass_flux[j] = mass_flux[j] + (pj.x - pi.x) * F.mass() * abs(da);
 						}
+		//				if( F.mass() != 0.0 )
+	//					printf( "%e\n", F.mass());
 					}
 				}
 			}
@@ -527,7 +525,6 @@ void tree::compute_interactions() {
 					for (int n = 0; n < NDIM; n++) {
 						E[n] = vect(0.0);
 					}
-					pi.c = vect(0.0);
 					for (const auto &pjx : pos) {
 						const auto r = abs(pi.x - pjx);
 						const auto h = pi.h;
@@ -538,7 +535,6 @@ void tree::compute_interactions() {
 									E[n][m] += (pjx[n] - pi.x[n]) * (pjx[m] - pi.x[m]) * psi_j;
 								}
 							}
-							pi.c = pi.c + (pi.x * W(r,h) * pi.V);
 						}
 					}
 					Ncond[i] = condition_number(E, pi.B);
@@ -567,7 +563,7 @@ void tree::compute_next_state(real dt) {
 			auto &du = dudt[i];
 			if (use_grav) {
 				du.mom() = du.mom() + p.g * (p.m / p.V);
-				du.ene() = du.ene() + ((p.v + p.g*dt/2.0) * p.m + mass_flux[i]).dot(p.g) / p.V;
+				du.ene() = du.ene() + (p.v * p.m).dot(p.g) / p.V;
 			}
 			U = U + du * dt;
 			if( U.den() <= 0.0 ) {

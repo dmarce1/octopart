@@ -63,7 +63,7 @@ void kepler(particle &p) {
 	p.v = vect(0);
 	p.v[0] = -y / r / sqrt(r);
 	p.v[1] = +x / r / sqrt(r);
-	p.m = p.V;
+	p.m = (r > 0.1 && r < 0.4) ? p.V : 0.01 * p.V;
 	p.E = 1.0e-6 * p.V + 0.5 * p.v.dot(p.v) * p.m;
 }
 
@@ -89,8 +89,8 @@ void blast(particle &p) {
 	}
 }
 
-void collapse(particle& p) {
-	if( abs(p.x) < 0.4 ) {
+void collapse(particle &p) {
+	if (abs(p.x) < 0.4) {
 		p.m = 1.0e+6 * p.V;
 	} else {
 		p.m = 1.0 * p.V;

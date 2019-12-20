@@ -57,6 +57,7 @@ std::vector<particle> random_particle_set(int N) {
 void particle::write(FILE *fp) const {
 	real r;
 	fwrite(&x, sizeof(real), NDIM, fp);
+	fwrite(&vf, sizeof(real), NDIM, fp);
 	fwrite(&v, sizeof(real), NDIM, fp);
 	fwrite(&g, sizeof(real), NDIM, fp);
 	fwrite(&m, sizeof(real), 1, fp);
@@ -69,6 +70,7 @@ void particle::write(FILE *fp) const {
 int particle::read(FILE *fp) {
 	int cnt = 0;
 	cnt += fread(&x, sizeof(real), NDIM, fp);
+	cnt += fread(&vf, sizeof(real), NDIM, fp);
 	cnt += fread(&v, sizeof(real), NDIM, fp);
 	cnt += fread(&g, sizeof(real), NDIM, fp);
 	cnt += fread(&m, sizeof(real), 1, fp);
@@ -101,7 +103,6 @@ particle particle::from_con(const conserved_state &U) const {
 	p.B = B;
 	p.x = x;
 	p.g = g;
-	p.c = c;
 	p.vf = vf;
 	return p;
 }

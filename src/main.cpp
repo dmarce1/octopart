@@ -69,11 +69,11 @@ int hpx_main(int argc, char *argv[]) {
 	opts.process_options(argc, argv);
 //	std::vector<particle> parts = random_particle_set(N * N);
 	std::vector<particle> parts;
-	if (opts.problem == "kepler") {
-		parts = disc_particle_set(opts.problem_size);
-	} else {
+//	if (opts.problem == "kepler") {
+//		parts = disc_particle_set(opts.problem_size);
+//	} else {
 		parts = cartesian_particle_set(opts.problem_size);
-	}
+//	}
 	range box;
 	for (int dim = 0; dim < NDIM; dim++) {
 		box.min[dim] = -0.5;
@@ -92,10 +92,12 @@ int hpx_main(int argc, char *argv[]) {
 			printf("%e ", s.momentum[dim].get());
 		}
 		printf("Energy = %e\n", s.energy.get());
-		first_drift(dt/2.0);
+		first_drift(0.0);
 		solve_gravity();
-		hydro(dt);
-		second_drift(dt/2.0);
+		hydro(dt/2.0);
+		second_drift(dt);
+		solve_gravity();
+		hydro(dt/2.0);
 		write_checkpoint(i + 1);
 		t += dt;
 	}

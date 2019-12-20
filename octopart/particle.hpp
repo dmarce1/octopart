@@ -19,7 +19,6 @@ struct particle {
 	vect v;
 	vect vf;
 	vect g;
-	vect c;
 	real E;
 	real U;
 	real V;
@@ -31,7 +30,6 @@ struct particle {
 	void serialize(Arc &&a, unsigned) {
 		a & vf;
 		a & g;
-		a & c;
 		a & x;
 		a & m;
 		a & v;
