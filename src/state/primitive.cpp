@@ -61,7 +61,7 @@ primitive_state primitive_state::dW_dt(const gradient &dW_dx, const vect& g) con
 		V[t_i] -= (*this)[t_i] * dW_dx[dim][v_i + dim];
 		V[p_i] -= u * dW_dx[dim][p_i];
 		V[p_i] -= fgamma * (*this)[p_i] * dW_dx[dim][v_i + dim];
-		if( opts.gravity) {
+		if(use_grav) {
 			V[v_i + dim] += g[dim];
 		};
 		for (int n = 0; n < NDIM; n++) {
