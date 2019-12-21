@@ -266,6 +266,16 @@ void tree::compute_time_derivatives(real dt) {
 						const auto V_j = pj.to_prim();
 						auto VL = V_i;
 						auto VR = V_j;
+						const auto dx = pj.x - pi.x;
+						const auto uij = (pi.vf * (pj.x - xij).dot(dx) + pj.vf * (xij - pi.x).dot(dx)) / (dx.dot(dx));
+						if (!opts.first_order_time) {
+							VL = VL.boost_to(uij);
+							VR = VR.boost_to(uij);
+							VL = VL + VL.dW_dt(grad[i], pi.g) * 0.5 * dt;
+							VR = VR + VR.dW_dt(grad[j], pj.g) * 0.5 * dt;
+							VL = VL.boost_to(-uij);
+							VR = VR.boost_to(-uij);
+						}
 						if (!opts.first_order_space) {
 							const auto dxi = xij - pi.x;
 							const auto dxj = xij - pj.x;
@@ -304,8 +314,6 @@ void tree::compute_time_derivatives(real dt) {
 								}
 							}
 						}
-						const auto dx = pj.x - pi.x;
-						const auto uij = (pi.vf * (pj.x - xij).dot(dx) + pj.vf * (xij - pi.x).dot(dx)) / (dx.dot(dx));
 						vect psi_a_ij;
 						vect psi_a_ji;
 						for (int n = 0; n < NDIM; n++) {
@@ -320,10 +328,6 @@ void tree::compute_time_derivatives(real dt) {
 						const auto norm = da / abs(da);
 						VL = VL.boost_to(uij);
 						VR = VR.boost_to(uij);
-						if (!opts.first_order_time) {
-							VL = VL + VL.dW_dt(grad_lim[i], pi.g) * 0.5 * dt;
-							VR = VR + VR.dW_dt(grad_lim[j], pj.g) * 0.5 * dt;
-						}
 						VL = VL.rotate_to(norm);
 						VR = VR.rotate_to(norm);
 						auto F = riemann_solver(VL, VR);
