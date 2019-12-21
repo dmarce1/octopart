@@ -16,7 +16,7 @@ constexpr int NNGB = 32;
 #endif
 #endif
 
-void tree::compute_drift(real dt, bool set) {
+void tree::compute_drift(real dt) {
 	static const auto opts = options::get();
 	if (leaf) {
 		std::vector<std::vector<particle>> send_parts(siblings.size());
@@ -25,9 +25,6 @@ void tree::compute_drift(real dt, bool set) {
 			int sz = parts.size();
 			for (int i = 0; i < sz; i++) {
 				auto &pi = parts[i];
-				if( set ) {
-					pi.vf = pi.v;
-				}
 				pi.x = pi.x + pi.vf * dt;
 				if (!in_range(pi.x, box)) {
 					bool found = false;
@@ -57,7 +54,7 @@ void tree::compute_drift(real dt, bool set) {
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_drift_action>(children[ci], dt, set);
+			futs[ci] = hpx::async<compute_drift_action>(children[ci], dt);
 		}
 		hpx::wait_all(futs);
 	}
@@ -582,5 +579,18 @@ void tree::compute_next_state(real dt) {
 			futs[ci] = hpx::async<compute_next_state_action>(children[ci], dt);
 		}
 		hpx::wait_all(futs);
+	}
+}
+void tree::set_drift_velocity() {
+	if (leaf) {
+		for( auto& p : parts) {
+			p.vf = p.v;
+		}
+	} else {
+		std::array<hpx::future<void>, NCHILD> futs;
+		for (int ci = 0; ci < NCHILD; ci++) {
+			futs[ci] = hpx::async<set_drift_velocity_action>(children[ci]);
+		}
+		hpx::wait_all(futs.begin(),futs.end());
 	}
 }

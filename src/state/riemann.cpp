@@ -19,8 +19,8 @@ static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 	static const auto opts = options::get();
 	const real fgamma = opts.fgamma;
 	flux_state F;
-	flux_state FR;
-	flux_state FL;
+	flux_state FR, F0R;
+	flux_state FL, F0L;
 	const auto UL = VL.to_con();
 	const auto UR = VR.to_con();
 	const auto aL = VL.sound_speed();
@@ -74,7 +74,7 @@ static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 			}
 			U0L.ene() = rho0L * (EL / rhoL + (s0 - uL) * (s0 + PL / (rhoL * (sL - uL))));
 			const auto FL = VL.to_flux();
-			F = FL + (U0L - UL) * sL;
+			F0L = FL + (U0L - UL) * sL;
 		}
 		if (s0 <= 0.0) {
 			const auto rho0R = rhoR * (sR - uR) / (sR - s0);
@@ -86,8 +86,16 @@ static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 			}
 			U0R.ene() = rho0R * (ER / rhoR + (s0 - uR) * (s0 + PR / (rhoR * (sR - uR))));
 			const auto FR = VR.to_flux();
-			F = FR + (U0R - UR) * sR;
+			F0R = FR + (U0R - UR) * sR;
 		}
+		if (s0 == 0.0) {
+			F = (F0R + F0L) * 0.5;
+		} else if (s0 < 0.0) {
+			F = F0R;
+		} else {
+			F = F0L;
+		}
+
 	}
 	return F;
 }
