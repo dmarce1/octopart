@@ -238,13 +238,12 @@ void tree::compute_time_derivatives(real dt) {
 					grad_lim.insert(grad_lim.end(), rgrad_lim.begin(), rgrad_lim.end());
 				}
 			}
-		}
-		PROFILE();
+		} PROFILE();
 		constexpr auto psi1 = 0.5;
 		constexpr auto psi2 = 0.25;
 		dudt.resize(nparts0);
 		mass_flux.resize(nparts0);
-		for( auto& m : mass_flux) {
+		for (auto &m : mass_flux) {
 			m = vect(0);
 		}
 		for (auto &du : dudt) {
@@ -368,7 +367,9 @@ real tree::compute_timestep() const {
 					const auto ci = Vi.sound_speed() + abs(Vi.vel());
 					const auto cj = Vj.sound_speed() + abs(Vj.vel());
 					const real vsig = (ci + cj - min(0.0, (pi.v - pj.v).dot(dx) / r)) / 2.0;
-					tmin = min(tmin, std::min(pi.h, pj.h) / vsig);
+					if (vsig != 0.0) {
+						tmin = min(tmin, std::min(pi.h, pj.h) / vsig);
+					}
 					if (opts.gravity) {
 						const auto a = abs(pi.g);
 						if (a > 0.0) {
@@ -533,7 +534,7 @@ void tree::compute_interactions() {
 									E[n][m] += (pjx[n] - pi.x[n]) * (pjx[m] - pi.x[m]) * psi_j;
 								}
 							}
-							pi.c = pi.c + (pi.x * W(r,h) * pi.V);
+							pi.c = pi.c + (pi.x * W(r, h) * pi.V);
 						}
 					}
 					Ncond[i] = condition_number(E, pi.B);
@@ -562,11 +563,11 @@ void tree::compute_next_state(real dt) {
 			auto &du = dudt[i];
 			if (use_grav) {
 				du.mom() = du.mom() + p.g * (p.m / p.V);
-				du.ene() = du.ene() + ((p.v + p.g*dt/2.0) * p.m + mass_flux[i]).dot(p.g) / p.V;
+				du.ene() = du.ene() + ((p.v + p.g * dt / 2.0) * p.m + mass_flux[i]).dot(p.g) / p.V;
 			}
 			U = U + du * dt;
-			if( U.den() <= 0.0 ) {
-				printf( "Negative density! %e\n", U.den());
+			if (U.den() <= 0.0) {
+				printf("Negative density! %e\n", U.den());
 				abort();
 			}
 			p = p.from_con(U);
@@ -581,15 +582,14 @@ void tree::compute_next_state(real dt) {
 }
 void tree::set_drift_velocity() {
 	if (leaf) {
-		for( auto& p : parts) {
+		for (auto &p : parts) {
 			p.vf = p.v;
-			p.vf = vect(0);
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<set_drift_velocity_action>(children[ci]);
 		}
-		hpx::wait_all(futs.begin(),futs.end());
+		hpx::wait_all(futs.begin(), futs.end());
 	}
 }

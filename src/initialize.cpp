@@ -73,7 +73,7 @@ void kepler(particle &p) {
 		p.m = 0.01 + 1.0 / pow(1.0 + (r - 1.0 / 3.0) / .1, 3.0);
 	}
 	p.m *= p.V;
-	p.U = 1.0e-3 * p.V;
+	p.U = 0.0 * p.V;
 	p.E = p.U + 0.5 * p.v.dot(p.v) * p.m;
 }
 
@@ -106,7 +106,7 @@ void collapse(particle& p) {
 		p.m = 1.0 * p.V;
 	}
 	p.v = vect(0);
-	p.U = p.E = 1.0 * p.V;
+	p.U = p.E = 0.0;
 }
 
 init_func_type get_initialization_function(const std::string &name) {
