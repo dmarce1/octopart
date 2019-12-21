@@ -106,9 +106,9 @@ int hpx_main(int argc, char *argv[]) {
 			printf("%e ", s.momentum[dim].get());
 		}
 		printf("Energy = %e\n", s.energy.get());
-		tree::set_drift_velocity_action()(root);
 		solve_gravity();
 		hydro(dt / 2.0);
+		tree::set_drift_velocity_action()(root);
 		drift(dt);
 		solve_gravity();
 		hydro(dt / 2.0);
