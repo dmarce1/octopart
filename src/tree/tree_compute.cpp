@@ -243,7 +243,10 @@ void tree::compute_time_derivatives(real dt) {
 		constexpr auto psi1 = 0.5;
 		constexpr auto psi2 = 0.25;
 		dudt.resize(nparts0);
-		mass_flux.resize(nparts0, vect(0));
+		mass_flux.resize(nparts0);
+		for( auto& m : mass_flux) {
+			m = vect(0);
+		}
 		for (auto &du : dudt) {
 			for (int i = 0; i < STATE_SIZE; i++) {
 				du[i] = 0.0;
@@ -585,6 +588,7 @@ void tree::set_drift_velocity() {
 	if (leaf) {
 		for( auto& p : parts) {
 			p.vf = p.v;
+	//		p.vf = vect(0);
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
