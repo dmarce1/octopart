@@ -27,6 +27,8 @@ static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 	const auto aR = VR.sound_speed();
 	const auto rhoL = UL.den();
 	const auto rhoR = UR.den();
+	const auto tauL = UL.tau();
+	const auto tauR = UR.tau();
 	const auto EL = UL.ene();
 	const auto ER = UR.ene();
 	const auto PL = max(VL.pre(), 0.0);
@@ -61,27 +63,30 @@ static flux_state HLLC(const primitive_state &VL, const primitive_state &VR) {
 		if (P0 < 0.0) {
 			return KT(VL, VR);
 		}
-		conserved_state U0;
-		if (s0 > 0.0) {
-			const auto rho0 = rhoL * (sL - uL) / (sL - s0);
-			U0.den() = rho0;
-			U0.mom()[0] = rho0 * s0;
+		conserved_state U0R, U0L;
+		if (s0 >= 0.0) {
+			const auto rho0L = rhoL * (sL - uL) / (sL - s0);
+			U0L.den() = rho0L;
+			U0L.tau() = pow(P0 / (fgamma - 1.0), 1.0 / fgamma);
+			U0L.mom()[0] = rho0L * s0;
 			for (int dim = 1; dim < NDIM; dim++) {
-				U0.mom()[dim] = rho0 * VL.vel()[dim];
+				U0L.mom()[dim] = rho0L * VL.vel()[dim];
 			}
-			U0.ene() = rho0 * (EL / rhoL + (s0 - uL) * (s0 + PL / (rhoL * (sL - uL))));
+			U0L.ene() = rho0L * (EL / rhoL + (s0 - uL) * (s0 + PL / (rhoL * (sL - uL))));
 			const auto FL = VL.to_flux();
-			F = FL + (U0 - UL) * sL;
-		} else {
-			const auto rho0 = rhoR * (sR - uR) / (sR - s0);
-			U0.den() = rho0;
-			U0.mom()[0] = rho0 * s0;
+			F = FL + (U0L - UL) * sL;
+		}
+		if (s0 <= 0.0) {
+			const auto rho0R = rhoR * (sR - uR) / (sR - s0);
+			U0R.den() = rho0R;
+			U0R.tau() = pow(P0 / (fgamma - 1.0), 1.0 / fgamma);
+			U0R.mom()[0] = rho0R * s0;
 			for (int dim = 1; dim < NDIM; dim++) {
-				U0.mom()[dim] = rho0 * VR.vel()[dim];
+				U0R.mom()[dim] = rho0R * VR.vel()[dim];
 			}
-			U0.ene() = rho0 * (ER / rhoR + (s0 - uR) * (s0 + PR / (rhoR * (sR - uR))));
+			U0R.ene() = rho0R * (ER / rhoR + (s0 - uR) * (s0 + PR / (rhoR * (sR - uR))));
 			const auto FR = VR.to_flux();
-			F = FR + (U0 - UR) * sR;
+			F = FR + (U0R - UR) * sR;
 		}
 	}
 	return F;
