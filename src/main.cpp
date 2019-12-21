@@ -28,8 +28,8 @@ void hydro(real dt) {
 	if (!opts.dust_only) {
 		tree::compute_gradients_action()(root);
 		tree::compute_time_derivatives_action()(root, dt);
-		tree::compute_next_state_action()(root, dt);
 	}
+	tree::compute_next_state_action()(root, dt);
 }
 
 void init(bool t0) {

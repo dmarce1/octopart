@@ -238,7 +238,7 @@ void tree::compute_time_derivatives(real dt) {
 					grad_lim.insert(grad_lim.end(), rgrad_lim.begin(), rgrad_lim.end());
 				}
 			}
-		} PROFILE();
+		}PROFILE();
 		constexpr auto psi1 = 0.5;
 		constexpr auto psi2 = 0.25;
 		dudt.resize(nparts0);
@@ -564,10 +564,21 @@ void tree::compute_next_state(real dt) {
 		for (int i = 0; i < nparts0; i++) {
 			auto &p = parts[i];
 			auto U = p.to_con();
-			auto &du = dudt[i];
+			conserved_state du;
+			if (opts.dust_only) {
+				for (int j = 0; j < STATE_SIZE; j++) {
+					du[j] = 0.0;
+				}
+			} else {
+				du = dudt[i];
+			}
 			if (use_grav) {
 				du.mom() = du.mom() + p.g * (p.m / p.V);
-				du.ene() = du.ene() + ((p.v + p.g * dt / 2.0) * p.m + mass_flux[i]).dot(p.g) / p.V;
+				if (opts.dust_only) {
+					du.ene() = du.ene() + ((p.v + p.g * dt / 2.0) * p.m).dot(p.g) / p.V;
+				} else {
+					du.ene() = du.ene() + ((p.v + p.g * dt / 2.0) * p.m + mass_flux[i]).dot(p.g) / p.V;
+				}
 			}
 			U = U + du * dt;
 			if (U.den() <= 0.0) {
