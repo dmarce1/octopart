@@ -31,6 +31,7 @@ bool options::process_options(int argc, char *argv[]) {
 
 		command_opts.add_options() //
 			("help", "produce help message")//
+			("checkpoint", po::value<std::string>(&checkpoint)->default_value(""), "checkpoint file")//
 			("config_file", po::value<std::string>(&config_file)->default_value(""), "configuration file")//
 			("dust_only", po::value<bool>(&dust_only)->default_value(false), "treat particles as dust")//
 			("fgamma", po::value<double>(&fgamma)->default_value(7.0/5.0), "gamma for fluid gamma law")//

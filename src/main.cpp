@@ -23,7 +23,6 @@ void drift(real dt) {
 	tree::compute_interactions_action()(root);
 }
 
-
 void hydro(real dt) {
 	static const auto opts = options::get();
 	if (!opts.dust_only) {
@@ -33,12 +32,14 @@ void hydro(real dt) {
 	}
 }
 
-void init() {
+void init(bool t0) {
 	static const auto opts = options::get();
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
 	tree::compute_interactions_action()(root);
-	tree::initialize_action()(root, opts.problem);
+	if( t0) {
+		tree::initialize_action()(root, opts.problem);
+	}
 }
 
 void write_checkpoint(int i) {
@@ -59,12 +60,32 @@ int hpx_main(int argc, char *argv[]) {
 	real t = 0.0;
 	options opts;
 	opts.process_options(argc, argv);
-//	std::vector<particle> parts = random_particle_set(N * N);
 	std::vector<particle> parts;
-	if (opts.problem == "kepler") {
-		parts = disc_particle_set(opts.problem_size);
+	bool t0;
+	if (opts.checkpoint != "") {
+		printf( "Reading %s\n", opts.checkpoint.c_str());
+		FILE* fp = fopen( opts.checkpoint.c_str(), "rb");
+		if( fp == NULL) {
+			printf( "Could not find %s\n", opts.checkpoint.c_str());
+			abort();
+		} else {
+			particle p;
+			real dummy;
+			fread(&dummy,sizeof(real),1,fp);
+			while( p.read(fp)) {
+				parts.push_back(p);
+			}
+			fclose(fp);
+		}
+		t0 = false;
 	} else {
-		parts = cartesian_particle_set(opts.problem_size);
+//	std::vector<particle> parts = random_particle_set(N * N);
+		if (opts.problem == "kepler") {
+			parts = disc_particle_set(opts.problem_size);
+		} else {
+			parts = cartesian_particle_set(opts.problem_size);
+		}
+		t0 = true;
 	}
 	range box;
 	for (int dim = 0; dim < NDIM; dim++) {
@@ -72,7 +93,7 @@ int hpx_main(int argc, char *argv[]) {
 		box.max[dim] = +0.5;
 	}
 	root = hpx::new_<tree>(hpx::find_here(), std::move(parts), box, null_range()).get();
-	init();
+	init(t0);
 	tree::set_drift_velocity_action()(root);
 	solve_gravity();
 	write_checkpoint(0);
@@ -87,10 +108,10 @@ int hpx_main(int argc, char *argv[]) {
 		printf("Energy = %e\n", s.energy.get());
 		tree::set_drift_velocity_action()(root);
 		solve_gravity();
-		hydro(dt/2.0);
+		hydro(dt / 2.0);
 		drift(dt);
 		solve_gravity();
-		hydro(dt/2.0);
+		hydro(dt / 2.0);
 		write_checkpoint(i + 1);
 		t += dt;
 	}

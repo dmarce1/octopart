@@ -5,6 +5,7 @@
 class options {
 public:
 	std::string config_file;
+	std::string checkpoint;
 	bool dust_only;
 	bool first_order_space;
 	bool first_order_time;
@@ -21,6 +22,7 @@ public:
 
 	template<class Arc>
 	void serialize(Arc &arc, unsigned) {
+		arc & checkpoint;
 		arc & config_file;
 		arc & dust_only;
 		arc & first_order_space;
