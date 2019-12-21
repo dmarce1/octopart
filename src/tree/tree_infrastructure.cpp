@@ -390,8 +390,10 @@ tree_stats tree::tree_statistics() const {
 
 void tree::write_checkpoint(const std::string &filename) const {
 	FILE *fp;
+	static const auto opts = options::get();
 	if (parent == hpx::invalid_id) {
 		fp = fopen(filename.c_str(), "wb");
+		fwrite(&opts.fgamma, sizeof(real), 1, fp);
 		fclose(fp);
 	}
 	if (leaf) {
