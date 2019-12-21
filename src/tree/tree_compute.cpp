@@ -325,15 +325,10 @@ void tree::compute_time_derivatives(real dt) {
 							VL = VL + VL.dW_dt(grad_lim[i], pi.g) * 0.5 * dt;
 							VR = VR + VR.dW_dt(grad_lim[j], pj.g) * 0.5 * dt;
 						}
-						auto VL1 = VL.rotate_to(norm);
-						auto VR1 = VR.rotate_to(norm);
-						auto VL2 = VL.rotate_to(-norm);
-						auto VR2 = VR.rotate_to(-norm);
-						auto F1 = riemann_solver(VL1, VR1);
-						auto F2 = riemann_solver(VR2, VL2);
-						F1 = F1.rotate_from(norm);
-						F2 = F2.rotate_from(norm);
-						flux_state F = (F1 + F2) * 0.5;
+						VL = VL.rotate_to(norm);
+						VR = VR.rotate_to(norm);
+						auto F = riemann_solver(VL, VR);
+						F = F.rotate_from(norm);
 						F = F.boost_from(uij);
 						if (i < nparts0) {
 							dudt[i] = dudt[i] - F * abs(da) / pi.V;
@@ -588,7 +583,7 @@ void tree::set_drift_velocity() {
 	if (leaf) {
 		for( auto& p : parts) {
 			p.vf = p.v;
-	//		p.vf = vect(0);
+			p.vf = vect(0);
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
