@@ -271,8 +271,8 @@ void tree::compute_time_derivatives(real dt) {
 						if (!opts.first_order_time) {
 							VL = VL.boost_to(uij);
 							VR = VR.boost_to(uij);
-							VL = VL + VL.dW_dt(grad[i]) * 0.5 * dt;
-							VR = VR + VR.dW_dt(grad[j]) * 0.5 * dt;
+							VL = VL + VL.dW_dt(grad_lim[i]) * 0.5 * dt;
+							VR = VR + VR.dW_dt(grad_lim[j]) * 0.5 * dt;
 							VL = VL.boost_to(-uij);
 							VR = VR.boost_to(-uij);
 						}
