@@ -8,7 +8,7 @@ primitive_state conserved_state::to_prim() const {
 	V.den() = den();
 	auto ei = (ene() - mom().dot(mom()) / den() * 0.5);
 	if (ei < 1.0e-3 * ene()) {
-		ei = pow(tau(), fgamma);
+//		ei = pow(tau(), fgamma);
 	}
 	V.pre() = (fgamma - 1.0) * ei;
 	V.vel() = mom() / den();
