@@ -100,23 +100,32 @@ int hpx_main(int argc, char *argv[]) {
 	tree::set_drift_velocity_action()(root);
 	solve_gravity(0.0);
 	write_checkpoint(0);
-	for (int i = 0; t < opts.tmax; i++) {
-		real dt = timestep();
-		auto s = statistics();
-		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, t.get(), dt.get(), s.nparts, s.nleaves,
-				s.max_level, s.mass.get());
-		for (int dim = 0; dim < NDIM; dim++) {
-			printf("%e ", s.momentum[dim].get());
+	int oi = 0;
+	int i = 0;
+	while (t < opts.tmax) {
+		const real next_t = t + opts.output_freq;
+		while (t < next_t) {
+			real dt = timestep();
+			int num_steps_left = (next_t - t).get() / dt.get() + 1;
+			dt = (next_t - t) / real(num_steps_left);
+			auto s = statistics();
+			printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, t.get(), dt.get(), s.nparts, s.nleaves,
+					s.max_level, s.mass.get());
+			for (int dim = 0; dim < NDIM; dim++) {
+				printf("%e ", s.momentum[dim].get());
+			}
+			printf("Energy = %e\n", s.energy.get());
+			solve_gravity(dt / 2.0);
+			tree::set_drift_velocity_action()(root);
+			hydro(dt / 2.0);
+			drift(dt);
+			hydro(dt / 2.0);
+			solve_gravity(dt / 2.0);
+			t += dt;
+			i++;
 		}
-		printf("Energy = %e\n", s.energy.get());
-		solve_gravity(dt / 2.0);
-		tree::set_drift_velocity_action()(root);
-		hydro(dt / 2.0);
-		drift(dt);
-		hydro(dt / 2.0);
-		solve_gravity(dt / 2.0);
-		write_checkpoint(i + 1);
-		t += dt;
+		write_checkpoint(++oi);
+		printf( "output %i\n", oi);
 	}
 	FILE *fp = fopen("profile.txt", "wt");
 	profiler_output(fp);

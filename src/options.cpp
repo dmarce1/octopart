@@ -39,6 +39,7 @@ bool options::process_options(int argc, char *argv[]) {
 			("first_order_time", po::value<bool>(&first_order_time)->default_value(false), "use 1st order time integration")//
 			("fpe", po::value<bool>(&fpe)->default_value(true), "enable floating point exceptions")//
 			("gravity", po::value<bool>(&gravity)->default_value(false), "enable gravity")//
+			("output_freq", po::value<double>(&output_freq)->default_value(-1), "output frequency")//
 			("parts_per_node", po::value<int>(&parts_per_node)->default_value(1000), "maximum number of particles on a node")//
 			("periodic", po::value<bool>(&periodic)->default_value(false), "enable periodic boundary conditions")//
 			("problem_size", po::value<int>(&problem_size)->default_value(100), "problem size")//
@@ -65,6 +66,10 @@ bool options::process_options(int argc, char *argv[]) {
 				}
 			}
 			po::notify(vm);
+
+			if( output_freq <= 0.0 ) {
+				output_freq = tmax / 100.0;
+			}
 
 			if( first_order_space && !first_order_time) {
 				printf( "ERROR: first_order_time must be enabled for first_order_space\n");

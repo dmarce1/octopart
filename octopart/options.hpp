@@ -18,6 +18,7 @@ public:
 	double fgamma;
 	double theta;
 	double tmax;
+	double output_freq;
 	std::string problem;
 
 	template<class Arc>
@@ -37,6 +38,7 @@ public:
 		arc & theta;
 		arc & tmax;
 		arc & problem;
+		arc & output_freq;
 	}
 	static options global;
 	static options& get();
