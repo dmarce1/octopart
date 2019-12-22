@@ -5,13 +5,16 @@
 
 hpx::id_type root;
 
-void solve_gravity() {
+void solve_gravity(real dt) {
 	static const auto opts = options::get();
 	if (opts.problem == "kepler") {
 		tree::set_central_force_action()(root);
 	} else if (opts.gravity) {
 		tree::compute_mass_attributes_action()(root);
 		tree::compute_gravity_action()(root, std::vector<hpx::id_type>(1, root), std::vector<mass_attr>());
+	}
+	if (opts.problem == "kepler" || opts.gravity) {
+		tree::apply_gravity_action()(root, dt);
 	}
 }
 
@@ -28,8 +31,8 @@ void hydro(real dt) {
 	if (!opts.dust_only) {
 		tree::compute_gradients_action()(root);
 		tree::compute_time_derivatives_action()(root, dt);
+		tree::compute_next_state_action()(root, dt);
 	}
-	tree::compute_next_state_action()(root, dt);
 }
 
 void init(bool t0) {
@@ -37,7 +40,7 @@ void init(bool t0) {
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
 	tree::compute_interactions_action()(root);
-	if( t0) {
+	if (t0) {
 		tree::initialize_action()(root, opts.problem);
 	}
 }
@@ -63,16 +66,16 @@ int hpx_main(int argc, char *argv[]) {
 	std::vector<particle> parts;
 	bool t0;
 	if (opts.checkpoint != "") {
-		printf( "Reading %s\n", opts.checkpoint.c_str());
-		FILE* fp = fopen( opts.checkpoint.c_str(), "rb");
-		if( fp == NULL) {
-			printf( "Could not find %s\n", opts.checkpoint.c_str());
+		printf("Reading %s\n", opts.checkpoint.c_str());
+		FILE *fp = fopen(opts.checkpoint.c_str(), "rb");
+		if (fp == NULL) {
+			printf("Could not find %s\n", opts.checkpoint.c_str());
 			abort();
 		} else {
 			particle p;
 			real dummy;
-			fread(&dummy,sizeof(real),1,fp);
-			while( p.read(fp)) {
+			fread(&dummy, sizeof(real), 1, fp);
+			while (p.read(fp)) {
 				parts.push_back(p);
 			}
 			fclose(fp);
@@ -95,7 +98,7 @@ int hpx_main(int argc, char *argv[]) {
 	root = hpx::new_<tree>(hpx::find_here(), std::move(parts), box, null_range()).get();
 	init(t0);
 	tree::set_drift_velocity_action()(root);
-	solve_gravity();
+	solve_gravity(0.0);
 	write_checkpoint(0);
 	for (int i = 0; t < opts.tmax; i++) {
 		real dt = timestep();
@@ -106,12 +109,12 @@ int hpx_main(int argc, char *argv[]) {
 			printf("%e ", s.momentum[dim].get());
 		}
 		printf("Energy = %e\n", s.energy.get());
-		solve_gravity();
-		hydro(dt / 2.0);
+		solve_gravity(dt / 2.0);
 		tree::set_drift_velocity_action()(root);
-		drift(dt);
-		solve_gravity();
 		hydro(dt / 2.0);
+		drift(dt);
+		hydro(dt / 2.0);
+		solve_gravity(dt / 2.0);
 		write_checkpoint(i + 1);
 		t += dt;
 	}

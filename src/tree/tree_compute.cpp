@@ -271,8 +271,8 @@ void tree::compute_time_derivatives(real dt) {
 						if (!opts.first_order_time) {
 							VL = VL.boost_to(uij);
 							VR = VR.boost_to(uij);
-							VL = VL + VL.dW_dt(grad[i], pi.g) * 0.5 * dt;
-							VR = VR + VR.dW_dt(grad[j], pj.g) * 0.5 * dt;
+							VL = VL + VL.dW_dt(grad[i]) * 0.5 * dt;
+							VR = VR + VR.dW_dt(grad[j]) * 0.5 * dt;
 							VL = VL.boost_to(-uij);
 							VR = VR.boost_to(-uij);
 						}
@@ -564,23 +564,7 @@ void tree::compute_next_state(real dt) {
 		for (int i = 0; i < nparts0; i++) {
 			auto &p = parts[i];
 			auto U = p.to_con();
-			conserved_state du;
-			if (opts.dust_only) {
-				for (int j = 0; j < STATE_SIZE; j++) {
-					du[j] = 0.0;
-				}
-			} else {
-				du = dudt[i];
-			}
-			if (use_grav) {
-				du.mom() = du.mom() + p.g * (p.m / p.V);
-				if (opts.dust_only) {
-					du.ene() = du.ene() + ((p.v + p.g * dt / 2.0) * p.m).dot(p.g) / p.V;
-				} else {
-					du.ene() = du.ene() + ((p.v + p.g * dt / 2.0) * p.m + mass_flux[i]).dot(p.g) / p.V;
-				}
-			}
-			U = U + du * dt;
+			U = U + dudt[i] * dt;
 			if (U.den() <= 0.0) {
 				printf("Negative density! %e\n", U.den());
 				abort();

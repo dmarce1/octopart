@@ -94,6 +94,7 @@ public:
 	tree();
 	tree(std::vector<particle>&&, const range&, const range&);
 
+	void apply_gravity(real);
 	mass_attr compute_mass_attributes();
 	void compute_drift(real);
 	void compute_gradients();
@@ -139,6 +140,7 @@ public:
 		arc & mass;
 	}
 
+	HPX_DEFINE_COMPONENT_ACTION(tree,apply_gravity);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_mass_attributes);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_drift);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_gradients);

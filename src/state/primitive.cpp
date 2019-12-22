@@ -45,9 +45,8 @@ primitive_state primitive_state::boost_to(const vect &vf) const {
 	return V;
 }
 
-primitive_state primitive_state::dW_dt(const gradient &dW_dx, const vect& g) const {
+primitive_state primitive_state::dW_dt(const gradient &dW_dx) const {
 	static const auto opts = options::get();
-	static const bool use_grav = opts.gravity || opts.problem == "kepler";
 	const real fgamma = opts.fgamma;
 	primitive_state V;
 	for (int i = 0; i < STATE_SIZE; i++) {
@@ -61,9 +60,6 @@ primitive_state primitive_state::dW_dt(const gradient &dW_dx, const vect& g) con
 		V[t_i] -= (*this)[t_i] * dW_dx[dim][v_i + dim];
 		V[p_i] -= u * dW_dx[dim][p_i];
 		V[p_i] -= fgamma * (*this)[p_i] * dW_dx[dim][v_i + dim];
-		if(use_grav) {
-			V[v_i + dim] += g[dim];
-		};
 		for (int n = 0; n < NDIM; n++) {
 			V[v_i + n] -= u * dW_dx[dim][v_i + n];
 		}
