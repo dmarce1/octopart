@@ -282,17 +282,20 @@ void tree::compute_time_derivatives(real dt) {
 								VR = VR + grad_lim[j][dim] * dxj[dim];
 							}
 							const auto dV_abs = abs(V_j, V_i);
-							const auto V_bar_i = V_i + (V_j - V_i) * abs(xij - pi.x) / abs(pi.x - pj.x);
-							const auto V_bar_j = V_j + (V_i - V_j) * abs(xij - pj.x) / abs(pi.x - pj.x);
+							const auto V_min = min(V_i, V_j);
+							const auto V_max = max(V_i, V_j);
+							const auto V_bar = (V_i * abs(xij - pj.x) + V_j * abs(xij - pi.x)) / abs(pi.x - pj.x);
 							for (int f = 0; f < STATE_SIZE; f++) {
+								real V_m;
+								real V_p;
 								if (V_i[f] == V_j[f]) {
 									VR[f] = VL[f] = V_i[f];
 								} else if (V_i[f] < V_j[f]) {
-									VL[f] = min(V_bar_i[f], VL[f]);
-									VR[f] = max(V_bar_j[f], VR[f]);
+									VL[f] = max(V_min[f], min(V_bar[f], VL[f]));
+									VR[f] = min(V_max[f], max(V_bar[f], VR[f]));
 								} else {
-									VL[f] = max(V_bar_i[f], VL[f]);
-									VR[f] = min(V_bar_j[f], VR[f]);
+									VL[f] = min(V_max[f], max(V_bar[f], VL[f]));
+									VR[f] = max(V_min[f], min(V_bar[f], VR[f]));
 								}
 							}
 						}
