@@ -125,7 +125,7 @@ int hpx_main(int argc, char *argv[]) {
 			i++;
 		}
 		write_checkpoint(++oi);
-		printf( "output %i\n", oi);
+		printf("output %i\n", oi);
 	}
 	FILE *fp = fopen("profile.txt", "wt");
 	profiler_output(fp);

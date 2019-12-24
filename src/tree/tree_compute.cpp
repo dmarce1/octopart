@@ -286,8 +286,6 @@ void tree::compute_time_derivatives(real dt) {
 							const auto V_max = max(V_i, V_j);
 							const auto V_bar = (V_i * abs(xij - pj.x) + V_j * abs(xij - pi.x)) / abs(pi.x - pj.x);
 							for (int f = 0; f < STATE_SIZE; f++) {
-								real V_m;
-								real V_p;
 								if (V_i[f] == V_j[f]) {
 									VR[f] = VL[f] = V_i[f];
 								} else if (V_i[f] < V_j[f]) {
@@ -315,7 +313,23 @@ void tree::compute_time_derivatives(real dt) {
 						VR = VR.boost_to(uij);
 						VL = VL.rotate_to(norm);
 						VR = VR.rotate_to(norm);
-						auto F = riemann_solver(VL, VR);
+						flux_state F;
+						if (!riemann_solver(F, VL, VR)) {
+							printf( "Riemann failed high order\n");
+							sleep(1);
+							VL = V_i;
+							VR = V_j;
+							VL = VL.boost_to(uij);
+							VR = VR.boost_to(uij);
+							VL = VL.rotate_to(norm);
+							VR = VR.rotate_to(norm);
+							const auto rc = riemann_solver(F, V_i, V_j);
+							if (!rc) {
+								printf("Rieman Solver failed\n");
+								abort();
+								F = KT(V_i, V_j);
+							}
+						}
 						F = F.rotate_from(norm);
 						F = F.boost_from(uij);
 						if (i < nparts0) {

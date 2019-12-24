@@ -16,6 +16,7 @@ public:
 	int parts_per_node;
 	int problem_size;
 	double fgamma;
+	double kep_eps;
 	double theta;
 	double tmax;
 	double output_freq;
@@ -23,6 +24,7 @@ public:
 
 	template<class Arc>
 	void serialize(Arc &arc, unsigned) {
+		arc & kep_eps;
 		arc & checkpoint;
 		arc & config_file;
 		arc & dust_only;

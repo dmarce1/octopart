@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
 		}
 		fclose(fp);
 		DBfile *db = DBCreateReal(filename.c_str(), DB_CLOBBER, DB_LOCAL, "Meshless",
-		DB_HDF5);
+				DB_HDF5);
 #if( NDIM == 1)
 		const int shapetypes[1] = {DB_ZONETYPE_BEAM};
 	#elif( NDIM ==2)
@@ -90,7 +90,6 @@ int main(int argc, char *argv[]) {
 			const auto U = pi.to_con();
 			const auto V = U.to_prim();
 			rho.push_back(V.den());
-			tau.push_back(V.tau());
 			ein.push_back(U.ene() - V.vel().dot(U.mom()) / 2.0);
 			h.push_back(pi.h);
 			std::array<vect, NDIM> E;
@@ -102,7 +101,6 @@ int main(int argc, char *argv[]) {
 		}
 		DBPutUcdvar1(db, "h", "mesh", h.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "Nc", "mesh", Nc.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
-		DBPutUcdvar1(db, "tau", "mesh", tau.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "rho", "mesh", rho.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "e", "mesh", ein.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		for (int dim = 0; dim < NDIM; dim++) {

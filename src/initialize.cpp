@@ -1,4 +1,5 @@
 #include <octopart/initialize.hpp>
+#include <octopart/options.hpp>
 #include <octopart/rand.hpp>
 
 void drift(particle &p) {
@@ -8,7 +9,6 @@ void drift(particle &p) {
 	p.v = vect(0);
 	p.v[0] = rand_unit_box();
 	p.v[1] = rand_unit_box();
-	p.U = 0.0;
 
 }
 
@@ -42,7 +42,6 @@ void kh(particle &p) {
 #endif
 	p.m = rho * p.V;
 	p.E = E * p.V + p.v.dot(p.v) * 0.5 * p.m;
-	p.U = E * p.V;
 	;
 //	for (int dim = 0; dim < NDIM; dim++) {
 //		p.v[dim] = rand_unit_box() * 0.01;
@@ -59,12 +58,15 @@ void kh(particle &p) {
 }
 
 void kepler(particle &p) {
+	static const auto opts = options::get();
+	static const auto eps = opts.kep_eps;
 	const auto r = abs(p.x);
 	const auto y = p.x[1];
 	const auto x = p.x[0];
 	p.v = vect(0);
-	p.v[0] = -y / r / sqrt(r);
-	p.v[1] = +x / r / sqrt(r);
+	const auto tmp = pow(eps * eps + r * r, -0.75);
+	p.v[0] = -y * tmp;
+	p.v[1] = +x * tmp;
 	if (r < 1.0 / 12.0) {
 		p.m = 0.01 + 12 * r * r * r;
 	} else if (r < 1.0 / 3.0) {
@@ -73,40 +75,39 @@ void kepler(particle &p) {
 		p.m = 0.01 + 1.0 / pow(1.0 + (r - 1.0 / 3.0) / .1, 3.0);
 	}
 	p.m *= p.V;
-	p.U = 0.0 * p.V;
-	p.E = p.U + 0.5 * p.v.dot(p.v) * p.m;
+	p.E = 1.0e-6 * p.V + 0.5 * p.v.dot(p.v) * p.m;
 }
 
 void sod(particle &p) {
-	if (p.x[0] < 0.0) {
-		p.m = 1.0 * p.V;
-		p.U = p.E = 2.5 * p.V;
-	} else {
-		p.m = 0.125 * p.V;
-		p.U = p.E = 0.25 * p.V;
-	}
 	for (int dim = 0; dim < NDIM; dim++) {
 		p.v[dim] = 0.0;
+	}
+	if (p.x[0] > 0.0) {
+		p.m = 1.0 * p.V;
+		p.v[0] = 1;
+		p.E = 2.5 + p.v.dot(p.v) / 2.0 * p.m * p.V;
+	} else {
+		p.m = 1.0 * p.V;
+		p.v[0] = -1;
+		p.E = 0.25 + p.v.dot(p.v) / 2.0 * p.m * p.V;
 	}
 }
 
 void blast(particle &p) {
 	const auto r = sqrt(p.x.dot(p.x));
 	p.m = p.V;
-	p.U = p.E = exp(-50.0 * r) * p.V;
 	for (int dim = 0; dim < NDIM; dim++) {
 		p.v[dim] = 0.0;
 	}
 }
 
-void collapse(particle& p) {
-	if( abs(p.x) < 0.4 ) {
+void collapse(particle &p) {
+	if (abs(p.x) < 0.4) {
 		p.m = 1.0e+6 * p.V;
 	} else {
 		p.m = 1.0 * p.V;
 	}
 	p.v = vect(0);
-	p.U = p.E = 0.0;
 }
 
 init_func_type get_initialization_function(const std::string &name) {

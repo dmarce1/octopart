@@ -6,8 +6,8 @@ constexpr real G = 6.67259e-8;
 
 void tree::apply_gravity(real dt) {
 	if (leaf) {
-		for(int i = 0; i < parts.size(); i++) {
-			auto& p = parts[i];
+		for (int i = 0; i < parts.size(); i++) {
+			auto &p = parts[i];
 			const auto ek0 = p.v.dot(p.v) * (p.m / 2.0);
 			p.v = p.v + p.g * dt;
 			const auto ek1 = p.v.dot(p.v) * (p.m / 2.0);
@@ -199,15 +199,13 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 }
 
 void tree::set_central_force() {
+	static const auto opts = options::get();
+	static const auto eps = opts.kep_eps;
 	if (leaf) {
 		for (auto &p : parts) {
 			constexpr auto r0 = 0.05;
 			const auto r = abs(p.x);
-			if (r < r0) {
-				p.g = -p.x / (r0 * r0 * r0);
-			} else {
-				p.g = -p.x / (r * r * r);
-			}
+			p.g = -p.x * pow(r * r + eps * eps, -1.5);
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;

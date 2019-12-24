@@ -62,7 +62,6 @@ void particle::write(FILE *fp) const {
 	fwrite(&g, sizeof(real), NDIM, fp);
 	fwrite(&m, sizeof(real), 1, fp);
 	fwrite(&E, sizeof(real), 1, fp);
-	fwrite(&U, sizeof(real), 1, fp);
 	fwrite(&V, sizeof(real), 1, fp);
 	fwrite(&h, sizeof(real), 1, fp);
 	fwrite(&B, sizeof(real), NDIM * NDIM, fp);
@@ -75,7 +74,6 @@ int particle::read(FILE *fp) {
 	cnt += fread(&g, sizeof(real), NDIM, fp);
 	cnt += fread(&m, sizeof(real), 1, fp);
 	cnt += fread(&E, sizeof(real), 1, fp);
-	cnt += fread(&U, sizeof(real), 1, fp);
 	cnt += fread(&V, sizeof(real), 1, fp);
 	cnt += fread(&h, sizeof(real), 1, fp);
 	cnt += fread(&B, sizeof(real), NDIM * NDIM, fp);
@@ -92,7 +90,6 @@ conserved_state particle::to_con() const {
 	U0.den() = m / V;
 	U0.mom() = v * (m / V);
 	U0.ene() = E / V;
-	U0.tau() = pow(U / V, 1.0 / fgamma);
 	return U0;
 }
 
@@ -109,12 +106,6 @@ particle particle::from_con(const conserved_state &U) const {
 	p.g = g;
 	p.c = c;
 	p.vf = vf;
-	auto u = p.E - p.v.dot(p.v) * p.m / 2.0;
-	if( u > p.E / 10.0) {
-		p.U = u;
-	} else {
-		p.U = pow(max(U.tau(),0.0), fgamma) * p.V;
-	}
 	return p;
 }
 

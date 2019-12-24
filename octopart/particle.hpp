@@ -21,7 +21,6 @@ struct particle {
 	vect g;
 	vect c;
 	real E;
-	real U;
 	real V;
 	real h;
 	std::array<vect, NDIM> B;
@@ -36,7 +35,6 @@ struct particle {
 		a & m;
 		a & v;
 		a & E;
-		a & U;
 		a & V;
 		a & h;
 		a & B;

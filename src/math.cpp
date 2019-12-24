@@ -139,6 +139,6 @@ void enable_floating_point_exceptions() {
 	feenableexcept(FE_DIVBYZERO);
 	feenableexcept(FE_INVALID);
 	feenableexcept(FE_OVERFLOW);
-	feenableexcept(FE_UNDERFLOW);
+//	feenableexcept(FE_UNDERFLOW);
 }
 
