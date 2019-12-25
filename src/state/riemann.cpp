@@ -26,8 +26,6 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 	const auto UL = VL.to_con();
 	PR = max(VR.pre(), 1.0e-10);
 	PL = max(VL.pre(), 1.0e-10);
-//	PL = max(PL, rhoL * 1.0e-9);
-//	PR = max(PR, rhoR * 1.0e-9);
 
 	const auto gam1 = fgamma - 1.0;
 	const auto gam2 = fgamma + 1.0;
@@ -45,21 +43,6 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 
 	const auto s0L = uL + 2.0 * aL / gam1;
 	const auto s0R = uR - 2.0 * aR / gam1;
-
-	if (PL == 0.0 && PR == 0.0) {
-		if (uL > 0.0 && uR > 0.0) {
-			F = VL.to_flux();
-		} else if (uL < 0.0 && uR < 0.0) {
-			F = VR.to_flux();
-		} else if (uL < 0.0 && uR > 0.0) {
-			for (int i = 0; i < STATE_SIZE; i++) {
-				F[i] = 0.0;
-			}
-		} else {
-			F = (VR.to_flux() * -uR + VL.to_flux() * uL) / (uL - uR);
-		}
-		return true;
-	}
 
 	if (s0L < 0.0 && s0R > 0.0) {
 		for (int i = 0; i < STATE_SIZE; i++) {
@@ -147,7 +130,6 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 		} else {
 			err = real::max();
 		}
-		err = abs(dP) / (0.5 * (PL + PR));
 		iter++;
 	//	printf("%i %e %e %e %e %e %e %e %e\n", iter, c0, PL, PR, uL, uR, P0, dP, err);
 		if (iter >= 10000) {
@@ -295,28 +277,10 @@ static bool HLLC(flux_state &F, const primitive_state &VL, const primitive_state
 
 	if (sL == 0.0 && sR == 0.0) {
 		F = (VL.to_flux() + VR.to_flux()) / 2.0;
-		for (int i = 0; i < STATE_SIZE; i++) {
-			if (std::isnan(F[i].get())) {
-				printf("Flux is NaN\n");
-				abort();
-			}
-		}
 	} else if (sL >= 0.0) {
 		F = VL.to_flux();
-		for (int i = 0; i < STATE_SIZE; i++) {
-			if (std::isnan(F[i].get())) {
-				printf("Flux is NaN\n");
-				abort();
-			}
-		}
 	} else if (sR <= 0.0) {
 		F = VR.to_flux();
-		for (int i = 0; i < STATE_SIZE; i++) {
-			if (std::isnan(F[i].get())) {
-				printf("Flux is NaN\n");
-				abort();
-			}
-		}
 	} else {
 		const auto s0_den = rhoL * (sL - uL) - rhoR * (sR - uR);
 		const auto s0_num = PR - PL + rhoL * uL * (sL - uL) - rhoR * uR * (sR - uR);
@@ -351,7 +315,6 @@ static bool HLLC(flux_state &F, const primitive_state &VL, const primitive_state
 				}
 				P0 = 0.5 * (PR + rhoR * (sR - uR) * (s0 - uR) + PL + rhoL * (sL - uL) * (s0 - uL));
 				if (P0 <= 0.0) {
-					//	printf("Trying exact Riemann\n");
 					return exact_Riemann(F, VL, VR);
 				}
 			}
@@ -400,5 +363,5 @@ static bool HLLC(flux_state &F, const primitive_state &VL, const primitive_state
 }
 
 bool riemann_solver(flux_state &f, const primitive_state &VL, const primitive_state &VR) {
-	return HLLC(f, VL, VR);
+	return exact_Riemann(f, VL, VR);
 }
