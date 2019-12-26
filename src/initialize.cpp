@@ -1,5 +1,7 @@
 #include <octopart/initialize.hpp>
 #include <octopart/options.hpp>
+#include <octopart/physcon.hpp>
+#include <octopart/polytrope.hpp>
 #include <octopart/rand.hpp>
 
 void drift(particle &p) {
@@ -104,7 +106,17 @@ void blast(particle &p) {
 	for (int dim = 0; dim < NDIM; dim++) {
 		p.v[dim] = 0.0;
 	}
-	p.E = p.V*exp(-r*r*1000);
+	p.E = p.V * exp(-r * r * 1000);
+}
+
+void single_polytrope(particle &p) {
+	static const auto opts = options::get();
+	const auto r = abs(p.x);
+	const auto rho = polytrope(r);
+	const auto c0 = (1.5 / 2.5) * 4.0 * M_PI * physcon::G;
+	p.m = rho * p.V;
+	p.E = c0 * pow(rho, opts.fgamma) * p.V;
+	p.v = vect(0);
 }
 
 void collapse(particle &p) {
@@ -114,6 +126,7 @@ void collapse(particle &p) {
 		p.m = 1.0 * p.V;
 	}
 	p.v = vect(0);
+	p.E = p.V;
 }
 
 init_func_type get_initialization_function(const std::string &name) {
@@ -131,6 +144,8 @@ init_func_type get_initialization_function(const std::string &name) {
 		return sod;
 	} else if (name == "kepler") {
 		return kepler;
+	} else if (name == "polytrope") {
+		return single_polytrope;
 	} else {
 		printf("Error: Initialization function %s is not known\n", name.c_str());
 		abort();

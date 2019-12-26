@@ -57,18 +57,6 @@ struct mass_attr {
 	}
 };
 
-struct gravity_part {
-	real m;
-	real h;
-	vect x;
-	template<class Arc>
-	void serialize(Arc &&arc, unsigned) {
-		arc & h;
-		arc & m;
-		arc & x;
-	}
-};
-
 class tree: public hpx::components::migration_support<hpx::components::component_base<tree>> {
 	std::vector<particle> new_parts;
 	std::vector<particle> parts;

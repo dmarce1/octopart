@@ -544,20 +544,6 @@ void tree::compute_interactions() {
 					for (int n = 0; n < NDIM; n++) {
 						E[n] = vect(0.0);
 					}
-					pi.c = vect(0.0);
-					for (const auto &pjx : pos) {
-						const auto r = abs(pi.x - pjx);
-						const auto h = pi.h;
-						if (r < h) {
-							const auto psi_j = W(r, h) * pi.V;
-							for (int n = 0; n < NDIM; n++) {
-								for (int m = 0; m < NDIM; m++) {
-									E[n][m] += (pjx[n] - pi.x[n]) * (pjx[m] - pi.x[m]) * psi_j;
-								}
-							}
-							pi.c = pi.c + (pi.x * W(r, h) * pi.V);
-						}
-					}
 					Ncond[i] = condition_number(E, pi.B);
 					assert(Ncond[i] != 0.0);
 				}
@@ -583,7 +569,7 @@ void tree::compute_next_state(real dt) {
 			auto U = p.to_con();
 			U = U + dudt[i] * dt;
 			if (U.den() <= 0.0) {
-				printf("Negative density! %e %e %e\n", U.den(), p.x[0], p.x[1]);
+				printf("Negative density! %e\n", U.den().get());
 				abort();
 			}
 			p = p.from_con(U);

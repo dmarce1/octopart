@@ -19,7 +19,6 @@ struct particle {
 	vect v;
 	vect vf;
 	vect g;
-	vect c;
 	real E;
 	real V;
 	real h;
@@ -30,7 +29,6 @@ struct particle {
 	void serialize(Arc &&a, unsigned) {
 		a & vf;
 		a & g;
-		a & c;
 		a & x;
 		a & m;
 		a & v;
@@ -42,6 +40,19 @@ struct particle {
 	primitive_state to_prim() const;
 	conserved_state to_con() const;
 	particle from_con(const conserved_state&) const;
+};
+
+
+struct gravity_part {
+	real m;
+	real h;
+	vect x;
+	template<class Arc>
+	void serialize(Arc &&arc, unsigned) {
+		arc & h;
+		arc & m;
+		arc & x;
+	}
 };
 
 std::vector<particle> cartesian_particle_set(int);

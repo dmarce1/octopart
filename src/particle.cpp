@@ -104,7 +104,6 @@ particle particle::from_con(const conserved_state &U) const {
 	p.B = B;
 	p.x = x;
 	p.g = g;
-	p.c = c;
 	p.vf = vf;
 	return p;
 }
