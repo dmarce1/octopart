@@ -100,8 +100,8 @@ int hpx_main(int argc, char *argv[]) {
 	}
 	range box;
 	for (int dim = 0; dim < NDIM; dim++) {
-		box.min[dim] = -opts.grid_size;
-		box.max[dim] = +opts.grid_size;
+		box.min[dim] = -opts.grid_size/2.0;
+		box.max[dim] = +opts.grid_size/2.0;
 	}
 	root = hpx::new_<tree>(hpx::find_here(), std::move(parts), box, null_range()).get();
 	init(t0);
