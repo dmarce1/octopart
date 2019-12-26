@@ -17,6 +17,7 @@ flux_state KT(const primitive_state &VL, const primitive_state &VR) {
 }
 
 bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_state &VR) {
+
 	static const auto opts = options::get();
 	const real fgamma = opts.fgamma;
 	const auto rhoL = VL.den();
@@ -26,6 +27,7 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 	const auto UL = VL.to_con();
 	PR = max(VR.pre(), 1.0e-10);
 	PL = max(VL.pre(), 1.0e-10);
+	flux_state FR, FL;
 
 	const auto gam1 = fgamma - 1.0;
 	const auto gam2 = fgamma + 1.0;
@@ -41,15 +43,10 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 	const auto aR = sqrt(fgamma * PR / rhoR);
 	const auto aL = sqrt(fgamma * PL / rhoL);
 
-	const auto s0L = uL + 2.0 * aL / gam1;
-	const auto s0R = uR - 2.0 * aR / gam1;
+	const auto sOL = uL + 2.0 * aL / gam1;
+	const auto sOR = uR - 2.0 * aR / gam1;
 
-	if (s0L < 0.0 && s0R > 0.0) {
-		for (int i = 0; i < STATE_SIZE; i++) {
-			F[i] = 0.0;
-		}
-		return true;
-	}
+	real dP, P0, err, s0;
 
 	const auto fL = [&](real P) {
 		if (P > PL) {
@@ -67,11 +64,7 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 		if (P > PR) {
 			return (P - PR) * sqrt(AR / (P + BR));
 		} else {
-			if (PR == 0.0) {
-				return real(0.0);
-			} else {
-				return 2.0 * aR / gam1 * (pow(P / PR, gam3) - 1);
-			}
+			return 2.0 * aR / gam1 * (pow(P / PR, gam3) - 1);
 		}
 	};
 
@@ -79,11 +72,7 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 		if (P > PL) {
 			return sqrt(AL / (BL + P)) * (1.0 - (P - PL) / (2.0 * (BL + P)));
 		} else {
-			if (PL == 0.0) {
-				return real(0.0);
-			} else {
-				return 1.0 / (rhoL * aL) * pow(PL / P, gam4);
-			}
+			return 1.0 / (rhoL * aL) * pow(PL / P, gam4);
 		}
 	};
 
@@ -91,11 +80,7 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 		if (P > PR) {
 			return sqrt(AR / (BR + P)) * (1.0 - (P - PR) / (2.0 * (BR + P)));
 		} else {
-			if (PR == 0.0) {
-				return real(0.0);
-			} else {
-				return 1.0 / (rhoR * aR) * pow(PR / P, gam4);
-			}
+			return 1.0 / (rhoR * aR) * pow(PR / P, gam4);
 		}
 	};
 
@@ -107,140 +92,182 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 		return dfLdP(P) + dfRdP(P);
 	};
 
-	real dP, P0, err;
-	P0 = (PL + PR) / 2.0;
-	if (P0 == 0.0) {
-		P0 = 1.0e-6;
-	}
-	dP = (PR - PL) / 2.0;
-	int iter = 0;
-	real Plast;
-	do {
-		const auto g = f(P0);
-		if (g == 0.0) {
-			break;
+	const auto VrL = [=]() {
+		primitive_state V;
+		const auto tmp = 2.0 / gam2 + (gam1 / gam2 / aL * uL);
+		V.den() = rhoL * pow(tmp, 2.0 / gam1);
+		V.vel()[0] = 2.0 / gam2 * (aL + gam1 / 2.0 * uL);
+		V.pre() = PL * pow(2.0 / gam2 + (gam1 / gam2 / aL * uL), 2.0 * fgamma / gam1);
+		for (int dim = 1; dim < NDIM; dim++) {
+			V.vel()[dim] = VL.vel()[dim];
 		}
-		const auto dgdp = dfdP(P0);
-		assert(dgdp != 0.0);
-		dP = -g / dgdp;
-		real c0 = pow(0.1, double(iter) / double(1000));
-		P0 = min(max(P0 + c0 * dP, P0 / 2.0), P0 * 2.0);
-		if (iter > 1) {
-			err = abs(P0 - Plast) / (P0 + Plast) / 2.0;
+		return V;
+	};
+
+	const auto VrR = [=]() {
+		primitive_state V;
+		const auto tmp = 2.0 / gam2 - (gam1 / gam2 / aR * uR);
+		V.den() = rhoR * pow(tmp, 2.0 / gam1);
+		V.vel()[0] = 2.0 / gam2 * (-aR + gam1 / 2.0 * uR);
+		V.pre() = PR * pow(2.0 / gam2 - (gam1 / gam2 / aR * uR), 2.0 * fgamma / gam1);
+		for (int dim = 1; dim < NDIM; dim++) {
+			V.vel()[dim] = VR.vel()[dim];
+		}
+		return V;
+	};
+
+	const auto VO = [=]() {
+		primitive_state V;
+		for (int i = 0; i < STATE_SIZE; i++) {
+			V[i] = 0.0;
+		}
+		return V;
+	};
+
+	const auto V0L = [&]() {
+		primitive_state V;
+		real rho0L;
+		if (P0 > PL) {
+			const auto num = P0 / PL + gam1 / gam2;
+			const auto den = (gam1 / gam2) * P0 / PL + 1.0;
+			rho0L = rhoL * num / den;
 		} else {
-			err = real::max();
+			rho0L = rhoL * pow(P0 / PL, 1.0 / fgamma);
 		}
-		iter++;
-	//	printf("%i %e %e %e %e %e %e %e %e\n", iter, c0, PL, PR, uL, uR, P0, dP, err);
-		if (iter >= 10000) {
-			printf("Riemann solver failed to converge\n");
-			abort();
-			;
+		V.pre() = P0;
+		V.den() = rho0L;
+		V.vel()[0] = s0;
+		for (int dim = 1; dim < NDIM; dim++) {
+			V.vel()[dim] = VL.vel()[dim];
 		}
-		Plast = P0;
-	} while (err > 1.0e-6 && P0 > real::min());
-	const auto s0 = 0.5 * (uL + uR) + 0.5 * (fR(P0) - fL(P0));
-	const auto QL = sqrt((P0 + BL) / AL);
-	const auto QR = sqrt((P0 + BR) / AR);
-	real sL, sR, sHL, sTL, sHR, sTR;
-	bool shockL, shockR;
-	if (P0 > PR) {
-		shockR = true;
-		sR = uR + QR / rhoR;
-	} else {
-		shockR = false;
-		const auto a0R = aR * pow(P0 / PR, (fgamma - 1) / (2 * fgamma));
-		sHR = uR + aR;
-		sTR = s0 + a0R;
-	}
-	if (P0 > PL) {
-		shockL = true;
-		sL = uL - QL / rhoL;
-	} else {
-		shockL = false;
-		const auto a0L = aL * pow(P0 / PL, (fgamma - 1) / (2 * fgamma));
-		sHL = uL - aL;
-		sTL = s0 - a0L;
-	}
+		return V;
+	};
+
+	const auto V0R = [&]() {
+		primitive_state V;
+		real rho0R;
+		if (P0 > PR) {
+			const auto num = P0 / PR + gam1 / gam2;
+			const auto den = (gam1 / gam2) * P0 / PR + 1.0;
+			rho0R = rhoR * num / den;
+		} else {
+			rho0R = rhoR * pow(P0 / PR, 1.0 / fgamma);
+		}
+		V.pre() = P0;
+		V.den() = rho0R;
+		V.vel()[0] = s0;
+		for (int dim = 1; dim < NDIM; dim++) {
+			V.vel()[dim] = VR.vel()[dim];
+		}
+		return V;
+	};
+
 	primitive_state Vi;
-	primitive_state V0L;
-	primitive_state V0R;
-
-
-	if (s0 > 0.0) {
-		if (shockL) {
-			if (sL > 0.0) {
-				Vi = VL;
-			} else {
-				const auto rho0L = rhoL * pow(P0 / PL, 1.0 / fgamma);
-				V0L.pre() = P0;
-				V0L.den() = rho0L;
-				V0L.vel()[0] = s0;
-				for (int dim = 1; dim < NDIM; dim++) {
-					V0L.vel()[dim] = VL.vel()[dim];
-				}
-				Vi = V0L;
-			}
+	if (sOL < sOR) {
+		if (sOL > 0.0) {
+			printf("Vaccuum generation 1\n");
+			Vi = VrL();
+		} else if (sOR < 0.0) {
+			printf("Vaccuum generation 2\n");
+			Vi = VrR();
 		} else {
-			if (sHL > 0.0) {
-				Vi = VL;
-			} else if (sTL < 0.0) {
-				const auto rho0L = rhoL * pow(P0 / PL, 1.0 / fgamma);
-				V0L.pre() = P0;
-				V0L.den() = rho0L;
-				V0L.vel()[0] = s0;
-				for (int dim = 1; dim < NDIM; dim++) {
-					V0L.vel()[dim] = VL.vel()[dim];
-				}
-				Vi = V0L;
-			} else {
-				const auto tmp = 2.0 / gam2 + (gam1 / gam2 / aL * uL);
-				Vi.den() = rhoL * pow(tmp, 2.0 / gam1);
-				Vi.vel()[0] = 2.0 / gam2 * (aL + gam1 / 2.0 * uL);
-				Vi.pre() = PL * pow(2.0 / gam2 + (gam1 / gam2 / aL * uL), 2.0 * fgamma / gam1);
-				for (int dim = 1; dim < NDIM; dim++) {
-					Vi.vel()[dim] = VL.vel()[dim];
-				}
-			}
+			printf("Vaccuum generation 3\n");
+			Vi = VO();
 		}
+		F = Vi.to_flux();
 	} else {
-		if (shockR) {
-			if (sR < 0.0) {
-				Vi = VR;
-			} else {
-				const auto rho0R = rhoR * pow(P0 / PR, 1.0 / fgamma);
-				V0R.pre() = P0;
-				V0R.den() = rho0R;
-				V0R.vel()[0] = s0;
-				for (int dim = 1; dim < NDIM; dim++) {
-					V0R.vel()[dim] = VR.vel()[dim];
-				}
-				Vi = V0R;
+
+		P0 = (PL + PR) / 2.0;
+		if (P0 == 0.0) {
+			P0 = 1.0e-6;
+		}
+		dP = (PR - PL) / 2.0;
+		int iter = 0;
+		real Plast;
+		do {
+			const auto g = f(P0);
+			if (g == 0.0) {
+				break;
 			}
+			const auto dgdp = dfdP(P0);
+			assert(dgdp != 0.0);
+			dP = -g / dgdp;
+			real c0 = pow(0.1, double(iter) / double(1000));
+			P0 = min(max(P0 + c0 * dP, P0 / 2.0), P0 * 2.0);
+			if (iter > 1) {
+				err = abs(P0 - Plast) / (P0 + Plast) / 2.0;
+			} else {
+				err = real::max();
+			}
+			iter++;
+			//	printf("%i %e %e %e %e %e %e %e %e\n", iter, c0, PL, PR, uL, uR, P0, dP, err);
+			if (iter >= 1000) {
+				printf("Riemann solver failed to converge\n");
+				abort();
+				;
+			}
+			Plast = P0;
+		} while (err > 1.0e-6 && P0 > real::min());
+
+		s0 = 0.5 * (uL + uR) + 0.5 * (fR(P0) - fL(P0));
+		const auto QL = sqrt((P0 + BL) / AL);
+		const auto QR = sqrt((P0 + BR) / AR);
+		real sL, sR, sHL, sTL, sHR, sTR;
+
+		if (s0 >= 0.0) {
+			if (P0 > PL) {
+				sL = uL - QL / rhoL;
+				if (sL > 0.0) {
+					Vi = VL;
+				} else {
+					Vi = V0L();
+				}
+			} else {
+				const auto a0L = aL * pow(P0 / PL, (fgamma - 1) / (2 * fgamma));
+				sHL = uL - aL;
+				sTL = s0 - a0L;
+				assert(sHL <= sTL);
+				if (sHL > 0.0) {
+					Vi = VL;
+				} else if (sTL < 0.0) {
+					Vi = V0L();
+				} else {
+					Vi = VrL();
+				}
+			}
+			FL = Vi.to_flux();
+		}
+		if (s0 <= 0.0) {
+			if (P0 > PR) {
+				sR = uR + QR / rhoR;
+				if (sR < 0.0) {
+					Vi = VR;
+				} else {
+					Vi = V0R();
+				}
+			} else {
+				const auto a0R = aR * pow(P0 / PR, (fgamma - 1) / (2 * fgamma));
+				sHR = uR + aR;
+				sTR = s0 + a0R;
+				assert(sHR >= sTR);
+				if (sHR < 0.0) {
+					Vi = VR;
+				} else if (sTR > 0.0) {
+					Vi = V0R();
+				} else {
+					Vi = VrR();
+				}
+			}
+			FR = Vi.to_flux();
+		}
+		if (s0 > 0.0) {
+			F = FL;
+		} else if (s0 < 0.0) {
+			F = FR;
 		} else {
-			if (sHR < 0.0) {
-				Vi = VR;
-			} else if (sTR > 0.0) {
-				const auto rho0R = rhoR * pow(P0 / PR, 1.0 / fgamma);
-				V0R.pre() = P0;
-				V0R.den() = rho0R;
-				V0R.vel()[0] = s0;
-				for (int dim = 1; dim < NDIM; dim++) {
-					V0R.vel()[dim] = VR.vel()[dim];
-				}
-				Vi = V0R;
-			} else {
-				const auto tmp = 2.0 / gam2 - (gam1 / gam2 / aR * uR);
-				Vi.den() = rhoR * pow(tmp, 2.0 / gam1);
-				Vi.vel()[0] = 2.0 / gam2 * (-aR + gam1 / 2.0 * uR);
-				Vi.pre() = PR * pow(2.0 / gam2 - (gam1 / gam2 / aR * uR), 2.0 * fgamma / gam1);
-				for (int dim = 1; dim < NDIM; dim++) {
-					Vi.vel()[dim] = VR.vel()[dim];
-				}
-			}
+			F = (FR + FL) / 2.0;
 		}
 	}
-	F = Vi.to_flux();
 	return true;
 }
 

@@ -4,7 +4,7 @@
 #include <octopart/profiler.hpp>
 
 #if(NDIM == 1 )
-constexpr real CV = 1.0;
+constexpr real CV = 2.0;
 constexpr int NNGB = 4;
 #else
 #if( NDIM == 2 )
@@ -152,7 +152,8 @@ void tree::compute_gradients() {
 							min_ngb = min(min_ngb, pjV);
 						}
 					}
-					const auto beta = max(1.0, min(2.0, 100.0 / Ncond[i]));
+				//	const auto beta = max(1.0, min(2.0, 100.0 / Ncond[i]));
+					const auto beta = 0.5;
 					real alpha;
 					for (int k = 0; k < STATE_SIZE; k++) {
 						const auto dmax_ngb = max_ngb[k] - piV[k];
@@ -275,8 +276,8 @@ void tree::compute_time_derivatives(real dt) {
 							VR = VR.boost_to(-uij);
 						}
 						if (!opts.first_order_space) {
-							constexpr auto psi1 = 0.49;
-							constexpr auto psi2 = 0.24;
+							constexpr auto psi1 = 0.0;
+							constexpr auto psi2 = 0.0;
 							const auto dxi = xij - pi.x;
 							const auto dxj = xij - pj.x;
 							for (int dim = 0; dim < NDIM; dim++) {

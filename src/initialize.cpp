@@ -58,6 +58,10 @@ void kh(particle &p) {
 }
 
 void kepler(particle &p) {
+#if(NDIM==1)
+	printf("Cannot do Kepler problem in 1D\n");
+	abort();
+#else
 	static const auto opts = options::get();
 	static const auto eps = opts.kep_eps;
 	const auto r = abs(p.x);
@@ -76,20 +80,21 @@ void kepler(particle &p) {
 	}
 	p.m *= p.V;
 	p.E = 1.0e-6 * p.V + 0.5 * p.v.dot(p.v) * p.m;
+#endif
 }
 
 void sod(particle &p) {
 	for (int dim = 0; dim < NDIM; dim++) {
 		p.v[dim] = 0.0;
 	}
-	if (p.x[0] > 0.0) {
-		p.m = 1.0 * p.V;
-		p.v[0] = 1;
-		p.E = 2.5 + p.v.dot(p.v) / 2.0 * p.m * p.V;
-	} else {
+	if (p.x[0] < -0.25 || p.x[0] > 0.25) {
 		p.m = 1.0 * p.V;
 		p.v[0] = -1;
-		p.E = 0.25 + p.v.dot(p.v) / 2.0 * p.m * p.V;
+		p.E = 1e-20 * p.V + p.v.dot(p.v) / 2.0 * p.m;
+	} else {
+		p.m = 1.0 * p.V;
+		p.v[0] = +1;
+		p.E = 1e-20 * p.V + p.v.dot(p.v) / 2.0 * p.m;
 	}
 }
 

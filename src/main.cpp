@@ -106,8 +106,10 @@ int hpx_main(int argc, char *argv[]) {
 		const real next_t = t + opts.output_freq;
 		while (t < next_t) {
 			real dt = timestep();
-			int num_steps_left = (next_t - t).get() / dt.get() + 1;
-			dt = (next_t - t) / real(num_steps_left);
+			long long int num_steps_left = (next_t - t).get() / dt.get() + 1;
+			if( num_steps_left < 100 ) {
+				dt = (next_t - t) / real(num_steps_left);
+			}
 			auto s = statistics();
 			printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, t.get(), dt.get(), s.nparts, s.nleaves,
 					s.max_level, s.mass.get());
