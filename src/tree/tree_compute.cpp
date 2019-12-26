@@ -35,10 +35,6 @@ void tree::compute_drift(real dt) {
 							break;
 						}
 					}
-					if (!found && (opts.periodic || opts.reflecting)) {
-						printf("Something's wrong, unable to send particle to one of %i neighbors\n", int(siblings.size()));
-						abort();
-					}
 					sz--;
 					parts[i] = parts[sz];
 					i--;
@@ -83,8 +79,9 @@ void tree::compute_gradients() {
 			std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
 			parts.insert(parts.end(), these_parts.begin(), these_parts.end());
 		}
-		if (opts.reflecting) {
-			for (int i = 0; i < 2 * NDIM; i++) {
+		const bool rbc[3] = { opts.x_reflecting, opts.y_reflecting, opts.z_reflecting };
+		for (int i = 0; i < 2 * NDIM; i++) {
+			if (rbc[i / 2]) {
 				std::vector<particle> rparts;
 				const auto sz = parts.size();
 				const auto dim = i / 2;
@@ -210,8 +207,9 @@ void tree::compute_time_derivatives(real dt) {
 					grad_lim.push_back(these_grads[j + 1]);
 				}
 			}
-			if (opts.reflecting) {
-				for (int i = 0; i < 2 * NDIM; i++) {
+			const bool rbc[3] = { opts.x_reflecting, opts.y_reflecting, opts.z_reflecting };
+			for (int i = 0; i < 2 * NDIM; i++) {
+				if (rbc[i / 2]) {
 					std::vector<gradient> rgrad;
 					std::vector<gradient> rgrad_lim;
 					const auto sz = grad.size();
@@ -501,8 +499,9 @@ void tree::compute_interactions() {
 						const auto tmp = futs[i].get();
 						pos.insert(pos.end(), tmp.begin(), tmp.end());
 					}
-					if (opts.reflecting) {
-						for (int i = 0; i < 2 * NDIM; i++) {
+					const bool rbc[3] = { opts.x_reflecting, opts.y_reflecting, opts.z_reflecting };
+					for (int i = 0; i < 2 * NDIM; i++) {
+						if (rbc[i / 2]) {
 							std::vector<vect> rpos;
 							const auto sz = pos.size();
 							const auto dim = i / 2;

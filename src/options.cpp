@@ -44,10 +44,14 @@ bool options::process_options(int argc, char *argv[]) {
 		("grid_size", po::value<double>(&grid_size)->default_value(1.0), "size of grid") //
 		("output_freq", po::value<double>(&output_freq)->default_value(-1), "output frequency") //
 		("parts_per_node", po::value<int>(&parts_per_node)->default_value(1000), "maximum number of particles on a node") //
-		("periodic", po::value<bool>(&periodic)->default_value(false), "enable periodic boundary conditions") //
+		("x_periodic", po::value<bool>(&x_periodic)->default_value(false), "enable periodic boundary conditions for x") //
+		("y_periodic", po::value<bool>(&y_periodic)->default_value(false), "enable periodic boundary conditions for y") //
+		("z_periodic", po::value<bool>(&z_periodic)->default_value(false), "enable periodic boundary conditions for z") //
 		("problem_size", po::value<int>(&problem_size)->default_value(100), "problem size") //
 		("problem", po::value<std::string>(&problem)->default_value("sod"), "problem name") //
-		("reflecting", po::value<bool>(&reflecting)->default_value(false), "enable reflecting boundary conditions") //
+		("x_reflecting", po::value<bool>(&x_reflecting)->default_value(false), "enable reflecting boundary conditions for x") //
+		("y_reflecting", po::value<bool>(&y_reflecting)->default_value(false), "enable reflecting boundary conditions for y") //
+		("z_reflecting", po::value<bool>(&z_reflecting)->default_value(false), "enable reflecting boundary conditions for z") //
 		("theta", po::value<double>(&theta)->default_value(0.35), "theta for Barnes-Hut") //
 		("tmax", po::value<double>(&tmax)->default_value(1.0), "time to end simulation") //
 				;
@@ -78,10 +82,6 @@ bool options::process_options(int argc, char *argv[]) {
 			printf("ERROR: first_order_time must be enabled for first_order_space\n");
 			abort();
 		}
-		if (reflecting && periodic) {
-			printf("Cannot enable both reflecting and periodic boundary conditions\n");
-			abort();
-		}
 		return true;
 	}
 	).join();
@@ -102,7 +102,12 @@ bool options::process_options(int argc, char *argv[]) {
 	SHOW(fpe);
 	SHOW(gravity);
 	SHOW(parts_per_node);
-	SHOW(periodic);
+	SHOW(x_periodic);
+	SHOW(y_periodic);
+	SHOW(z_periodic);
+	SHOW(x_reflecting);
+	SHOW(y_reflecting);
+	SHOW(z_reflecting);
 	SHOW(problem_size);
 	SHOW(theta);
 	SHOW(tmax);

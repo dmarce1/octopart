@@ -183,17 +183,29 @@ void tree::form_tree(std::vector<hpx::id_type> nids, bool clear_sibs) {
 		for (shift[1] = span[1]; shift[1] >= -span[1]; shift[1] -= span[1]) {
 #endif
 			for (shift[0] = span[0]; shift[0] >= -span[0]; shift[0] -= span[0]) {
-				if (opts.periodic || shift == vect(0)) {
-					const auto srange = shift_range(attrs[i].box, shift);
-					if (ranges_intersect(srange, box) && srange != box) {
-						if (attrs[i].leaf) {
-							siblings.push_back( { nids[i], attrs[i].box, shift });
-						} else {
-							if (used.find(nids[i]) == used.end() && nids[i] != self) {
-								cfuts.push_back(hpx::async<get_children_action>(nids[i]));
-								used.insert(nids[i]);
+				if (opts.x_periodic || shift[0] == 0) {
+#if(NDIM>=2)
+					if (opts.y_periodic || shift[1] == 0) {
+#endif
+#if(NDIM==3)
+						if (opts.z_periodic || shift[2] == 0) {
+#endif
+						const auto srange = shift_range(attrs[i].box, shift);
+						if (ranges_intersect(srange, box) && srange != box) {
+							if (attrs[i].leaf) {
+								siblings.push_back( { nids[i], attrs[i].box, shift });
+							} else {
+								if (used.find(nids[i]) == used.end() && nids[i] != self) {
+									cfuts.push_back(hpx::async<get_children_action>(nids[i]));
+									used.insert(nids[i]);
+								}
 							}
+#if(NDIM>=2)
 						}
+#endif
+#if(NDIM==3)
+					}
+#endif
 					}
 				}
 			}
@@ -362,7 +374,7 @@ tree_stats tree::tree_statistics() const {
 	if (leaf) {
 		stats.nparts = parts.size();
 		stats.nleaves = 1;
-		for( const auto& p : parts) {
+		for (const auto &p : parts) {
 			stats.mass += p.m;
 			stats.energy += p.E;
 			stats.momentum = stats.momentum + p.v * p.m;
@@ -413,7 +425,7 @@ void tree::write_silo(int num) const {
 	std::string base_name = "Y" + std::to_string(num);
 	std::string command = "./check2silo " + base_name;
 	write_checkpoint(base_name);
-	if( system(command.c_str()) != 0 ) {
-		printf( "Unable to convert checkpoint to SILO\n");
+	if (system(command.c_str()) != 0) {
+		printf("Unable to convert checkpoint to SILO\n");
 	}
 }
