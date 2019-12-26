@@ -390,5 +390,5 @@ static bool HLLC(flux_state &F, const primitive_state &VL, const primitive_state
 }
 
 bool riemann_solver(flux_state &f, const primitive_state &VL, const primitive_state &VR) {
-	return exact_Riemann(f, VL, VR);
+	return HLLC(f, VL, VR);
 }
