@@ -112,7 +112,7 @@ void blast(particle &p) {
 void single_polytrope(particle &p) {
 	static const auto opts = options::get();
 	const auto r = abs(p.x);
-	const auto rho = polytrope(r);
+	const auto rho = max(1.0e-6,polytrope(r));
 	const auto c0 = (1.5 / 2.5) * 4.0 * M_PI * physcon::G;
 	p.m = rho * p.V;
 	p.E = c0 * pow(rho, opts.fgamma) * p.V;

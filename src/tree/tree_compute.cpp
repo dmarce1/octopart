@@ -153,7 +153,7 @@ void tree::compute_gradients() {
 						}
 					}
 					const auto beta = max(1.0, min(2.0, 100.0 / Ncond[i]));
-				//	const auto beta = 0.5;
+					//	const auto beta = 0.5;
 					real alpha;
 					for (int k = 0; k < STATE_SIZE; k++) {
 						const auto dmax_ngb = max_ngb[k] - piV[k];
@@ -333,7 +333,7 @@ void tree::compute_time_derivatives(real dt) {
 						VR = VR.rotate_to(norm);
 						flux_state F;
 						if (!riemann_solver(F, VL, VR)) {
-							printf( "Riemann failed high order\n");
+							printf("Riemann failed high order\n");
 							sleep(1);
 							VL = V_i;
 							VR = V_j;
@@ -544,6 +544,19 @@ void tree::compute_interactions() {
 					for (int n = 0; n < NDIM; n++) {
 						E[n] = vect(0.0);
 					}
+					for (const auto &pjx : pos) {
+						const auto r = abs(pi.x - pjx);
+						const auto h = pi.h;
+						if (r < h) {
+							const auto psi_j = W(r, h) * pi.V;
+							for (int n = 0; n < NDIM; n++) {
+								for (int m = 0; m < NDIM; m++) {
+									E[n][m] += (pjx[n] - pi.x[n]) * (pjx[m] - pi.x[m]) * psi_j;
+								}
+							}
+						}
+					}
+
 					Ncond[i] = condition_number(E, pi.B);
 					assert(Ncond[i] != 0.0);
 				}

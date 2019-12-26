@@ -75,7 +75,11 @@ int hpx_main(int argc, char *argv[]) {
 		} else {
 			particle p;
 			real dummy;
-			fread(&dummy, sizeof(real), 1, fp);
+			int cnt = fread(&dummy, sizeof(real), 1, fp);
+			if( cnt == 0 ) {
+				printf( "Empty checkpoint\n");
+				return hpx::finalize();
+			}
 			while (p.read(fp)) {
 				parts.push_back(p);
 			}
@@ -90,11 +94,14 @@ int hpx_main(int argc, char *argv[]) {
 			parts = cartesian_particle_set(opts.problem_size);
 		}
 		t0 = true;
+		for (auto &p : parts) {
+			p.x = p.x * opts.grid_size;
+		}
 	}
 	range box;
 	for (int dim = 0; dim < NDIM; dim++) {
-		box.min[dim] = -0.5;
-		box.max[dim] = +0.5;
+		box.min[dim] = -opts.grid_size;
+		box.max[dim] = +opts.grid_size;
 	}
 	root = hpx::new_<tree>(hpx::find_here(), std::move(parts), box, null_range()).get();
 	init(t0);
@@ -108,7 +115,7 @@ int hpx_main(int argc, char *argv[]) {
 		while (t < next_t) {
 			real dt = timestep();
 			long long int num_steps_left = (next_t - t).get() / dt.get() + 1;
-			if( num_steps_left < 100 ) {
+			if (num_steps_left < 100) {
 				dt = (next_t - t) / real(num_steps_left);
 			}
 			auto s = statistics();
@@ -120,9 +127,9 @@ int hpx_main(int argc, char *argv[]) {
 			printf("Energy = %e\n", s.energy.get());
 			solve_gravity(dt / 2.0);
 			tree::set_drift_velocity_action()(root);
-			hydro(dt/ 2.0);
+			hydro(dt / 2.0);
 			drift(dt);
-			hydro(dt/ 2.0);
+			hydro(dt / 2.0);
 			solve_gravity(dt / 2.0);
 			t += dt;
 			i++;

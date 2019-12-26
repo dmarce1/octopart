@@ -21,6 +21,7 @@ public:
 	double tmax;
 	double cfl;
 	double output_freq;
+	double grid_size;
 	std::string problem;
 
 	template<class Arc>
@@ -43,6 +44,7 @@ public:
 		arc & tmax;
 		arc & problem;
 		arc & output_freq;
+		arc & grid_size;
 	}
 	static options global;
 	static options& get();
