@@ -152,8 +152,8 @@ void tree::compute_gradients() {
 							min_ngb = min(min_ngb, pjV);
 						}
 					}
-				//	const auto beta = max(1.0, min(2.0, 100.0 / Ncond[i]));
-					const auto beta = 0.5;
+					const auto beta = max(1.0, min(2.0, 100.0 / Ncond[i]));
+				//	const auto beta = 0.5;
 					real alpha;
 					for (int k = 0; k < STATE_SIZE; k++) {
 						const auto dmax_ngb = max_ngb[k] - piV[k];
@@ -276,8 +276,8 @@ void tree::compute_time_derivatives(real dt) {
 							VR = VR.boost_to(-uij);
 						}
 						if (!opts.first_order_space) {
-							constexpr auto psi1 = 0.0;
-							constexpr auto psi2 = 0.0;
+							constexpr auto psi1 = 0.5;
+							constexpr auto psi2 = 0.25;
 							const auto dxi = xij - pi.x;
 							const auto dxj = xij - pj.x;
 							for (int dim = 0; dim < NDIM; dim++) {
@@ -583,7 +583,7 @@ void tree::compute_next_state(real dt) {
 			auto U = p.to_con();
 			U = U + dudt[i] * dt;
 			if (U.den() <= 0.0) {
-				printf("Negative density! %e\n", U.den());
+				printf("Negative density! %e %e %e\n", U.den(), p.x[0], p.x[1]);
 				abort();
 			}
 			p = p.from_con(U);

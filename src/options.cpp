@@ -31,6 +31,7 @@ bool options::process_options(int argc, char *argv[]) {
 
 		command_opts.add_options() //
 		("help", "produce help message") //
+		("cfl", po::value<double>(&cfl)->default_value(0.4), "CFL factor") //
 		("checkpoint", po::value<std::string>(&checkpoint)->default_value(""), "checkpoint file") //
 		("config_file", po::value<std::string>(&config_file)->default_value(""), "configuration file") //
 		("dust_only", po::value<bool>(&dust_only)->default_value(false), "treat particles as dust") //
@@ -92,6 +93,7 @@ bool options::process_options(int argc, char *argv[]) {
 	}
 	hpx::wait_all(futs);
 #define SHOW( opt ) std::cout << std::string( #opt ) << " = " << std::to_string(opt) << '\n';
+	SHOW(cfl);
 	SHOW(dust_only);
 	SHOW(fgamma);
 	SHOW(first_order_space);

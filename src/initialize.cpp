@@ -104,6 +104,7 @@ void blast(particle &p) {
 	for (int dim = 0; dim < NDIM; dim++) {
 		p.v[dim] = 0.0;
 	}
+	p.E = p.V*exp(-r*r*1000);
 }
 
 void collapse(particle &p) {

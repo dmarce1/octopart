@@ -19,11 +19,13 @@ public:
 	double kep_eps;
 	double theta;
 	double tmax;
+	double cfl;
 	double output_freq;
 	std::string problem;
 
 	template<class Arc>
 	void serialize(Arc &arc, unsigned) {
+		arc & cfl;
 		arc & kep_eps;
 		arc & checkpoint;
 		arc & config_file;
