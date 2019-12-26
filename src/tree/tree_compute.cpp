@@ -239,10 +239,6 @@ void tree::compute_time_derivatives(real dt) {
 			}
 		}PROFILE();
 		dudt.resize(nparts0);
-		mass_flux.resize(nparts0);
-		for (auto &m : mass_flux) {
-			m = vect(0);
-		}
 		for (auto &du : dudt) {
 			for (int i = 0; i < STATE_SIZE; i++) {
 				du[i] = 0.0;
@@ -350,11 +346,9 @@ void tree::compute_time_derivatives(real dt) {
 						F = F.boost_from(uij);
 						if (i < nparts0) {
 							dudt[i] = dudt[i] - F * abs(da) / pi.V;
-							mass_flux[i] = mass_flux[i] - (pi.x - pj.x) * F.mass() * abs(da);
 						}
 						if (j < nparts0) {
 							dudt[j] = dudt[j] + F * abs(da) / pj.V;
-							mass_flux[j] = mass_flux[j] + (pj.x - pi.x) * F.mass() * abs(da);
 						}
 					}
 				}

@@ -63,7 +63,6 @@ class tree: public hpx::components::migration_support<hpx::components::component
 	std::vector<gradient> grad_lim;
 	std::vector<gradient> grad;
 	std::vector<conserved_state> dudt;
-	std::vector<vect> mass_flux;
 	std::vector<real> Ncond;
 	std::array<hpx::id_type, NCHILD> children;
 	std::array<int, NCHILD> child_loads;
