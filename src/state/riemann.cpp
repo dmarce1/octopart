@@ -165,9 +165,21 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 	primitive_state Vi;
 	if (sOL < sOR) {
 		if (sOL > 0.0) {
-			Vi = VrL();
+			if( uL - aL > 0.0 ) {
+				Vi = VL;
+			} else if( sOL < 0.0) {
+				Vi = VO();
+			} else {
+				Vi = VrL();
+			}
 		} else if (sOR < 0.0) {
-			Vi = VrR();
+			if( uR + aR < 0.0 ) {
+				Vi = VR;
+			} else if( sOR > 0.0) {
+				Vi = VO();
+			} else {
+				Vi = VrR();
+			}
 		} else {
 			Vi = VO();
 		}
@@ -197,7 +209,7 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 				err = real::max();
 			}
 			iter++;
-			//	printf("%i %e %e %e %e %e %e %e %e\n", iter, c0, PL, PR, uL, uR, P0, dP, err);
+//				printf("%i %e %e %e %e %e %e %e %e\n", iter, c0, PL, PR, uL, uR, P0, dP, err);
 			if (iter >= 1000) {
 				printf("Riemann solver failed to converge\n");
 				abort();
@@ -259,6 +271,7 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 		}
 		if (s0 > 0.0) {
 			F = FL;
+			const auto test = abs(F.mass()) / rhoL;
 		} else if (s0 < 0.0) {
 			F = FR;
 		} else {
@@ -387,5 +400,5 @@ static bool HLLC(flux_state &F, const primitive_state &VL, const primitive_state
 }
 
 bool riemann_solver(flux_state &f, const primitive_state &VL, const primitive_state &VR) {
-	return HLLC(f, VL, VR);
+	return exact_Riemann(f, VL, VR);
 }
