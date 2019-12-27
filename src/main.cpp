@@ -7,13 +7,13 @@ hpx::id_type root;
 
 void solve_gravity(real dt) {
 	static const auto opts = options::get();
-	if (opts.problem == "kepler") {
-		tree::set_central_force_action()(root);
+	if (opts.problem == "kepler" || opts.problem == "rt") {
+		tree::set_problem_force_action()(root);
 	} else if (opts.gravity) {
 		tree::compute_mass_attributes_action()(root);
 		tree::compute_gravity_action()(root, std::vector<hpx::id_type>(1, root), std::vector<mass_attr>());
 	}
-	if (opts.problem == "kepler" || opts.gravity) {
+if (opts.problem == "kepler" || opts.problem=="rt" || opts.gravity) {
 		tree::apply_gravity_action()(root, dt);
 	}
 }

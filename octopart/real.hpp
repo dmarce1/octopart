@@ -98,6 +98,7 @@ public:
 	friend real cos(real a);
 	friend real abs(real a);
 	friend real exp(real a);
+	friend real log(real a);
 	friend real sqrt(real a);
 	friend real pow(real a, real b);
 	friend real operator+(real_type a, real b);
@@ -132,6 +133,10 @@ inline real pow(real a, real b) {
 
 inline real exp(real a) {
 	return real(std::exp(a.r));
+}
+
+inline real log(real a) {
+	return real(std::log(a.r));
 }
 
 inline real sqrt(real a) {

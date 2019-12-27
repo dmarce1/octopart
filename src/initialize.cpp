@@ -14,6 +14,27 @@ void drift(particle &p) {
 
 }
 
+void rt(particle &p) {
+	const auto opts = options::get();
+	const auto fgamma = opts.fgamma;
+	const auto rho1 = 1.0;
+	const auto rho2 = 2.0;
+	auto y = p.x[1];
+	const auto delta = 0.025;
+	const auto rho = rho1 + (rho2 - rho1) / (1 + exp(-y / delta));
+	y = 0.5 - y;
+	const auto P = 0.5 * (rho1 * y + (rho2 - rho1) * delta * log(1 + exp(y / delta)));
+
+	p.v = vect(0);
+	if (y > -0.2 && y < 0.2) {
+		p.v[1] = 0.025 * (1.0 + cos(8 * M_PI * (p.x[0] + 0.25))) * (1.0 + cos(5 * M_PI * y));
+	}
+
+	p.m = rho * p.V;
+	p.E = P / (fgamma - 1) * p.V + p.v.dot(p.v) * p.m / 2.0;
+
+}
+
 void kh(particle &p) {
 	const real x = p.x[0];
 	const real y = p.x[1];
@@ -112,7 +133,7 @@ void blast(particle &p) {
 void single_polytrope(particle &p) {
 	static const auto opts = options::get();
 	const auto r = abs(p.x);
-	const auto rho = max(1.0e-6,polytrope(r));
+	const auto rho = max(1.0e-6, polytrope(r));
 	const auto c0 = (1.5 / 2.5) * 4.0 * M_PI * physcon::G;
 	p.m = rho * p.V;
 	p.E = c0 * pow(rho, opts.fgamma) * p.V;
@@ -144,6 +165,8 @@ init_func_type get_initialization_function(const std::string &name) {
 		return sod;
 	} else if (name == "kepler") {
 		return kepler;
+	} else if (name == "rt") {
+		return rt;
 	} else if (name == "polytrope") {
 		return single_polytrope;
 	} else {

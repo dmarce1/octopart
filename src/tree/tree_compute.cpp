@@ -548,6 +548,7 @@ void tree::set_drift_velocity() {
 	if (leaf) {
 		for (auto &p : parts) {
 			p.vf = p.v;
+	//		p.vf = vect(0.0);
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;

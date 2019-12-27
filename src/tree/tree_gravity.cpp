@@ -198,19 +198,26 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 	}
 }
 
-void tree::set_central_force() {
+void tree::set_problem_force() {
 	static const auto opts = options::get();
 	static const auto eps = opts.kep_eps;
 	if (leaf) {
-		for (auto &p : parts) {
-			constexpr auto r0 = 0.05;
-			const auto r = abs(p.x);
-			p.g = -p.x * pow(r * r + eps * eps, -1.5);
+		if (opts.problem == "kepler") {
+			for (auto &p : parts) {
+				constexpr auto r0 = 0.05;
+				const auto r = abs(p.x);
+				p.g = -p.x * pow(r * r + eps * eps, -1.5);
+			}
+		} else {
+			for (auto &p : parts) {
+				p.g = vect(0);
+				p.g[1] = -0.5;
+			}
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<set_central_force_action>(children[ci]);
+			futs[ci] = hpx::async<set_problem_force_action>(children[ci]);
 		}
 		hpx::wait_all(futs);
 	}

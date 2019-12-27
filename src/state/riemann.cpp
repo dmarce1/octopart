@@ -165,13 +165,10 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 	primitive_state Vi;
 	if (sOL < sOR) {
 		if (sOL > 0.0) {
-	//		printf("Vaccuum generation 1\n");
 			Vi = VrL();
 		} else if (sOR < 0.0) {
-	//		printf("Vaccuum generation 2\n");
 			Vi = VrR();
 		} else {
-	//		printf("Vaccuum generation 3\n");
 			Vi = VO();
 		}
 		F = Vi.to_flux();
