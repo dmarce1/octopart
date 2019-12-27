@@ -29,6 +29,7 @@ void drift(real dt) {
 void hydro(real dt) {
 	static const auto opts = options::get();
 	if (!opts.dust_only) {
+		tree::get_neighbor_particles_action()(root);
 		tree::compute_gradients_action()(root);
 		tree::compute_time_derivatives_action()(root, dt);
 		tree::compute_next_state_action()(root, dt);
@@ -51,6 +52,7 @@ void write_checkpoint(int i) {
 
 real timestep() {
 	static const auto opts = options::get();
+	tree::get_neighbor_particles_action()(root);
 	auto dt = tree::compute_timestep_action()(root);
 	return dt * opts.cfl;
 }

@@ -88,7 +88,7 @@ public:
 	void compute_gravity(std::vector<hpx::id_type>, std::vector<mass_attr>);
 	void compute_next_state(real);
 	void compute_time_derivatives(real);
-	real compute_timestep() const;
+	real compute_timestep();
 	void compute_interactions();
 	int compute_workload();
 	void create_children();
@@ -103,6 +103,7 @@ public:
 	hpx::id_type get_parent() const;
 	std::vector<vect> get_particle_positions(range, const vect&) const;
 	std::vector<particle> get_particles(range, range, const vect&) const;
+	void get_neighbor_particles();
 	void initialize(const std::string&);
 	void redistribute_workload(int, int);
 	void send_particles(const std::vector<particle>&, const vect&);
@@ -138,6 +139,7 @@ public:
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_workload);
 	HPX_DEFINE_COMPONENT_ACTION(tree,destroy);
 	HPX_DEFINE_COMPONENT_ACTION(tree,form_tree);
+	HPX_DEFINE_COMPONENT_ACTION(tree,get_neighbor_particles);
 	HPX_DEFINE_COMPONENT_ACTION(tree,initialize);
 	HPX_DEFINE_COMPONENT_ACTION(tree,finish_drift);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_gravity);

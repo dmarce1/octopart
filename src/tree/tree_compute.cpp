@@ -60,117 +60,72 @@ void tree::compute_drift(real dt) {
 void tree::compute_gradients() {
 	static auto opts = options::get();
 	if (leaf) {
+		PROFILE();
 		assert(nparts0 == parts.size());
 		grad.resize(nparts0);
 		grad_lim.resize(nparts0);
-		range sbox = null_range();
-		std::vector<hpx::future<std::vector<particle>>> futs(siblings.size());
-		for (const auto &pi : parts) {
-			for (int dim = 0; dim < NDIM; dim++) {
-				sbox.min[dim] = min(sbox.min[dim], pi.x[dim] - pi.h);
-				sbox.max[dim] = max(sbox.max[dim], pi.x[dim] + pi.h);
-			}
-		}
-		for (int i = 0; i < siblings.size(); i++) {
-			futs[i] = hpx::async<get_particles_action>(siblings[i].id, sbox, box, siblings[i].pshift);
-		}
-		for (int i = 0; i < siblings.size(); i++) {
-			const auto these_parts = futs[i].get();
-			std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
-			parts.insert(parts.end(), these_parts.begin(), these_parts.end());
-		}
-		const bool rbc[3] = { opts.x_reflecting, opts.y_reflecting, opts.z_reflecting };
-		for (int i = 0; i < 2 * NDIM; i++) {
-			if (rbc[i / 2]) {
-				std::vector<particle> rparts;
-				const auto sz = parts.size();
-				const auto dim = i / 2;
-				real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
-				if (axis == (i % 2 ? box.max[dim] : box.min[dim])) {
-					const auto rsbox = reflect_range(sbox, dim, axis);
-					const auto rbox = reflect_range(box, dim, axis);
-					for (int j = 0; j < sz; j++) {
-						auto pj = parts[j];
-						if (in_range(pj.x, rsbox) || ranges_intersect(range_around(pj.x, pj.h), rbox)) {
-							pj.x[dim] = 2.0 * axis - pj.x[dim];
-							pj.v[dim] = -pj.v[dim];
-							for (int n = 0; n < NDIM; n++) {
-								pj.B[n][dim] = -pj.B[n][dim];
-								pj.B[dim][n] = -pj.B[dim][n];
+		if (!opts.first_order_space) {
+			for (int i = 0; i < nparts0; i++) {
+				const auto &pi = parts[i];
+				primitive_state max_ngb;
+				primitive_state min_ngb;
+				const auto piV = pi.to_prim();
+				for (int j = 0; j < STATE_SIZE; j++) {
+					max_ngb[j] = min_ngb[j] = piV[j];
+					for (int dim = 0; dim < NDIM; dim++) {
+						grad[i][dim][j] = 0.0;
+					}
+				}
+				for (const auto &pj : parts) {
+					const auto r = abs(pi.x - pj.x);
+					const auto &h = pi.h;
+					if (r < h) {
+						const auto pjV = pj.to_prim();
+						for (int dim = 0; dim < NDIM; dim++) {
+							real psi_a_j = 0.0;
+							for (int m = 0; m < NDIM; m++) {
+								psi_a_j += pi.B[dim][m] * (pj.x[m] - pi.x[m]) * W(r, h) * pi.V;
 							}
-							rparts.push_back(pj);
+							grad[i][dim] = grad[i][dim] + (pjV - piV) * psi_a_j;
 						}
 					}
 				}
-				std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
-				parts.insert(parts.end(), rparts.begin(), rparts.end());
-			}
-		}
-		{
-			PROFILE();
-			if (!opts.first_order_space) {
-				for (int i = 0; i < nparts0; i++) {
-					const auto &pi = parts[i];
-					primitive_state max_ngb;
-					primitive_state min_ngb;
-					const auto piV = pi.to_prim();
-					for (int j = 0; j < STATE_SIZE; j++) {
-						max_ngb[j] = min_ngb[j] = piV[j];
-						for (int dim = 0; dim < NDIM; dim++) {
-							grad[i][dim][j] = 0.0;
-						}
+				grad_lim[i] = grad[i];
+				real max_dx = 0.0;
+				for (const auto &pj : parts) {
+					const auto r = abs(pi.x - pj.x);
+					const auto &h = pi.h;
+					if (r < h) {
+						const auto pjV = pj.to_prim();
+						vect dx = pj.x - pi.x;
+						vect xij = pi.x + dx * (pi.h) / (pi.h + pj.h);
+						vect mid_dx = xij - pi.x;
+						max_dx = max(max_dx, sqrt(mid_dx.dot(mid_dx)));
+						max_ngb = max(max_ngb, pjV);
+						min_ngb = min(min_ngb, pjV);
 					}
-					for (const auto &pj : parts) {
-						const auto r = abs(pi.x - pj.x);
-						const auto &h = pi.h;
-						if (r < h) {
-							const auto pjV = pj.to_prim();
-							for (int dim = 0; dim < NDIM; dim++) {
-								real psi_a_j = 0.0;
-								for (int m = 0; m < NDIM; m++) {
-									psi_a_j += pi.B[dim][m] * (pj.x[m] - pi.x[m]) * W(r, h) * pi.V;
-								}
-								grad[i][dim] = grad[i][dim] + (pjV - piV) * psi_a_j;
-							}
-						}
+				}
+				const auto beta = max(1.0, min(2.0, 100.0 / Ncond[i]));
+				//	const auto beta = 0.5;
+				real alpha;
+				for (int k = 0; k < STATE_SIZE; k++) {
+					const auto dmax_ngb = max_ngb[k] - piV[k];
+					const auto dmin_ngb = piV[k] - min_ngb[k];
+					real grad_abs = 0.0;
+					for (int dim = 0; dim < NDIM; dim++) {
+						grad_abs += grad_lim[i][dim][k] * grad_lim[i][dim][k];
 					}
-					grad_lim[i] = grad[i];
-					real max_dx = 0.0;
-					for (const auto &pj : parts) {
-						const auto r = abs(pi.x - pj.x);
-						const auto &h = pi.h;
-						if (r < h) {
-							const auto pjV = pj.to_prim();
-							vect dx = pj.x - pi.x;
-							vect xij = pi.x + dx * (pi.h) / (pi.h + pj.h);
-							vect mid_dx = xij - pi.x;
-							max_dx = max(max_dx, sqrt(mid_dx.dot(mid_dx)));
-							max_ngb = max(max_ngb, pjV);
-							min_ngb = min(min_ngb, pjV);
-						}
+					grad_abs = sqrt(grad_abs);
+					const real den = grad_abs * max_dx;
+					if (den == 0.0) {
+						alpha = 1.0;
+					} else {
+						alpha = min(1.0, beta * min(dmax_ngb / den, dmin_ngb / den));
 					}
-					const auto beta = max(1.0, min(2.0, 100.0 / Ncond[i]));
-					//	const auto beta = 0.5;
-					real alpha;
-					for (int k = 0; k < STATE_SIZE; k++) {
-						const auto dmax_ngb = max_ngb[k] - piV[k];
-						const auto dmin_ngb = piV[k] - min_ngb[k];
-						real grad_abs = 0.0;
-						for (int dim = 0; dim < NDIM; dim++) {
-							grad_abs += grad_lim[i][dim][k] * grad_lim[i][dim][k];
-						}
-						grad_abs = sqrt(grad_abs);
-						const real den = grad_abs * max_dx;
-						if (den == 0.0) {
-							alpha = 1.0;
-						} else {
-							alpha = min(1.0, beta * min(dmax_ngb / den, dmin_ngb / den));
-						}
-						for (int dim = 0; dim < NDIM; dim++) {
-							grad_lim[i][dim][k] = grad_lim[i][dim][k] * alpha;
-						}
+					for (int dim = 0; dim < NDIM; dim++) {
+						grad_lim[i][dim][k] = grad_lim[i][dim][k] * alpha;
+					}
 
-					}
 				}
 			}
 		}
@@ -364,7 +319,7 @@ void tree::compute_time_derivatives(real dt) {
 	}
 }
 
-real tree::compute_timestep() const {
+real tree::compute_timestep()  {
 	const static auto opts = options::get();
 	real tmin = real::max();
 	if (leaf) {
@@ -392,6 +347,7 @@ real tree::compute_timestep() const {
 				}
 			}
 		}
+		parts.resize(nparts0);
 	} else {
 		std::array<hpx::future<real>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {

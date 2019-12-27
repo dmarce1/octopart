@@ -275,6 +275,63 @@ std::vector<gradient> tree::get_gradients(range big, range small, const vect &sh
 	return gj;
 }
 
+
+void tree::get_neighbor_particles() {
+	static auto opts = options::get();
+	if (leaf) {
+		assert(nparts0 == parts.size());
+		range sbox = null_range();
+		std::vector<hpx::future<std::vector<particle>>> futs(siblings.size());
+		for (const auto &pi : parts) {
+			for (int dim = 0; dim < NDIM; dim++) {
+				sbox.min[dim] = min(sbox.min[dim], pi.x[dim] - pi.h);
+				sbox.max[dim] = max(sbox.max[dim], pi.x[dim] + pi.h);
+			}
+		}
+		for (int i = 0; i < siblings.size(); i++) {
+			futs[i] = hpx::async<get_particles_action>(siblings[i].id, sbox, box, siblings[i].pshift);
+		}
+		for (int i = 0; i < siblings.size(); i++) {
+			const auto these_parts = futs[i].get();
+			std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
+			parts.insert(parts.end(), these_parts.begin(), these_parts.end());
+		}
+		const bool rbc[3] = { opts.x_reflecting, opts.y_reflecting, opts.z_reflecting };
+		for (int i = 0; i < 2 * NDIM; i++) {
+			if (rbc[i / 2]) {
+				std::vector<particle> rparts;
+				const auto sz = parts.size();
+				const auto dim = i / 2;
+				real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
+				if (axis == (i % 2 ? box.max[dim] : box.min[dim])) {
+					const auto rsbox = reflect_range(sbox, dim, axis);
+					const auto rbox = reflect_range(box, dim, axis);
+					for (int j = 0; j < sz; j++) {
+						auto pj = parts[j];
+						if (in_range(pj.x, rsbox) || ranges_intersect(range_around(pj.x, pj.h), rbox)) {
+							pj.x[dim] = 2.0 * axis - pj.x[dim];
+							pj.v[dim] = -pj.v[dim];
+							for (int n = 0; n < NDIM; n++) {
+								pj.B[n][dim] = -pj.B[n][dim];
+								pj.B[dim][n] = -pj.B[dim][n];
+							}
+							rparts.push_back(pj);
+						}
+					}
+				}
+				std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
+				parts.insert(parts.end(), rparts.begin(), rparts.end());
+			}
+		}
+	} else {
+		std::array<hpx::future<void>, NCHILD> futs;
+		for (int ci = 0; ci < NCHILD; ci++) {
+			futs[ci] = hpx::async<get_neighbor_particles_action>(children[ci]);
+		}
+		hpx::wait_all(futs);
+	}
+}
+
 hpx::id_type tree::get_parent() const {
 	return parent;
 }
