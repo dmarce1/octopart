@@ -16,7 +16,7 @@ constexpr int NNGB = 32;
 #endif
 #endif
 
-void tree::compute_drift(real dt) {
+void tree::compute_drift(fixed_real dt) {
 	static const auto opts = options::get();
 	if (leaf) {
 		std::vector<std::vector<particle>> send_parts(siblings.size());
@@ -25,7 +25,7 @@ void tree::compute_drift(real dt) {
 			int sz = parts.size();
 			for (int i = 0; i < sz; i++) {
 				auto &pi = parts[i];
-				pi.x = pi.x + pi.vf * dt;
+				pi.x = pi.x + pi.vf * double(dt);
 				if (!in_range(pi.x, box)) {
 					bool found = false;
 					for (int j = 0; j < siblings.size(); j++) {
@@ -138,7 +138,7 @@ void tree::compute_gradients() {
 	}
 }
 
-void tree::compute_time_derivatives(real dt) {
+void tree::compute_time_derivatives(fixed_real dt) {
 	static auto opts = options::get();
 	if (leaf) {
 		if (!opts.first_order_space) {
@@ -219,8 +219,8 @@ void tree::compute_time_derivatives(real dt) {
 						if (!opts.first_order_time) {
 							VL = VL.boost_to(uij);
 							VR = VR.boost_to(uij);
-							VL = VL + VL.dW_dt(grad_lim[i]) * 0.5 * dt;
-							VR = VR + VR.dW_dt(grad_lim[j]) * 0.5 * dt;
+							VL = VL + VL.dW_dt(grad_lim[i]) * double(fixed_real(0.5) * dt);
+							VR = VR + VR.dW_dt(grad_lim[j]) * double(fixed_real(0.5) * dt);
 							VL = VL.boost_to(-uij);
 							VR = VR.boost_to(-uij);
 						}
@@ -319,9 +319,9 @@ void tree::compute_time_derivatives(real dt) {
 	}
 }
 
-real tree::compute_timestep()  {
+fixed_real tree::compute_timestep()  {
 	const static auto opts = options::get();
-	real tmin = real::max();
+	fixed_real tmin = fixed_real::max();
 	if (leaf) {
 		PROFILE();
 		for (int i = 0; i < nparts0; i++) {
@@ -336,12 +336,12 @@ real tree::compute_timestep()  {
 					const auto cj = Vj.sound_speed() + abs(Vj.vel());
 					const real vsig = (ci + cj - min(0.0, (pi.v - pj.v).dot(dx) / r)) / 2.0;
 					if (vsig != 0.0) {
-						tmin = min(tmin, std::min(pi.h, pj.h) / vsig);
+						tmin = min(tmin, fixed_real((min(pi.h, pj.h) / vsig).get()));
 					}
 					if (opts.gravity) {
 						const auto a = abs(pi.g);
 						if (a > 0.0) {
-							tmin = min(tmin, sqrt(pi.h / a));
+							tmin = min(tmin, fixed_real(sqrt(pi.h / a).get()));
 						}
 					}
 				}
@@ -349,7 +349,7 @@ real tree::compute_timestep()  {
 		}
 		parts.resize(nparts0);
 	} else {
-		std::array<hpx::future<real>, NCHILD> futs;
+		std::array<hpx::future<fixed_real>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
 			futs[ci] = hpx::async<compute_timestep_action>(children[ci]);
 		}
@@ -520,7 +520,7 @@ void tree::compute_interactions() {
 	}
 }
 
-void tree::compute_next_state(real dt) {
+void tree::compute_next_state(fixed_real dt) {
 	static auto opts = options::get();
 	const auto use_grav = opts.gravity || opts.problem == "kepler";
 	if (leaf) {
@@ -529,7 +529,7 @@ void tree::compute_next_state(real dt) {
 		for (int i = 0; i < nparts0; i++) {
 			auto &p = parts[i];
 			auto U = p.to_con();
-			U = U + dudt[i] * dt;
+			U = U + dudt[i] * double(dt);
 			if (U.den() <= 0.0) {
 				printf("Negative density! %e\n", U.den().get());
 				abort();

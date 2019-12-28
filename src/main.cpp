@@ -5,7 +5,7 @@
 
 hpx::id_type root;
 
-void solve_gravity(real dt) {
+void solve_gravity(fixed_real dt) {
 	static const auto opts = options::get();
 	if (opts.problem == "kepler" || opts.problem == "rt") {
 		tree::set_problem_force_action()(root);
@@ -13,12 +13,12 @@ void solve_gravity(real dt) {
 		tree::compute_mass_attributes_action()(root);
 		tree::compute_gravity_action()(root, std::vector<hpx::id_type>(1, root), std::vector<mass_attr>());
 	}
-if (opts.problem == "kepler" || opts.problem=="rt" || opts.gravity) {
+	if (opts.problem == "kepler" || opts.problem == "rt" || opts.gravity) {
 		tree::apply_gravity_action()(root, dt);
 	}
 }
 
-void drift(real dt) {
+void drift(fixed_real dt) {
 	tree::compute_drift_action()(root, dt);
 	tree::finish_drift_action()(root);
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
@@ -26,7 +26,7 @@ void drift(real dt) {
 	tree::compute_interactions_action()(root);
 }
 
-void hydro(real dt) {
+void hydro(fixed_real dt) {
 	static const auto opts = options::get();
 	if (!opts.dust_only) {
 		tree::get_neighbor_particles_action()(root);
@@ -50,11 +50,12 @@ void write_checkpoint(int i) {
 	tree::write_silo_action()(root, i + 1);
 }
 
-real timestep() {
+fixed_real timestep() {
 	static const auto opts = options::get();
 	tree::get_neighbor_particles_action()(root);
-	auto dt = tree::compute_timestep_action()(root);
-	return dt * opts.cfl;
+	fixed_real dt = tree::compute_timestep_action()(root);
+	dt = dt * fixed_real(opts.cfl);
+	return dt;
 }
 
 auto statistics() {
@@ -63,7 +64,7 @@ auto statistics() {
 
 int N = 32;
 int hpx_main(int argc, char *argv[]) {
-	real t = 0.0;
+	fixed_real t = 0.0;
 	options opts;
 	opts.process_options(argc, argv);
 	std::vector<particle> parts;
@@ -112,32 +113,29 @@ int hpx_main(int argc, char *argv[]) {
 	write_checkpoint(0);
 	int oi = 0;
 	int i = 0;
-	while (t < opts.tmax) {
-		const real next_t = t + opts.output_freq;
-		while (t < next_t) {
-			real dt = timestep();
-			long long int num_steps_left = (next_t - t).get() / dt.get() + 1;
-			if (num_steps_left < 100) {
-				dt = (next_t - t) / real(num_steps_left);
-			}
-			auto s = statistics();
-			printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, t.get(), dt.get(), s.nparts, s.nleaves,
-					s.max_level, s.mass.get());
-			for (int dim = 0; dim < NDIM; dim++) {
-				printf("%e ", s.momentum[dim].get());
-			}
-			printf("Energy = %e\n", s.energy.get());
-			solve_gravity(dt / 2.0);
-			tree::set_drift_velocity_action()(root);
-			hydro(dt / 2.0);
-			drift(dt);
-			hydro(dt / 2.0);
-			solve_gravity(dt / 2.0);
-			t += dt;
-			i++;
+	fixed_real last_output = 0.0;
+	while (t < fixed_real(opts.tmax)) {
+		fixed_real dt = timestep();
+		auto s = statistics();
+		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, double(t), double(dt), s.nparts, s.nleaves,
+				s.max_level, s.mass.get());
+		for (int dim = 0; dim < NDIM; dim++) {
+			printf("%e ", s.momentum[dim].get());
 		}
-		write_checkpoint(++oi);
-		printf("output %i\n", oi);
+		printf("Energy = %e\n", s.energy.get());
+		solve_gravity(dt / fixed_real(2.0));
+		tree::set_drift_velocity_action()(root);
+		hydro(dt / fixed_real(2.0));
+		drift(dt);
+		hydro(dt / fixed_real(2.0));
+		solve_gravity(dt / fixed_real(2.0));
+		t += dt;
+		i++;
+		if (int((last_output / fixed_real(opts.output_freq))) != int(((t / fixed_real(opts.output_freq))))) {
+			last_output = t;
+			write_checkpoint(++oi);
+			printf("output %i\n", oi);
+		}
 	}
 	FILE *fp = fopen("profile.txt", "wt");
 	profiler_output(fp);

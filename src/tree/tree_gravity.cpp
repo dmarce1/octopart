@@ -4,12 +4,12 @@
 
 constexpr real G = 6.67259e-8;
 
-void tree::apply_gravity(real dt) {
+void tree::apply_gravity(fixed_real dt) {
 	if (leaf) {
 		for (int i = 0; i < parts.size(); i++) {
 			auto &p = parts[i];
 			const auto ek0 = p.v.dot(p.v) * (p.m / 2.0);
-			p.v = p.v + p.g * dt;
+			p.v = p.v + p.g * double(dt);
 			const auto ek1 = p.v.dot(p.v) * (p.m / 2.0);
 			p.E += ek1 - ek0;
 		}
