@@ -319,7 +319,7 @@ void tree::compute_time_derivatives(fixed_real dt) {
 	}
 }
 
-fixed_real tree::compute_timestep()  {
+fixed_real tree::compute_timestep(fixed_real t) {
 	const static auto opts = options::get();
 	fixed_real tmin = fixed_real::max();
 	if (leaf) {
@@ -344,14 +344,20 @@ fixed_real tree::compute_timestep()  {
 							tmin = min(tmin, fixed_real(sqrt(pi.h / a).get()));
 						}
 					}
+		//			printf( "%li\n", tmin.get_int());
 				}
 			}
 		}
+		tmin *= opts.cfl;
+	//	printf( "%li %li %li\n",t.next_bin().get_int(), tmin.get_int(), t.get_int());
+		tmin = tmin.nearest_log2();
+		tmin = min(tmin, t.next_bin() - t);
 		parts.resize(nparts0);
+//		sleep(10);
 	} else {
 		std::array<hpx::future<fixed_real>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_timestep_action>(children[ci]);
+			futs[ci] = hpx::async<compute_timestep_action>(children[ci], t);
 		}
 		for (int ci = 0; ci < NCHILD; ci++) {
 			tmin = min(tmin, futs[ci].get());
@@ -548,7 +554,7 @@ void tree::set_drift_velocity() {
 	if (leaf) {
 		for (auto &p : parts) {
 			p.vf = p.v;
-	//		p.vf = vect(0.0);
+			//		p.vf = vect(0.0);
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;

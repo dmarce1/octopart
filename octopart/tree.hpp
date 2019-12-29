@@ -89,7 +89,7 @@ public:
 	void compute_gravity(std::vector<hpx::id_type>, std::vector<mass_attr>);
 	void compute_next_state(fixed_real);
 	void compute_time_derivatives(fixed_real);
-	fixed_real compute_timestep();
+	fixed_real compute_timestep(fixed_real);
 	void compute_interactions();
 	int compute_workload();
 	void create_children();

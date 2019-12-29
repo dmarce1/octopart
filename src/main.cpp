@@ -50,11 +50,10 @@ void write_checkpoint(int i) {
 	tree::write_silo_action()(root, i + 1);
 }
 
-fixed_real timestep() {
+fixed_real timestep(fixed_real t) {
 	static const auto opts = options::get();
 	tree::get_neighbor_particles_action()(root);
-	fixed_real dt = tree::compute_timestep_action()(root);
-	dt = dt * fixed_real(opts.cfl);
+	fixed_real dt = tree::compute_timestep_action()(root,t);
 	return dt;
 }
 
@@ -115,7 +114,8 @@ int hpx_main(int argc, char *argv[]) {
 	int i = 0;
 	fixed_real last_output = 0.0;
 	while (t < fixed_real(opts.tmax)) {
-		fixed_real dt = timestep();
+//		printf( "%e\n", double(t.next_bin()));
+		fixed_real dt = timestep(t);
 		auto s = statistics();
 		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, double(t), double(dt), s.nparts, s.nleaves,
 				s.max_level, s.mass.get());
