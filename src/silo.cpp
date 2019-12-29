@@ -75,20 +75,24 @@ int main(int argc, char *argv[]) {
 		std::vector<real> Nc;
 		std::vector<real> h;
 		std::vector<real> rho;
+		std::vector<real> dt;
 		std::vector<real> tau;
 		std::vector<real> ein;
 		std::array<std::vector<real>, NDIM> vel;
 		std::array<std::vector<real>, NDIM> g;
 		tau.reserve(nnodes);
 		rho.reserve(nnodes);
+		dt.reserve(nnodes);
 		ein.reserve(nnodes);
 		for (int dim = 0; dim < NDIM; dim++) {
 			vel[dim].reserve(nnodes);
 			g[dim].reserve(nnodes);
 		}
-		for (const auto &pi : parts) {
-			const auto U = pi.to_con();
+		for (auto &pi : parts) {
+			pi.set_con();
+			const auto U = pi.U;
 			const auto V = U.to_prim();
+			dt.push_back(double(pi.dt));
 			rho.push_back(V.den());
 			ein.push_back(U.ene() - V.vel().dot(U.mom()) / 2.0);
 			h.push_back(pi.h);
@@ -99,6 +103,7 @@ int main(int argc, char *argv[]) {
 				g[dim].push_back(pi.g[dim]);
 			}
 		}
+		DBPutUcdvar1(db, "dt", "mesh", dt.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "h", "mesh", h.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "Nc", "mesh", Nc.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
 		DBPutUcdvar1(db, "rho", "mesh", rho.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);

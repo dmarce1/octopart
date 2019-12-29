@@ -13,7 +13,7 @@ std::vector<particle> disc_particle_set(int N) {
 	const auto cparts = cartesian_particle_set(N);
 	for (auto p : cparts) {
 		const auto r = abs(p.x);
-		if( r < 0.5 && r > 0.0 ) {
+		if (r < 0.5 && r > 0.0) {
 			rparts.push_back(p);
 		}
 	}
@@ -60,6 +60,8 @@ void particle::write(FILE *fp) const {
 	fwrite(&x, sizeof(real), NDIM, fp);
 	fwrite(&v, sizeof(real), NDIM, fp);
 	fwrite(&g, sizeof(real), NDIM, fp);
+	fwrite(&t, sizeof(fixed_real), 1, fp);
+	fwrite(&dt, sizeof(fixed_real), 1, fp);
 	fwrite(&m, sizeof(real), 1, fp);
 	fwrite(&E, sizeof(real), 1, fp);
 	fwrite(&V, sizeof(real), 1, fp);
@@ -72,6 +74,8 @@ int particle::read(FILE *fp) {
 	cnt += fread(&x, sizeof(real), NDIM, fp);
 	cnt += fread(&v, sizeof(real), NDIM, fp);
 	cnt += fread(&g, sizeof(real), NDIM, fp);
+	cnt += fread(&t, sizeof(fixed_real), 1, fp);
+	cnt += fread(&dt, sizeof(fixed_real), 1, fp);
 	cnt += fread(&m, sizeof(real), 1, fp);
 	cnt += fread(&E, sizeof(real), 1, fp);
 	cnt += fread(&V, sizeof(real), 1, fp);
@@ -81,30 +85,21 @@ int particle::read(FILE *fp) {
 }
 
 primitive_state particle::to_prim() const {
-	return to_con().to_prim();
+	conserved_state u;
+	u.den() = m / V;
+	u.mom() = v * m / V;
+	u.ene() = E / V;
+	return u.to_prim();
 }
 
-conserved_state particle::to_con() const {
-	static const auto fgamma = options::get().fgamma;
-	conserved_state U0;
-	U0.den() = m / V;
-	U0.mom() = v * (m / V);
-	U0.ene() = E / V;
-	return U0;
+void particle::load_from_con() {
+	m = U.den() * V;
+	v = U.mom() / U.den();
+	E = U.ene() * V;
 }
 
-particle particle::from_con(const conserved_state &U) const {
-	static const auto fgamma = options::get().fgamma;
-	particle p;
-	p.V = V;
-	p.E = U.ene() * V;
-	p.h = h;
-	p.m = U.den() * V;
-	p.v = U.mom() / U.den();
-	p.B = B;
-	p.x = x;
-	p.g = g;
-	p.vf = vf;
-	return p;
+void particle::set_con() {
+	U.den() = m / V;
+	U.mom() = v * m / V;
+	U.ene() = E / V;
 }
-

@@ -12,8 +12,10 @@
 #include <vector>
 
 #include "state.hpp"
+#include "fixed_real.hpp"
 
 struct particle {
+	conserved_state U;
 	vect x;
 	real m;
 	vect v;
@@ -22,6 +24,8 @@ struct particle {
 	real E;
 	real V;
 	real h;
+	fixed_real t;
+	fixed_real dt;
 	std::array<vect, NDIM> B;
 	void write(FILE*) const;
 	int read(FILE*);
@@ -36,10 +40,12 @@ struct particle {
 		a & V;
 		a & h;
 		a & B;
+		a & t;
+		a & dt;
 	}
 	primitive_state to_prim() const;
-	conserved_state to_con() const;
-	particle from_con(const conserved_state&) const;
+	void load_from_con();
+	void set_con();
 };
 
 
