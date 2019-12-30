@@ -5,7 +5,7 @@
 
 hpx::id_type root;
 
-void solve_gravity(fixed_real dt) {
+void solve_gravity(fixed_real t, fixed_real dt, real beta) {
 	static const auto opts = options::get();
 	if (opts.problem == "kepler" || opts.problem == "rt") {
 		tree::set_problem_force_action()(root);
@@ -14,25 +14,25 @@ void solve_gravity(fixed_real dt) {
 		tree::compute_gravity_action()(root, std::vector<hpx::id_type>(1, root), std::vector<mass_attr>());
 	}
 	if (opts.problem == "kepler" || opts.problem == "rt" || opts.gravity) {
-		tree::apply_gravity_action()(root, dt);
+		tree::apply_gravity_action()(root, t, dt, beta);
 	}
 }
 
-void drift(fixed_real dt) {
-	tree::compute_drift_action()(root, dt);
+void drift(fixed_real t, fixed_real dt) {
+	tree::compute_drift_action()(root, t, dt);
 	tree::finish_drift_action()(root);
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
-	tree::compute_interactions_action()(root);
+	tree::compute_interactions_action()(root, t);
 }
 
-void hydro(fixed_real dt) {
+void hydro(fixed_real t, fixed_real dt, real beta) {
 	static const auto opts = options::get();
 	if (!opts.dust_only) {
 		tree::get_neighbor_particles_action()(root);
-		tree::compute_gradients_action()(root);
-		tree::compute_time_derivatives_action()(root, dt);
-		tree::compute_next_state_action()(root, dt);
+		tree::compute_gradients_action()(root, t, dt);
+		tree::compute_time_derivatives_action()(root, t, dt);
+		tree::compute_next_state_action()(root, t, dt, beta);
 	}
 }
 
@@ -40,7 +40,7 @@ void init(bool t0) {
 	static const auto opts = options::get();
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
-	tree::compute_interactions_action()(root);
+	tree::compute_interactions_action()(root, 0.0);
 	if (t0) {
 		tree::initialize_action()(root, opts.problem);
 	}
@@ -53,7 +53,7 @@ void write_checkpoint(int i) {
 fixed_real timestep(fixed_real t) {
 	static const auto opts = options::get();
 	tree::get_neighbor_particles_action()(root);
-	fixed_real dt = tree::compute_timestep_action()(root,t);
+	fixed_real dt = tree::compute_timestep_action()(root, t);
 	return dt;
 }
 
@@ -108,7 +108,7 @@ int hpx_main(int argc, char *argv[]) {
 	root = hpx::new_<tree>(hpx::find_here(), std::move(parts), box, null_range()).get();
 	init(t0);
 	tree::set_drift_velocity_action()(root);
-	solve_gravity(0.0);
+	solve_gravity(0.0, 0.0, 0.0);
 	write_checkpoint(0);
 	int oi = 0;
 	int i = 0;
@@ -123,13 +123,14 @@ int hpx_main(int argc, char *argv[]) {
 			printf("%e ", s.momentum[dim].get());
 		}
 		printf("Energy = %e\n", s.energy.get());
-		solve_gravity(dt / fixed_real(2.0));
+		solve_gravity(t, dt, 1.0);
 		tree::set_drift_velocity_action()(root);
-		hydro(dt / fixed_real(2.0));
-		drift(dt);
-		hydro(dt / fixed_real(2.0));
-		solve_gravity(dt / fixed_real(2.0));
+		hydro(t, dt, 1.0);
+		drift(t, dt);
+	//	hydro(t, dt, 0.5);
+	//	solve_gravity(t, dt, 0.5);
 		t += dt;
+		tree::advance_time_action()(root, t);
 		i++;
 		if (int((last_output / fixed_real(opts.output_freq))) != int(((t / fixed_real(opts.output_freq))))) {
 			last_output = t;

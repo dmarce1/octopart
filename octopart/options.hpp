@@ -17,6 +17,7 @@ public:
 	bool x_reflecting;
 	bool y_reflecting;
 	bool z_reflecting;
+	bool global_time;
 	int parts_per_node;
 	int problem_size;
 	double fgamma;
@@ -30,6 +31,7 @@ public:
 
 	template<class Arc>
 	void serialize(Arc &arc, unsigned) {
+		arc & global_time;
 		arc & cfl;
 		arc & kep_eps;
 		arc & checkpoint;
