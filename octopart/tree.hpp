@@ -63,7 +63,6 @@ class tree: public hpx::components::migration_support<hpx::components::component
 	std::vector<particle> parts;
 	std::vector<gradient> grad_lim;
 	std::vector<gradient> grad;
-	std::vector<conserved_state> dudt;
 	std::vector<real> Ncond;
 	std::array<hpx::id_type, NCHILD> children;
 	std::array<int, NCHILD> child_loads;
@@ -90,7 +89,7 @@ public:
 	void compute_next_state(fixed_real);
 	void compute_time_derivatives(fixed_real);
 	fixed_real compute_timestep(fixed_real);
-	void compute_interactions();
+	void compute_interactions(fixed_real);
 	int compute_workload();
 	void create_children();
 	std::vector<particle> destroy();

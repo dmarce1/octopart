@@ -18,12 +18,12 @@ void solve_gravity(fixed_real dt) {
 	}
 }
 
-void drift(fixed_real dt) {
+void drift(fixed_real t, fixed_real dt) {
 	tree::compute_drift_action()(root, dt);
 	tree::finish_drift_action()(root);
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
-	tree::compute_interactions_action()(root);
+	tree::compute_interactions_action()(root, t);
 }
 
 void hydro(fixed_real dt) {
@@ -40,7 +40,7 @@ void init(bool t0) {
 	static const auto opts = options::get();
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
-	tree::compute_interactions_action()(root);
+	tree::compute_interactions_action()(root,fixed_real(0.0));
 	if (t0) {
 		tree::initialize_action()(root, opts.problem);
 	}
@@ -126,7 +126,7 @@ int hpx_main(int argc, char *argv[]) {
 		solve_gravity(dt / fixed_real(2.0));
 		tree::set_drift_velocity_action()(root);
 		hydro(dt / fixed_real(2.0));
-		drift(dt);
+		drift(t,dt);
 		hydro(dt / fixed_real(2.0));
 		solve_gravity(dt / fixed_real(2.0));
 		t += dt;

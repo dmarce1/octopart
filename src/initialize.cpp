@@ -110,14 +110,14 @@ void sod(particle &p) {
 	for (int dim = 0; dim < NDIM; dim++) {
 		p.v[dim] = 0.0;
 	}
-	if (p.x[0] < -0.25 || p.x[0] > 0.25) {
+	if (p.x[0] < 0 ) {
 		p.m = 1.0 * p.V;
-		p.v[0] = -1;
-		p.E = 1e-20 * p.V + p.v.dot(p.v) / 2.0 * p.m;
+	//	p.v[0] = -1;
+		p.E = 2.5 * p.V + p.v.dot(p.v) / 2.0 * p.m;
 	} else {
-		p.m = 1.0 * p.V;
-		p.v[0] = +1;
-		p.E = 1e-20 * p.V + p.v.dot(p.v) / 2.0 * p.m;
+		p.m = 0.125 * p.V;
+	//	p.v[0] = +1;
+		p.E = 0.25 * p.V + p.v.dot(p.v) / 2.0 * p.m;
 	}
 }
 

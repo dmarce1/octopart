@@ -193,16 +193,10 @@ void tree::compute_time_derivatives(fixed_real dt) {
 				}
 			}
 		}PROFILE();
-		dudt.resize(nparts0);
-		for (auto &du : dudt) {
-			for (int i = 0; i < STATE_SIZE; i++) {
-				du[i] = 0.0;
-			}
-		}
 		for (int i = 0; i < parts.size(); i++) {
-			const auto &pi = parts[i];
+			auto &pi = parts[i];
 			for (int j = 0; j < parts.size(); j++) {
-				const auto &pj = parts[j];
+				auto &pj = parts[j];
 				if (i >= nparts0 && j >= nparts0) {
 					continue;
 				}
@@ -300,10 +294,10 @@ void tree::compute_time_derivatives(fixed_real dt) {
 						F = F.rotate_from(norm);
 						F = F.boost_from(uij);
 						if (i < nparts0) {
-							dudt[i] = dudt[i] - F * abs(da) / pi.V;
+							pi.U = pi.U - F * abs(da) / pi.V * double(dt);
 						}
 						if (j < nparts0) {
-							dudt[j] = dudt[j] + F * abs(da) / pj.V;
+							pj.U = pj.U + F * abs(da) / pj.V * double(dt);
 						}
 					}
 				}
@@ -365,7 +359,7 @@ fixed_real tree::compute_timestep(fixed_real t) {
 	return tmin;
 }
 
-void tree::compute_interactions() {
+void tree::compute_interactions(fixed_real t) {
 	const auto toler = NNGB * 10.0 * real::eps();
 	static auto opts = options::get();
 	nparts0 = parts.size();
@@ -485,6 +479,7 @@ void tree::compute_interactions() {
 				Ncond.resize(parts.size());
 				for (int i = 0; i < parts.size(); i++) {
 					auto &pi = parts[i];
+					const auto vold = pi.V;
 					pi.V = 0.0;
 					for (const auto &pjx : pos) {
 						const auto r = abs(pi.x - pjx);
@@ -494,6 +489,9 @@ void tree::compute_interactions() {
 						}
 					}
 					pi.V = 1.0 / pi.V;
+					if( t != fixed_real(0.0) ) {
+						pi.U = pi.U * vold / pi.V;
+					}
 					std::array<vect, NDIM> E, B;
 					for (int n = 0; n < NDIM; n++) {
 						E[n] = vect(0.0);
@@ -519,7 +517,7 @@ void tree::compute_interactions() {
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_interactions_action>(children[ci]);
+			futs[ci] = hpx::async<compute_interactions_action>(children[ci],t);
 		}
 		hpx::wait_all(futs);
 	}
@@ -533,8 +531,6 @@ void tree::compute_next_state(fixed_real dt) {
 		parts.resize(nparts0);
 		for (int i = 0; i < nparts0; i++) {
 			auto &p = parts[i];
-			p.set_con();
-			p.U = p.U + dudt[i] * double(dt);
 			if (p.U.den() <= 0.0) {
 				printf("Negative density! %e\n", p.U.den().get());
 				abort();
