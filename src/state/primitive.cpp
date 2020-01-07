@@ -34,7 +34,7 @@ real primitive_state::sound_speed() const {
 	static const auto opts = options::get();
 	const real fgamma = opts.fgamma;
 	if( den() < 0.0 ) {
-		printf( "Negative density on recon %e\n", den());
+		printf( "Negative density on recon %e\n", den().get());
 	}
 	return sqrt(fgamma * max(pre(), real(0.0)) / den());
 }

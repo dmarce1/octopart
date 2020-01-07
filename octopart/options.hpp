@@ -10,6 +10,7 @@ public:
 	bool first_order_space;
 	bool first_order_time;
 	bool fpe;
+	bool global_time;
 	bool gravity;
 	bool x_periodic;
 	bool y_periodic;
@@ -30,6 +31,7 @@ public:
 
 	template<class Arc>
 	void serialize(Arc &arc, unsigned) {
+		arc & global_time;
 		arc & cfl;
 		arc & kep_eps;
 		arc & checkpoint;

@@ -23,17 +23,19 @@ int main(int argc, char *argv[]) {
 		particle p;
 		std::string filename = argv[1];
 		filename += ".silo";
-		fread(&opts.fgamma, sizeof(real), 1, fp);
-		opts.set(opts);
-		while (p.read(fp)) {
-			parts.push_back(p);
+		const auto cnt = fread(&opts.fgamma, sizeof(real), 1, fp);
+		if (cnt) {
+			opts.set(opts);
+			while (p.read(fp)) {
+				parts.push_back(p);
+			}
 		}
 		fclose(fp);
 		DBfile *db = DBCreateReal(filename.c_str(), DB_CLOBBER, DB_LOCAL, "Meshless",
-				DB_HDF5);
+		DB_HDF5);
 #if( NDIM == 1)
-		const int shapetypes[1] = {DB_ZONETYPE_BEAM};
-	#elif( NDIM ==2)
+		const int shapetypes[1] = { DB_ZONETYPE_BEAM };
+#elif( NDIM ==2)
 		const int shapetypes[1] = { DB_ZONETYPE_TRIANGLE };
 #else
 		const int shapetypes[1] = { DB_ZONETYPE_TET };

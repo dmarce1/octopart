@@ -81,13 +81,13 @@ public:
 	tree();
 	tree(std::vector<particle>&&, const range&, const range&);
 
-	void apply_gravity(fixed_real);
+	void apply_gravity(fixed_real, fixed_real, real);
 	mass_attr compute_mass_attributes();
-	void compute_drift(fixed_real);
+	void compute_drift(fixed_real, fixed_real);
 	void compute_gradients();
 	void compute_gravity(std::vector<hpx::id_type>, std::vector<mass_attr>);
-	void compute_next_state(fixed_real);
-	void compute_time_derivatives(fixed_real);
+	void compute_next_state(fixed_real, fixed_real);
+	void compute_time_derivatives(fixed_real, fixed_real, real);
 	fixed_real compute_timestep(fixed_real);
 	void compute_interactions(fixed_real);
 	int compute_workload();

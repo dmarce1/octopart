@@ -4,23 +4,27 @@
 
 constexpr real G = 6.67259e-8;
 
-void tree::apply_gravity(fixed_real dt) {
+void tree::apply_gravity(fixed_real t, fixed_real dt, real beta) {
+	static const auto opts = options::get();
 	if (leaf) {
 		for (int i = 0; i < parts.size(); i++) {
 			auto &p = parts[i];
-			const auto v0 = p.v;
-			const auto ek0 = p.v.dot(p.v) * (p.m / 2.0);
-			p.v = p.v + p.g * double(dt);
-			const auto ek1 = p.v.dot(p.v) * (p.m / 2.0);
-			const auto v1 = p.v;
-			p.E += ek1 - ek0;
-			p.U.mom() = p.U.mom() + (v1 - v0) * p.U.den();
-			p.U.ene() = p.U.ene() + (ek1 - ek0) / p.V;
+			if (opts.global_time || p.t + p.dt == t + dt) {
+				const auto this_dt = (opts.global_time ? double(dt) : double(p.dt)) * beta;
+				const auto v0 = p.v;
+				const auto ek0 = p.v.dot(p.v) * (p.m / 2.0);
+				p.v = p.v + p.g * this_dt;
+				const auto ek1 = p.v.dot(p.v) * (p.m / 2.0);
+				const auto v1 = p.v;
+				p.E += ek1 - ek0;
+				p.U.mom() = p.U.mom() + (v1 - v0) * p.U.den();
+				p.U.ene() = p.U.ene() + (ek1 - ek0) / p.V;
+			}
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<apply_gravity_action>(children[ci], dt);
+			futs[ci] = hpx::async<apply_gravity_action>(children[ci], t, dt, beta);
 		}
 		hpx::wait_all(futs);
 	}

@@ -16,7 +16,7 @@ constexpr int NNGB = 32;
 #endif
 #endif
 
-void tree::compute_drift(fixed_real dt) {
+void tree::compute_drift(fixed_real t, fixed_real dt) {
 	static const auto opts = options::get();
 	if (leaf) {
 		std::vector<std::vector<particle>> send_parts(siblings.size());
@@ -25,7 +25,11 @@ void tree::compute_drift(fixed_real dt) {
 			int sz = parts.size();
 			for (int i = 0; i < sz; i++) {
 				auto &pi = parts[i];
-				pi.x = pi.x + pi.vf * double(dt);
+				if (opts.global_time) {
+					pi.x = pi.x + pi.vf * double(dt);
+				} else if (t + dt == pi.t + pi.dt) {
+					pi.x = pi.x + pi.vf * double(pi.dt);
+				}
 				if (!in_range(pi.x, box)) {
 					bool found = false;
 					for (int j = 0; j < siblings.size(); j++) {
@@ -50,7 +54,7 @@ void tree::compute_drift(fixed_real dt) {
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_drift_action>(children[ci], dt);
+			futs[ci] = hpx::async<compute_drift_action>(children[ci], t, dt);
 		}
 		hpx::wait_all(futs);
 	}
@@ -138,7 +142,7 @@ void tree::compute_gradients() {
 	}
 }
 
-void tree::compute_time_derivatives(fixed_real dt) {
+void tree::compute_time_derivatives(fixed_real t, fixed_real dt, real beta) {
 	static auto opts = options::get();
 	if (leaf) {
 		if (!opts.first_order_space) {
@@ -197,10 +201,9 @@ void tree::compute_time_derivatives(fixed_real dt) {
 			auto &pi = parts[i];
 			for (int j = 0; j < parts.size(); j++) {
 				auto &pj = parts[j];
-				if (i >= nparts0 && j >= nparts0) {
-					continue;
-				}
-				if (pi.x > pj.x) {
+				const bool i_act = opts.global_time || (pi.t + pi.dt == t + dt);
+				const bool j_act = opts.global_time || (pj.t + pj.dt == t + dt);
+				if (pi.x > pj.x && !(i >= nparts0 && j >= nparts0) && (i_act || j_act)) {
 					const auto r = abs(pj.x - pi.x);
 					if (r < std::max(pi.h, pj.h)) {
 						const auto xij = (pi.x * pj.h + pj.x * pi.h) / (pi.h + pj.h);
@@ -293,11 +296,12 @@ void tree::compute_time_derivatives(fixed_real dt) {
 						}
 						F = F.rotate_from(norm);
 						F = F.boost_from(uij);
+						const auto this_dt = beta * double(opts.global_time ? dt : min(pi.dt, pj.dt));
 						if (i < nparts0) {
-							pi.U = pi.U - F * abs(da) / pi.V * double(dt);
+							pi.U = pi.U - F * abs(da) / pi.V * this_dt;
 						}
 						if (j < nparts0) {
-							pj.U = pj.U + F * abs(da) / pj.V * double(dt);
+							pj.U = pj.U + F * abs(da) / pj.V * this_dt;
 						}
 					}
 				}
@@ -307,7 +311,7 @@ void tree::compute_time_derivatives(fixed_real dt) {
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_time_derivatives_action>(children[ci], dt);
+			futs[ci] = hpx::async<compute_time_derivatives_action>(children[ci], t, dt, beta);
 		}
 		hpx::wait_all(futs);
 	}
@@ -320,31 +324,33 @@ fixed_real tree::compute_timestep(fixed_real t) {
 		PROFILE();
 		for (int i = 0; i < nparts0; i++) {
 			auto &pi = parts[i];
-			pi.dt = fixed_real::max();
-			for (const auto &pj : parts) {
-				const auto dx = pi.x - pj.x;
-				const auto r = abs(dx);
-				if (r > 0.0 && r < max(pi.h, pj.h)) {
-					const auto Vi = pi.to_prim();
-					const auto Vj = pj.to_prim();
-					const auto ci = Vi.sound_speed() + abs(Vi.vel());
-					const auto cj = Vj.sound_speed() + abs(Vj.vel());
-					const real vsig = (ci + cj - min(0.0, (pi.v - pj.v).dot(dx) / r)) / 2.0;
-					if (vsig != 0.0) {
-						pi.dt = min(pi.dt, fixed_real((min(pi.h, pj.h) / vsig).get()));
-					}
-					if (opts.gravity) {
-						const auto a = abs(pi.g);
-						if (a > 0.0) {
-							pi.dt = min(pi.dt, fixed_real(sqrt(pi.h / a).get()));
+			if (pi.t == t || opts.global_time) {
+				pi.dt = fixed_real::max();
+				for (const auto &pj : parts) {
+					const auto dx = pi.x - pj.x;
+					const auto r = abs(dx);
+					if (r > 0.0 && r < max(pi.h, pj.h)) {
+						const auto Vi = pi.to_prim();
+						const auto Vj = pj.to_prim();
+						const auto ci = Vi.sound_speed() + abs(Vi.vel());
+						const auto cj = Vj.sound_speed() + abs(Vj.vel());
+						const real vsig = (ci + cj - min(0.0, (pi.v - pj.v).dot(dx) / r)) / 2.0;
+						if (vsig != 0.0) {
+							pi.dt = min(pi.dt, fixed_real((min(pi.h, pj.h) / vsig).get()));
+						}
+						if (opts.gravity) {
+							const auto a = abs(pi.g);
+							if (a > 0.0) {
+								pi.dt = min(pi.dt, fixed_real(sqrt(pi.h / a).get()));
+							}
 						}
 					}
 				}
+				pi.dt *= opts.cfl;
+				pi.dt = pi.dt.nearest_log2();
+				pi.dt = min(pi.dt, t.next_bin() - t);
+				tmin = min(pi.dt, tmin);
 			}
-			pi.dt *= opts.cfl;
-			pi.dt = pi.dt.nearest_log2();
-			pi.dt = min(pi.dt, t.next_bin() - t);
-			tmin = min(pi.dt, tmin);
 		}
 		parts.resize(nparts0);
 	} else {
@@ -489,7 +495,7 @@ void tree::compute_interactions(fixed_real t) {
 						}
 					}
 					pi.V = 1.0 / pi.V;
-					if( t != fixed_real(0.0) ) {
+					if (t != fixed_real(0.0)) {
 						pi.U = pi.U * vold / pi.V;
 					}
 					std::array<vect, NDIM> E, B;
@@ -517,13 +523,13 @@ void tree::compute_interactions(fixed_real t) {
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_interactions_action>(children[ci],t);
+			futs[ci] = hpx::async<compute_interactions_action>(children[ci], t);
 		}
 		hpx::wait_all(futs);
 	}
 }
 
-void tree::compute_next_state(fixed_real dt) {
+void tree::compute_next_state(fixed_real t, fixed_real dt) {
 	static auto opts = options::get();
 	const auto use_grav = opts.gravity || opts.problem == "kepler";
 	if (leaf) {
@@ -531,17 +537,19 @@ void tree::compute_next_state(fixed_real dt) {
 		parts.resize(nparts0);
 		for (int i = 0; i < nparts0; i++) {
 			auto &p = parts[i];
+			if (opts.global_time || (p.t + p.dt == t + dt)) {
+				p.load_from_con();
+				p.t += opts.global_time ? dt : p.dt;
+			}
 			if (p.U.den() <= 0.0) {
 				printf("Negative density! %e\n", p.U.den().get());
 				abort();
 			}
-			p.load_from_con();
-			p.t += p.dt;
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_next_state_action>(children[ci], dt);
+			futs[ci] = hpx::async<compute_next_state_action>(children[ci], t, dt);
 		}
 		hpx::wait_all(futs);
 	}
