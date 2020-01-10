@@ -23,7 +23,7 @@ void drift(fixed_real t, fixed_real dt) {
 	tree::finish_drift_action()(root);
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
-	tree::compute_interactions_action()(root, t);
+	tree::compute_interactions_action()(root, t, dt);
 }
 
 void hydro(fixed_real t, fixed_real dt, real beta) {
@@ -39,7 +39,7 @@ void init(bool t0) {
 	static const auto opts = options::get();
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
-	tree::compute_interactions_action()(root, fixed_real(0.0));
+	tree::compute_interactions_action()(root, fixed_real(0.0), fixed_real(0.0));
 	if (t0) {
 		tree::initialize_action()(root, opts.problem);
 	}

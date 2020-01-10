@@ -24,9 +24,14 @@ struct particle {
 	real E;
 	real V;
 	real h;
+	real Nc;
 	fixed_real t;
 	fixed_real dt;
 	std::array<vect, NDIM> B;
+	gradient grad;
+	inline particle() {
+		t = dt = 0.0;
+	}
 	void write(FILE*) const;
 	int read(FILE*);
 	template<class Arc>
@@ -43,6 +48,8 @@ struct particle {
 		a & B;
 		a & t;
 		a & dt;
+		a & Nc;
+		a & grad;
 	}
 	primitive_state to_prim() const;
 	void load_from_con();

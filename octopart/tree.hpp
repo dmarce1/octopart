@@ -61,9 +61,7 @@ struct mass_attr {
 class tree: public hpx::components::migration_support<hpx::components::component_base<tree>> {
 	std::vector<particle> new_parts;
 	std::vector<particle> parts;
-	std::vector<gradient> grad_lim;
 	std::vector<gradient> grad;
-	std::vector<real> Ncond;
 	std::array<hpx::id_type, NCHILD> children;
 	std::array<int, NCHILD> child_loads;
 	std::vector<sibling_attr> siblings;
@@ -89,7 +87,7 @@ public:
 	void compute_next_state(fixed_real, fixed_real);
 	void compute_time_derivatives(fixed_real, fixed_real, real);
 	fixed_real compute_timestep(fixed_real);
-	void compute_interactions(fixed_real);
+	void compute_interactions(fixed_real, fixed_real);
 	int compute_workload();
 	void create_children();
 	std::vector<particle> destroy();

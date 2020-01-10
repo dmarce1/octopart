@@ -110,13 +110,13 @@ void sod(particle &p) {
 	for (int dim = 0; dim < NDIM; dim++) {
 		p.v[dim] = 0.0;
 	}
-	if (p.x[0] < 0 ) {
+	if (p.x[0] < 0) {
 		p.m = 1.0 * p.V;
-	//	p.v[0] = -1;
+		//	p.v[0] = -1;
 		p.E = 2.5 * p.V + p.v.dot(p.v) / 2.0 * p.m;
 	} else {
 		p.m = 0.125 * p.V;
-	//	p.v[0] = +1;
+		//	p.v[0] = +1;
 		p.E = 0.25 * p.V + p.v.dot(p.v) / 2.0 * p.m;
 	}
 }
@@ -153,31 +153,30 @@ void collapse(particle &p) {
 init_func_type get_initialization_function(const std::string &name) {
 	init_func_type init;
 	if (name == "drift") {
-		init =drift;
+		init = drift;
 #if(NDIM!=1)
 	} else if (name == "kh") {
 		init =kh;
 #endif
 	} else if (name == "collapse") {
-		init =collapse;
+		init = collapse;
 	} else if (name == "blast") {
-		init =blast;
+		init = blast;
 	} else if (name == "sod") {
-		init =sod;
+		init = sod;
 	} else if (name == "kepler") {
-		init =kepler;
+		init = kepler;
 	} else if (name == "rt") {
-		init =rt;
+		init = rt;
 	} else if (name == "polytrope") {
-		init =single_polytrope;
+		init = single_polytrope;
 	} else {
 		printf("Error: Initialization function %s is not known\n", name.c_str());
 		abort();
 	}
-	return [init](particle& p) {
+	return [init](particle &p) {
 		init(p);
-		p.t = 0.0;
-		p.dt = -1.0;
+		p.t = p.dt = 0.0;
 		p.set_con();
 	};
 
