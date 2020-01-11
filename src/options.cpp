@@ -40,7 +40,6 @@ bool options::process_options(int argc, char *argv[]) {
 		("first_order_space", po::value<bool>(&first_order_space)->default_value(false), "use 1st order spatial scheme") //
 		("first_order_time", po::value<bool>(&first_order_time)->default_value(false), "use 1st order time integration") //
 		("fpe", po::value<bool>(&fpe)->default_value(true), "enable floating point exceptions") //
-		("global_time", po::value<bool>(&global_time)->default_value(false), "enable global time-stepping") //
 		("gravity", po::value<bool>(&gravity)->default_value(false), "enable gravity") //
 		("grid_size", po::value<double>(&grid_size)->default_value(1.0), "size of grid") //
 		("output_freq", po::value<double>(&output_freq)->default_value(-1), "output frequency") //
@@ -101,7 +100,6 @@ bool options::process_options(int argc, char *argv[]) {
 	SHOW(first_order_space);
 	SHOW(first_order_time);
 	SHOW(fpe);
-	SHOW(global_time);
 	SHOW(gravity);
 	SHOW(parts_per_node);
 	SHOW(x_periodic);

@@ -31,7 +31,6 @@ struct particle {
 	int read(FILE*);
 	template<class Arc>
 	void serialize(Arc &&a, unsigned) {
-		a & U;
 		a & vf;
 		a & g;
 		a & x;

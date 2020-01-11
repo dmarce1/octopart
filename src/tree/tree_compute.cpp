@@ -16,27 +16,7 @@ constexpr int NNGB = 32;
 #endif
 #endif
 
-void tree::advance_time(fixed_real t) {
-	static const auto opts = options::get();
-	if (leaf) {
-		for (auto &pi : parts) {
-			if (opts.global_time) {
-				pi.t = t;
-			} else {
-				if (pi.t + pi.dt == t) {
-					pi.t = t;
-				}
-			}
-		}
-	} else {
-		std::array<hpx::future<void>, NCHILD> futs;
-		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<advance_time_action>(children[ci], t);
-		}
-	}
-}
-
-void tree::compute_drift(fixed_real t, fixed_real dt) {
+void tree::compute_drift(fixed_real dt) {
 	static const auto opts = options::get();
 	if (leaf) {
 		std::vector<std::vector<particle>> send_parts(siblings.size());
@@ -45,13 +25,7 @@ void tree::compute_drift(fixed_real t, fixed_real dt) {
 			int sz = parts.size();
 			for (int i = 0; i < sz; i++) {
 				auto &pi = parts[i];
-				if (opts.global_time) {
-					pi.x = pi.x + pi.vf * double(dt);
-				} else {
-					if (pi.t + pi.dt == t + dt) {
-						pi.x = pi.x + pi.vf * double(pi.dt);
-					}
-				}
+				pi.x = pi.x + pi.vf * double(dt);
 				if (!in_range(pi.x, box)) {
 					bool found = false;
 					for (int j = 0; j < siblings.size(); j++) {
@@ -76,14 +50,14 @@ void tree::compute_drift(fixed_real t, fixed_real dt) {
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_drift_action>(children[ci], t, dt);
+			futs[ci] = hpx::async<compute_drift_action>(children[ci], dt);
 		}
 		hpx::wait_all(futs);
 	}
 
 }
 
-void tree::compute_gradients(fixed_real t, fixed_real dt) {
+void tree::compute_gradients() {
 	static auto opts = options::get();
 	if (leaf) {
 		PROFILE();
@@ -158,13 +132,13 @@ void tree::compute_gradients(fixed_real t, fixed_real dt) {
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_gradients_action>(children[ci], t, dt);
+			futs[ci] = hpx::async<compute_gradients_action>(children[ci]);
 		}
 		hpx::wait_all(futs);
 	}
 }
 
-void tree::compute_time_derivatives(fixed_real t, fixed_real dt) {
+void tree::compute_time_derivatives(fixed_real dt) {
 	static auto opts = options::get();
 	if (leaf) {
 		if (!opts.first_order_space) {
@@ -232,108 +206,104 @@ void tree::compute_time_derivatives(fixed_real t, fixed_real dt) {
 				if (i >= nparts0 && j >= nparts0) {
 					continue;
 				}
-				const auto pi_active = opts.global_time || (pi.t + pi.dt == t + dt);
-				const auto pj_active = opts.global_time || (pj.t + pj.dt == t + dt);
-				if (pi_active || pj_active) {
-					if (pi.x > pj.x) {
-						const auto r = abs(pj.x - pi.x);
-						if (r < std::max(pi.h, pj.h)) {
-							const auto xij = (pi.x * pj.h + pj.x * pi.h) / (pi.h + pj.h);
-							const auto V_i = pi.to_prim();
-							const auto V_j = pj.to_prim();
-							auto VL = V_i;
-							auto VR = V_j;
-							const auto dx = pj.x - pi.x;
-							const auto uij = (pi.vf * (pj.x - xij).dot(dx) + pj.vf * (xij - pi.x).dot(dx)) / (dx.dot(dx));
-							if (!opts.first_order_time) {
-								VL = VL.boost_to(uij);
-								VR = VR.boost_to(uij);
-								VL = VL + VL.dW_dt(grad_lim[i]) * double(fixed_real(0.5) * dt);
-								VR = VR + VR.dW_dt(grad_lim[j]) * double(fixed_real(0.5) * dt);
-								VL = VL.boost_to(-uij);
-								VR = VR.boost_to(-uij);
+				if (pi.x > pj.x) {
+					const auto r = abs(pj.x - pi.x);
+					if (r < std::max(pi.h, pj.h)) {
+						const auto xij = (pi.x * pj.h + pj.x * pi.h) / (pi.h + pj.h);
+						const auto V_i = pi.to_prim();
+						const auto V_j = pj.to_prim();
+						auto VL = V_i;
+						auto VR = V_j;
+						const auto dx = pj.x - pi.x;
+						const auto uij = (pi.vf * (pj.x - xij).dot(dx) + pj.vf * (xij - pi.x).dot(dx)) / (dx.dot(dx));
+						if (!opts.first_order_time) {
+							VL = VL.boost_to(uij);
+							VR = VR.boost_to(uij);
+							VL = VL + VL.dW_dt(grad_lim[i]) * double(fixed_real(0.5) * dt);
+							VR = VR + VR.dW_dt(grad_lim[j]) * double(fixed_real(0.5) * dt);
+							VL = VL.boost_to(-uij);
+							VR = VR.boost_to(-uij);
+						}
+						if (!opts.first_order_space) {
+							constexpr auto psi1 = 0.5;
+							constexpr auto psi2 = 0.25;
+							const auto dxi = xij - pi.x;
+							const auto dxj = xij - pj.x;
+							for (int dim = 0; dim < NDIM; dim++) {
+								VL = VL + grad_lim[i][dim] * dxi[dim];
+								VR = VR + grad_lim[j][dim] * dxj[dim];
 							}
-							if (!opts.first_order_space) {
-								constexpr auto psi1 = 0.5;
-								constexpr auto psi2 = 0.25;
-								const auto dxi = xij - pi.x;
-								const auto dxj = xij - pj.x;
-								for (int dim = 0; dim < NDIM; dim++) {
-									VL = VL + grad_lim[i][dim] * dxi[dim];
-									VR = VR + grad_lim[j][dim] * dxj[dim];
+							const auto dV_abs = abs(V_j, V_i);
+							const auto delta_1 = dV_abs * psi1;
+							const auto delta_2 = dV_abs * psi2;
+							const auto V_min = min(V_i, V_j);
+							const auto V_max = max(V_i, V_j);
+							const auto V_bar_i = V_i + (V_j - V_i) * abs(xij - pi.x) / abs(pi.x - pj.x);
+							const auto V_bar_j = V_j + (V_i - V_j) * abs(xij - pj.x) / abs(pi.x - pj.x);
+							for (int f = 0; f < STATE_SIZE; f++) {
+								real V_m;
+								real V_p;
+								if ((V_min[f] - delta_1[f]) * V_min[f] >= 0.0) {
+									V_m = V_min[f] - delta_1[f];
+								} else {
+									V_m = V_min[f] * abs(V_min[f]) / (abs(V_min[f]) + delta_1[f]);
 								}
-								const auto dV_abs = abs(V_j, V_i);
-								const auto delta_1 = dV_abs * psi1;
-								const auto delta_2 = dV_abs * psi2;
-								const auto V_min = min(V_i, V_j);
-								const auto V_max = max(V_i, V_j);
-								const auto V_bar_i = V_i + (V_j - V_i) * abs(xij - pi.x) / abs(pi.x - pj.x);
-								const auto V_bar_j = V_j + (V_i - V_j) * abs(xij - pj.x) / abs(pi.x - pj.x);
-								for (int f = 0; f < STATE_SIZE; f++) {
-									real V_m;
-									real V_p;
-									if ((V_min[f] - delta_1[f]) * V_min[f] >= 0.0) {
-										V_m = V_min[f] - delta_1[f];
-									} else {
-										V_m = V_min[f] * abs(V_min[f]) / (abs(V_min[f]) + delta_1[f]);
-									}
-									if ((V_max[f] + delta_1[f]) * V_max[f] >= 0.0) {
-										V_p = V_max[f] + delta_1[f];
-									} else {
-										V_p = V_max[f] * abs(V_max[f]) / (abs(V_max[f]) + delta_1[f]);
-									}
-									if (V_i[f] == V_j[f]) {
-										VR[f] = VL[f] = V_i[f];
-									} else if (V_i[f] < V_j[f]) {
-										VL[f] = max(V_m, min(V_bar_i[f] + delta_2[f], VL[f]));
-										VR[f] = min(V_p, max(V_bar_j[f] - delta_2[f], VR[f]));
-									} else {
-										VL[f] = min(V_p, max(V_bar_i[f] - delta_2[f], VL[f]));
-										VR[f] = max(V_m, min(V_bar_j[f] + delta_2[f], VR[f]));
-									}
+								if ((V_max[f] + delta_1[f]) * V_max[f] >= 0.0) {
+									V_p = V_max[f] + delta_1[f];
+								} else {
+									V_p = V_max[f] * abs(V_max[f]) / (abs(V_max[f]) + delta_1[f]);
+								}
+								if (V_i[f] == V_j[f]) {
+									VR[f] = VL[f] = V_i[f];
+								} else if (V_i[f] < V_j[f]) {
+									VL[f] = max(V_m, min(V_bar_i[f] + delta_2[f], VL[f]));
+									VR[f] = min(V_p, max(V_bar_j[f] - delta_2[f], VR[f]));
+								} else {
+									VL[f] = min(V_p, max(V_bar_i[f] - delta_2[f], VL[f]));
+									VR[f] = max(V_m, min(V_bar_j[f] + delta_2[f], VR[f]));
 								}
 							}
-							vect psi_a_ij;
-							vect psi_a_ji;
-							for (int n = 0; n < NDIM; n++) {
-								psi_a_ij[n] = 0.0;
-								psi_a_ji[n] = 0.0;
-								for (int m = 0; m < NDIM; m++) {
-									psi_a_ij[n] = psi_a_ij[n] + pj.B[n][m] * (pi.x[m] - pj.x[m]) * W(r, pj.h) * pj.V;
-									psi_a_ji[n] = psi_a_ji[n] + pi.B[n][m] * (pj.x[m] - pi.x[m]) * W(r, pi.h) * pi.V;
-								}
+						}
+						vect psi_a_ij;
+						vect psi_a_ji;
+						for (int n = 0; n < NDIM; n++) {
+							psi_a_ij[n] = 0.0;
+							psi_a_ji[n] = 0.0;
+							for (int m = 0; m < NDIM; m++) {
+								psi_a_ij[n] = psi_a_ij[n] + pj.B[n][m] * (pi.x[m] - pj.x[m]) * W(r, pj.h) * pj.V;
+								psi_a_ji[n] = psi_a_ji[n] + pi.B[n][m] * (pj.x[m] - pi.x[m]) * W(r, pi.h) * pi.V;
 							}
-							const auto da = psi_a_ji * pi.V - psi_a_ij * pj.V;
-							const auto norm = da / abs(da);
+						}
+						const auto da = psi_a_ji * pi.V - psi_a_ij * pj.V;
+						const auto norm = da / abs(da);
+						VL = VL.boost_to(uij);
+						VR = VR.boost_to(uij);
+						VL = VL.rotate_to(norm);
+						VR = VR.rotate_to(norm);
+						flux_state F;
+						if (!riemann_solver(F, VL, VR)) {
+							printf("Riemann failed high order\n");
+							sleep(1);
+							VL = V_i;
+							VR = V_j;
 							VL = VL.boost_to(uij);
 							VR = VR.boost_to(uij);
 							VL = VL.rotate_to(norm);
 							VR = VR.rotate_to(norm);
-							flux_state F;
-							if (!riemann_solver(F, VL, VR)) {
-								printf("Riemann failed high order\n");
-								sleep(1);
-								VL = V_i;
-								VR = V_j;
-								VL = VL.boost_to(uij);
-								VR = VR.boost_to(uij);
-								VL = VL.rotate_to(norm);
-								VR = VR.rotate_to(norm);
-								const auto rc = riemann_solver(F, V_i, V_j);
-								if (!rc) {
-									printf("Rieman Solver failed\n");
-									abort();
-									F = KT(V_i, V_j);
-								}
+							const auto rc = riemann_solver(F, V_i, V_j);
+							if (!rc) {
+								printf("Rieman Solver failed\n");
+								abort();
+								F = KT(V_i, V_j);
 							}
-							F = F.rotate_from(norm);
-							F = F.boost_from(uij);
-							if (i < nparts0) {
-								dudt[i] = dudt[i] - F * abs(da) / pi.V;
-							}
-							if (j < nparts0) {
-								dudt[j] = dudt[j] + F * abs(da) / pj.V;
-							}
+						}
+						F = F.rotate_from(norm);
+						F = F.boost_from(uij);
+						if (i < nparts0) {
+							dudt[i] = dudt[i] - F * abs(da) / pi.V;
+						}
+						if (j < nparts0) {
+							dudt[j] = dudt[j] + F * abs(da) / pj.V;
 						}
 					}
 				}
@@ -343,7 +313,7 @@ void tree::compute_time_derivatives(fixed_real t, fixed_real dt) {
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_time_derivatives_action>(children[ci], t, dt);
+			futs[ci] = hpx::async<compute_time_derivatives_action>(children[ci], dt);
 		}
 		hpx::wait_all(futs);
 	}
@@ -356,33 +326,31 @@ fixed_real tree::compute_timestep(fixed_real t) {
 		PROFILE();
 		for (int i = 0; i < nparts0; i++) {
 			auto &pi = parts[i];
-			if (opts.global_time || pi.t == t) {
-				pi.dt = fixed_real::max();
-				for (const auto &pj : parts) {
-					const auto dx = pi.x - pj.x;
-					const auto r = abs(dx);
-					if (r > 0.0 && r < max(pi.h, pj.h)) {
-						const auto Vi = pi.to_prim();
-						const auto Vj = pj.to_prim();
-						const auto ci = Vi.sound_speed() + abs(Vi.vel());
-						const auto cj = Vj.sound_speed() + abs(Vj.vel());
-						const real vsig = (ci + cj - min(0.0, (pi.v - pj.v).dot(dx) / r)) / 2.0;
-						if (vsig != 0.0) {
-							pi.dt = min(pi.dt, fixed_real((min(pi.h, pj.h) / vsig).get()));
-						}
-						if (opts.gravity) {
-							const auto a = abs(pi.g);
-							if (a > 0.0) {
-								pi.dt = min(pi.dt, fixed_real(sqrt(pi.h / a).get()));
-							}
+			pi.dt = fixed_real::max();
+			for (const auto &pj : parts) {
+				const auto dx = pi.x - pj.x;
+				const auto r = abs(dx);
+				if (r > 0.0 && r < max(pi.h, pj.h)) {
+					const auto Vi = pi.to_prim();
+					const auto Vj = pj.to_prim();
+					const auto ci = Vi.sound_speed() + abs(Vi.vel());
+					const auto cj = Vj.sound_speed() + abs(Vj.vel());
+					const real vsig = (ci + cj - min(0.0, (pi.v - pj.v).dot(dx) / r)) / 2.0;
+					if (vsig != 0.0) {
+						pi.dt = min(pi.dt, fixed_real((min(pi.h, pj.h) / vsig).get()));
+					}
+					if (opts.gravity) {
+						const auto a = abs(pi.g);
+						if (a > 0.0) {
+							pi.dt = min(pi.dt, fixed_real(sqrt(pi.h / a).get()));
 						}
 					}
 				}
-				pi.dt *= opts.cfl;
-				pi.dt = pi.dt.nearest_log2();
-				pi.dt = min(pi.dt, t.next_bin() - pi.t);
-				tmin = min(pi.dt, tmin);
 			}
+			pi.dt *= opts.cfl;
+			pi.dt = pi.dt.nearest_log2();
+			pi.dt = min(pi.dt, t.next_bin() - t);
+			tmin = min(pi.dt, tmin);
 		}
 		parts.resize(nparts0);
 	} else {
@@ -397,7 +365,7 @@ fixed_real tree::compute_timestep(fixed_real t) {
 	return tmin;
 }
 
-void tree::compute_interactions(fixed_real t) {
+void tree::compute_interactions() {
 	const auto toler = NNGB * 10.0 * real::eps();
 	static auto opts = options::get();
 	nparts0 = parts.size();
@@ -517,7 +485,6 @@ void tree::compute_interactions(fixed_real t) {
 				Ncond.resize(parts.size());
 				for (int i = 0; i < parts.size(); i++) {
 					auto &pi = parts[i];
-					const auto oldV = pi.V;
 					pi.V = 0.0;
 					for (const auto &pjx : pos) {
 						const auto r = abs(pi.x - pjx);
@@ -530,9 +497,6 @@ void tree::compute_interactions(fixed_real t) {
 					std::array<vect, NDIM> E, B;
 					for (int n = 0; n < NDIM; n++) {
 						E[n] = vect(0.0);
-					}
-					if (t != fixed_real(0.0)) {
-						pi.U = pi.U * (oldV / pi.V);
 					}
 					for (const auto &pjx : pos) {
 						const auto r = abs(pi.x - pjx);
@@ -555,13 +519,13 @@ void tree::compute_interactions(fixed_real t) {
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_interactions_action>(children[ci], t);
+			futs[ci] = hpx::async<compute_interactions_action>(children[ci]);
 		}
 		hpx::wait_all(futs);
 	}
 }
 
-void tree::compute_next_state(fixed_real t, fixed_real dt, real beta) {
+void tree::compute_next_state(fixed_real dt) {
 	static auto opts = options::get();
 	const auto use_grav = opts.gravity || opts.problem == "kepler";
 	if (leaf) {
@@ -569,21 +533,19 @@ void tree::compute_next_state(fixed_real t, fixed_real dt, real beta) {
 		parts.resize(nparts0);
 		for (int i = 0; i < nparts0; i++) {
 			auto &p = parts[i];
-			//		p.set_con();
-			const auto this_dt = opts.global_time ? dt : p.dt;
-			p.U = p.U + dudt[i] * beta * double(this_dt);
+			p.set_con();
+			p.U = p.U + dudt[i] * double(dt);
 			if (p.U.den() <= 0.0) {
 				printf("Negative density! %e\n", p.U.den().get());
 				abort();
 			}
-			if (opts.global_time || (p.t + p.dt == t + dt)) {
-				p.load_from_con();
-			}
+			p.load_from_con();
+			p.t += p.dt;
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_next_state_action>(children[ci], t, dt, beta);
+			futs[ci] = hpx::async<compute_next_state_action>(children[ci], dt);
 		}
 		hpx::wait_all(futs);
 	}
