@@ -123,12 +123,12 @@ int hpx_main(int argc, char *argv[]) {
 			printf("%e ", s.momentum[dim].get());
 		}
 		printf("Energy = %e\n", s.energy.get());
-		solve_gravity(t, dt, 0.5);
+		solve_gravity(t, dt, 1.0);
 		tree::set_drift_velocity_action()(root);
-		hydro(t, dt, 0.5);
+		hydro(t, dt, 1.0);
 		drift(t, dt);
-		hydro(t, dt, 0.5);
-		solve_gravity(t, dt, 0.5);
+	//	hydro(t, dt, 0.5);
+	//	solve_gravity(t, dt, 0.5);
 		t += dt;
 		tree::advance_time_action()(root, t);
 		i++;
