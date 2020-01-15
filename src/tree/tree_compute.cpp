@@ -334,7 +334,7 @@ fixed_real tree::compute_timestep(fixed_real t) {
 					const auto Vj = pj.to_prim();
 					const auto ci = Vi.sound_speed() + abs(Vi.vel());
 					const auto cj = Vj.sound_speed() + abs(Vj.vel());
-					const real vsig = (ci + cj - min(0.0, (pi.v - pj.v).dot(dx) / r)) / 2.0;
+					const real vsig = (ci + cj - min(0.0, (pi.Q.p / pi.Q.m - pj.Q.p / pj.Q.m).dot(dx) / r)) / 2.0;
 					if (vsig != 0.0) {
 						tmin = min(tmin, fixed_real((min(pi.h, pj.h) / vsig).get()));
 					}
@@ -344,12 +344,12 @@ fixed_real tree::compute_timestep(fixed_real t) {
 							tmin = min(tmin, fixed_real(sqrt(pi.h / a).get()));
 						}
 					}
-		//			printf( "%li\n", tmin.get_int());
+					//			printf( "%li\n", tmin.get_int());
 				}
 			}
 		}
 		tmin *= opts.cfl;
-	//	printf( "%li %li %li\n",t.next_bin().get_int(), tmin.get_int(), t.get_int());
+		//	printf( "%li %li %li\n",t.next_bin().get_int(), tmin.get_int(), t.get_int());
 		tmin = tmin.nearest_log2();
 		tmin = min(tmin, t.next_bin() - t);
 		parts.resize(nparts0);
@@ -553,7 +553,7 @@ void tree::compute_next_state(fixed_real dt) {
 void tree::set_drift_velocity() {
 	if (leaf) {
 		for (auto &p : parts) {
-			p.vf = p.v;
+			p.vf = p.Q.p / p.Q.m;
 			//		p.vf = vect(0.0);
 		}
 	} else {

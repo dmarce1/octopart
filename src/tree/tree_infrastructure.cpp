@@ -310,7 +310,7 @@ void tree::get_neighbor_particles() {
 						auto pj = parts[j];
 						if (in_range(pj.x, rsbox) || ranges_intersect(range_around(pj.x, pj.h), rbox)) {
 							pj.x[dim] = 2.0 * axis - pj.x[dim];
-							pj.v[dim] = -pj.v[dim];
+							pj.Q.p[dim] = -pj.Q.p[dim];
 							for (int n = 0; n < NDIM; n++) {
 								pj.B[n][dim] = -pj.B[n][dim];
 								pj.B[dim][n] = -pj.B[dim][n];
@@ -432,9 +432,9 @@ tree_stats tree::tree_statistics() const {
 		stats.nparts = parts.size();
 		stats.nleaves = 1;
 		for (const auto &p : parts) {
-			stats.mass += p.m;
-			stats.energy += p.E;
-			stats.momentum = stats.momentum + p.v * p.m;
+			stats.mass += p.Q.m;
+			stats.energy += p.Q.E;
+			stats.momentum = stats.momentum + p.Q.p;
 		}
 	} else {
 		stats.nparts = 0;

@@ -13,7 +13,7 @@ std::vector<particle> disc_particle_set(int N) {
 	const auto cparts = cartesian_particle_set(N);
 	for (auto p : cparts) {
 		const auto r = abs(p.x);
-		if( r < 0.5 && r > 0.0 ) {
+		if (r < 0.5 && r > 0.0) {
 			rparts.push_back(p);
 		}
 	}
@@ -57,11 +57,9 @@ std::vector<particle> random_particle_set(int N) {
 
 void particle::write(FILE *fp) const {
 	real r;
+	fwrite(&Q, sizeof(qcon_state), NDIM, fp);
 	fwrite(&x, sizeof(real), NDIM, fp);
-	fwrite(&v, sizeof(real), NDIM, fp);
 	fwrite(&g, sizeof(real), NDIM, fp);
-	fwrite(&m, sizeof(real), 1, fp);
-	fwrite(&E, sizeof(real), 1, fp);
 	fwrite(&V, sizeof(real), 1, fp);
 	fwrite(&h, sizeof(real), 1, fp);
 	fwrite(&B, sizeof(real), NDIM * NDIM, fp);
@@ -69,11 +67,9 @@ void particle::write(FILE *fp) const {
 
 int particle::read(FILE *fp) {
 	int cnt = 0;
+	cnt += fread(&Q, sizeof(qcon_state), NDIM, fp);
 	cnt += fread(&x, sizeof(real), NDIM, fp);
-	cnt += fread(&v, sizeof(real), NDIM, fp);
 	cnt += fread(&g, sizeof(real), NDIM, fp);
-	cnt += fread(&m, sizeof(real), 1, fp);
-	cnt += fread(&E, sizeof(real), 1, fp);
 	cnt += fread(&V, sizeof(real), 1, fp);
 	cnt += fread(&h, sizeof(real), 1, fp);
 	cnt += fread(&B, sizeof(real), NDIM * NDIM, fp);
@@ -87,9 +83,9 @@ primitive_state particle::to_prim() const {
 conserved_state particle::to_con() const {
 	static const auto fgamma = options::get().fgamma;
 	conserved_state U0;
-	U0.den() = m / V;
-	U0.mom() = v * (m / V);
-	U0.ene() = E / V;
+	U0.den() = Q.m / V;
+	U0.mom() = Q.p / V;
+	U0.ene() = Q.E / V;
 	return U0;
 }
 
@@ -97,10 +93,10 @@ particle particle::from_con(const conserved_state &U) const {
 	static const auto fgamma = options::get().fgamma;
 	particle p;
 	p.V = V;
-	p.E = U.ene() * V;
+	p.Q.E = U.ene() * V;
 	p.h = h;
-	p.m = U.den() * V;
-	p.v = U.mom() / U.den();
+	p.Q.m = U.den() * V;
+	p.Q.p = U.mom() * V;
 	p.B = B;
 	p.x = x;
 	p.g = g;

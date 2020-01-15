@@ -14,6 +14,18 @@ static constexpr int STATE_SIZE = NDIM + 2;
 
 using state = general_vect<real, STATE_SIZE>;
 
+struct qcon_state {
+	real m;
+	real E;
+	general_vect<real, NDIM> p;
+	template<class Arc>
+	void serialize(Arc &&arc, unsigned) {
+		arc & m;
+		arc & E;
+		arc & p;
+	}
+};
+
 class primitive_state;
 using gradient = general_vect<primitive_state,NDIM>;
 
@@ -143,6 +155,5 @@ public:
 flux_state KT(const primitive_state &UL, const primitive_state &UR);
 bool riemann_solver(flux_state&, const primitive_state &UL, const primitive_state &UR);
 bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_state &VR);
-
 
 #endif /* SRC_STATE_HPP_ */

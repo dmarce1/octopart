@@ -14,12 +14,10 @@
 #include "state.hpp"
 
 struct particle {
+	qcon_state Q;
 	vect x;
-	real m;
-	vect v;
 	vect vf;
 	vect g;
-	real E;
 	real V;
 	real h;
 	std::array<vect, NDIM> B;
@@ -27,12 +25,10 @@ struct particle {
 	int read(FILE*);
 	template<class Arc>
 	void serialize(Arc &&a, unsigned) {
+		a & Q;
 		a & vf;
 		a & g;
 		a & x;
-		a & m;
-		a & v;
-		a & E;
 		a & V;
 		a & h;
 		a & B;

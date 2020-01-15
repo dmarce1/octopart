@@ -8,10 +8,10 @@ void tree::apply_gravity(fixed_real dt) {
 	if (leaf) {
 		for (int i = 0; i < parts.size(); i++) {
 			auto &p = parts[i];
-			const auto ek0 = p.v.dot(p.v) * (p.m / 2.0);
-			p.v = p.v + p.g * double(dt);
-			const auto ek1 = p.v.dot(p.v) * (p.m / 2.0);
-			p.E += ek1 - ek0;
+			const auto ek0 = p.Q.p.dot(p.Q.p) / p.Q.m / 2.0;
+			p.Q.p = p.Q.p + p.g * p.Q.m * double(dt);
+			const auto ek1 = p.Q.p.dot(p.Q.p) / p.Q.m / 2.0;
+			p.Q.E += ek1 - ek0;
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
@@ -35,8 +35,8 @@ mass_attr tree::compute_mass_attributes() {
 	if (leaf) {
 		if (parts.size()) {
 			for (const auto &p : parts) {
-				Xcom = Xcom + p.x * p.m;
-				mtot += p.m;
+				Xcom = Xcom + p.x * p.Q.m;
+				mtot += p.Q.m;
 			}
 			Xcom = Xcom / mtot;
 			for (const auto &p : parts) {
@@ -88,7 +88,7 @@ mass_attr tree::compute_mass_attributes() {
 std::vector<gravity_part> tree::get_gravity_particles() const {
 	std::vector<gravity_part> gparts(parts.size());
 	for (int i = 0; i < parts.size(); i++) {
-		gparts[i].m = parts[i].m;
+		gparts[i].m = parts[i].Q.m;
 		gparts[i].x = parts[i].x;
 		gparts[i].h = parts[i].h;
 	}
