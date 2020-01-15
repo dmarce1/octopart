@@ -151,34 +151,26 @@ void collapse(particle &p) {
 }
 
 init_func_type get_initialization_function(const std::string &name) {
-	init_func_type init;
 	if (name == "drift") {
-		init =drift;
+		return drift;
 #if(NDIM!=1)
 	} else if (name == "kh") {
-		init =kh;
+		return kh;
 #endif
 	} else if (name == "collapse") {
-		init =collapse;
+		return collapse;
 	} else if (name == "blast") {
-		init =blast;
+		return blast;
 	} else if (name == "sod") {
-		init =sod;
+		return sod;
 	} else if (name == "kepler") {
-		init =kepler;
+		return kepler;
 	} else if (name == "rt") {
-		init =rt;
+		return rt;
 	} else if (name == "polytrope") {
-		init =single_polytrope;
+		return single_polytrope;
 	} else {
 		printf("Error: Initialization function %s is not known\n", name.c_str());
 		abort();
 	}
-	return [init](particle& p) {
-		init(p);
-		p.t = 0.0;
-		p.dt = -1.0;
-		p.set_con();
-	};
-
 }

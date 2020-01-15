@@ -8,14 +8,10 @@ void tree::apply_gravity(fixed_real dt) {
 	if (leaf) {
 		for (int i = 0; i < parts.size(); i++) {
 			auto &p = parts[i];
-			const auto v0 = p.v;
 			const auto ek0 = p.v.dot(p.v) * (p.m / 2.0);
 			p.v = p.v + p.g * double(dt);
 			const auto ek1 = p.v.dot(p.v) * (p.m / 2.0);
-			const auto v1 = p.v;
 			p.E += ek1 - ek0;
-			p.U.mom() = p.U.mom() + (v1 - v0) * p.U.den();
-			p.U.ene() = p.U.ene() + (ek1 - ek0) / p.V;
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;

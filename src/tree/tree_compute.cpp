@@ -325,8 +325,7 @@ fixed_real tree::compute_timestep(fixed_real t) {
 	if (leaf) {
 		PROFILE();
 		for (int i = 0; i < nparts0; i++) {
-			auto &pi = parts[i];
-			pi.dt = fixed_real::max();
+			const auto &pi = parts[i];
 			for (const auto &pj : parts) {
 				const auto dx = pi.x - pj.x;
 				const auto r = abs(dx);
@@ -337,22 +336,24 @@ fixed_real tree::compute_timestep(fixed_real t) {
 					const auto cj = Vj.sound_speed() + abs(Vj.vel());
 					const real vsig = (ci + cj - min(0.0, (pi.v - pj.v).dot(dx) / r)) / 2.0;
 					if (vsig != 0.0) {
-						pi.dt = min(pi.dt, fixed_real((min(pi.h, pj.h) / vsig).get()));
+						tmin = min(tmin, fixed_real((min(pi.h, pj.h) / vsig).get()));
 					}
 					if (opts.gravity) {
 						const auto a = abs(pi.g);
 						if (a > 0.0) {
-							pi.dt = min(pi.dt, fixed_real(sqrt(pi.h / a).get()));
+							tmin = min(tmin, fixed_real(sqrt(pi.h / a).get()));
 						}
 					}
+		//			printf( "%li\n", tmin.get_int());
 				}
 			}
-			pi.dt *= opts.cfl;
-			pi.dt = pi.dt.nearest_log2();
-			pi.dt = min(pi.dt, t.next_bin() - t);
-			tmin = min(pi.dt, tmin);
 		}
+		tmin *= opts.cfl;
+	//	printf( "%li %li %li\n",t.next_bin().get_int(), tmin.get_int(), t.get_int());
+		tmin = tmin.nearest_log2();
+		tmin = min(tmin, t.next_bin() - t);
 		parts.resize(nparts0);
+//		sleep(10);
 	} else {
 		std::array<hpx::future<fixed_real>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
@@ -533,14 +534,13 @@ void tree::compute_next_state(fixed_real dt) {
 		parts.resize(nparts0);
 		for (int i = 0; i < nparts0; i++) {
 			auto &p = parts[i];
-			p.set_con();
-			p.U = p.U + dudt[i] * double(dt);
-			if (p.U.den() <= 0.0) {
-				printf("Negative density! %e\n", p.U.den().get());
+			auto U = p.to_con();
+			U = U + dudt[i] * double(dt);
+			if (U.den() <= 0.0) {
+				printf("Negative density! %e\n", U.den().get());
 				abort();
 			}
-			p.load_from_con();
-			p.t += p.dt;
+			p = p.from_con(U);
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
