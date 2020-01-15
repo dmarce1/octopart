@@ -110,40 +110,10 @@ public:
 	primitive_state to_prim() const;
 };
 
-class primitive_state: public state {
-	static constexpr int d_i = 0;
-	static constexpr int p_i = 1;
-	static constexpr int v_i = 2;
-public:
-	primitive_state& operator=(const general_vect<real, STATE_SIZE> &other) {
-		for (int i = 0; i < STATE_SIZE; i++) {
-			(*this)[i] = other[i];
-		}
-		return *this;
-	}
-	inline real& den() {
-		return (*this)[d_i];
-	}
-	inline real& pre() {
-		return (*this)[p_i];
-	}
-	inline real den() const {
-		return (*this)[d_i];
-	}
-	inline real pre() const {
-		return (*this)[p_i];
-	}
-	inline vect& vel() {
-		auto *ptr = reinterpret_cast<vect*>(&((*this)[v_i]));
-		return *ptr;
-	}
-	inline vect vel() const {
-		vect v;
-		for (int dim = 0; dim < NDIM; dim++) {
-			v[dim] = (*this)[v_i + dim];
-		}
-		return v;
-	}
+struct primitive_state {
+	real rho;
+	real p;
+	vect v;
 	real sound_speed() const;
 	conserved_state to_con() const;
 	primitive_state boost_to(const vect &v) const;

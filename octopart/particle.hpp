@@ -14,6 +14,8 @@
 #include "state.hpp"
 
 struct particle {
+	primitive_state W;
+	gradient dW;
 	qcon_state Q;
 	vect x;
 	vect vf;
@@ -25,6 +27,8 @@ struct particle {
 	int read(FILE*);
 	template<class Arc>
 	void serialize(Arc &&a, unsigned) {
+		a & W;
+		a & dW;
 		a & Q;
 		a & vf;
 		a & g;

@@ -9,14 +9,14 @@ flux_state primitive_state::to_flux() const {
 	static const auto opts = options::get();
 	const real fgamma = opts.fgamma;
 	flux_state f;
-	const auto v = (*this)[v_i];
-	f[d_i] = den() * v;
+	const auto vx = v[0];
+	f[0] = rho * vx;
 	for (int dim = 0; dim < NDIM; dim++) {
-		f[v_i + dim] = den() * v * (*this)[v_i + dim];
+		f[2 + dim] = rho * vx * v[dim];
 	}
-	const auto P = max(real(0.0), pre());
-	f[v_i] += P;
-	f[p_i] = (pre() / (fgamma - 1.0) + P + den() * vel().dot(vel()) * 0.5) * v;
+	const auto P = max(real(0.0), p);
+	f[2] += P;
+	f[1] = (p / (fgamma - 1.0) + P + rho * v.dot(v) * 0.5) * vx;
 	return f;
 }
 
@@ -24,52 +24,52 @@ conserved_state primitive_state::to_con() const {
 	static const auto opts = options::get();
 	const real fgamma = opts.fgamma;
 	conserved_state U;
-	U.den() = den();
-	U.ene() = pre() / (fgamma - 1.0) + vel().dot(vel()) * den() * 0.5;
-	U.mom() = vel() * den();
+	U.den() = rho;
+	U.ene() = p / (fgamma - 1.0) + v.dot(v) * rho * 0.5;
+	U.mom() = v * rho;
 	return U;
 }
 
 real primitive_state::sound_speed() const {
 	static const auto opts = options::get();
 	const real fgamma = opts.fgamma;
-	if( den() < 0.0 ) {
-		printf( "Negative density on recon %e\n", den());
+	if( rho < 0.0 ) {
+		printf( "Negative density on recon %e\n", rho.get());
 	}
-	return sqrt(fgamma * max(pre(), real(0.0)) / den());
+	return sqrt(fgamma * max(p, real(0.0)) / rho);
 }
 
 primitive_state primitive_state::boost_to(const vect &vf) const {
-	primitive_state V = *this;
-	auto &v = V.vel();
-	v = v - vf;
-	return V;
+	primitive_state W = *this;
+	W.v = W.v - vf;
+	return W;
 }
 
 primitive_state primitive_state::dW_dt(const gradient &dW_dx) const {
 	static const auto opts = options::get();
 	const real fgamma = opts.fgamma;
-	primitive_state V;
+	primitive_state dW;
+	dW.p = dW.rho = 0.0;
 	for (int i = 0; i < STATE_SIZE; i++) {
-		V[i] = 0;
+		dW.v[i] = 0;
 	}
 	for (int dim = 0; dim < NDIM; dim++) {
-		const auto u = (*this)[v_i + dim];
-		V[d_i] -= u * dW_dx[dim][d_i];
-		V[d_i] -= (*this)[d_i] * dW_dx[dim][v_i + dim];
-		V[p_i] -= u * dW_dx[dim][p_i];
-		V[p_i] -= fgamma * (*this)[p_i] * dW_dx[dim][v_i + dim];
+		const auto u = v[dim];
+		dW.rho -= u * dW_dx[dim].rho;
+		dW.rho -= rho * dW_dx[dim].v[dim];
+		dW.p -= u * dW_dx[dim].p;
+		dW.p -= fgamma * p * dW_dx[dim].v[dim];
 		for (int n = 0; n < NDIM; n++) {
-			V[v_i + n] -= u * dW_dx[dim][v_i + n];
+			dW.v[n] -= u * dW_dx[dim].v[n];
 		}
-		V[v_i + dim] -= dW_dx[dim][p_i] / (*this)[d_i];
+		dW.v[dim] -= dW_dx[dim].p / rho;
 	}
-	return V;
+	return dW;
 }
 
 primitive_state primitive_state::rotate_to(const vect &norm) const {
-	primitive_state V = *this;
-	V.vel() = ::rotate_to(V.vel(), norm);
-	return V;
+	primitive_state W = *this;
+	W.v = ::rotate_to(W.v, norm);
+	return W;
 }
 

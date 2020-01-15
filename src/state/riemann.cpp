@@ -3,30 +3,30 @@
 #include <octopart/state.hpp>
 #include <cassert>
 
-flux_state KT(const primitive_state &VL, const primitive_state &VR) {
+flux_state KT(const primitive_state &WL, const primitive_state &WR) {
 	flux_state F;
-	const auto UR = VR.to_con();
-	const auto UL = VL.to_con();
-	const auto vR = VR.vel()[0];
-	const auto vL = VL.vel()[0];
-	const auto aR = VR.sound_speed() + abs(vR);
-	const auto aL = VL.sound_speed() + abs(vL);
+	const auto UR = WR.to_con();
+	const auto UL = WL.to_con();
+	const auto vR = WR.v[0];
+	const auto vL = WL.v[0];
+	const auto aR = WR.sound_speed() + abs(vR);
+	const auto aL = WL.sound_speed() + abs(vL);
 	const auto a = max(aR, aL);
-	F = (VR.to_flux() + VL.to_flux() - (UR - UL) * a) * 0.5;
+	F = (WR.to_flux() + WL.to_flux() - (UR - UL) * a) * 0.5;
 	return F;
 }
 
-bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_state &VR) {
+bool exact_Riemann(flux_state &F, const primitive_state &WL, const primitive_state &WR) {
 
 	static const auto opts = options::get();
 	const real fgamma = opts.fgamma;
-	const auto rhoL = VL.den();
-	const auto rhoR = VR.den();
+	const auto rhoL = WL.rho;
+	const auto rhoR = WR.rho;
 	real PL, PR;
-	const auto UR = VR.to_con();
-	const auto UL = VL.to_con();
-	PR = max(VR.pre(), 1.0e-10);
-	PL = max(VL.pre(), 1.0e-10);
+	const auto UR = WR.to_con();
+	const auto UL = WL.to_con();
+	PR = max(WR.p, 1.0e-10);
+	PL = max(WL.p, 1.0e-10);
 	flux_state FR, FL;
 
 	const auto gam1 = fgamma - 1.0;
@@ -38,8 +38,8 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 	const auto AR = 2.0 / (gam2 * rhoR);
 	const auto BL = gam1 / gam2 * PL;
 	const auto BR = gam1 / gam2 * PR;
-	const auto uL = VL.vel()[0];
-	const auto uR = VR.vel()[0];
+	const auto uL = WL.v[0];
+	const auto uR = WR.v[0];
 	const auto aR = sqrt(fgamma * PR / rhoR);
 	const auto aL = sqrt(fgamma * PL / rhoL);
 
@@ -92,40 +92,41 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 		return dfLdP(P) + dfRdP(P);
 	};
 
-	const auto VrL = [=]() {
-		primitive_state V;
+	const auto WrL = [=]() {
+		primitive_state W;
 		const auto tmp = 2.0 / gam2 + (gam1 / gam2 / aL * uL);
-		V.den() = rhoL * pow(tmp, 2.0 / gam1);
-		V.vel()[0] = 2.0 / gam2 * (aL + gam1 / 2.0 * uL);
-		V.pre() = PL * pow(2.0 / gam2 + (gam1 / gam2 / aL * uL), 2.0 * fgamma / gam1);
+		W.rho = rhoL * pow(tmp, 2.0 / gam1);
+		W.v[0] = 2.0 / gam2 * (aL + gam1 / 2.0 * uL);
+		W.p = PL * pow(2.0 / gam2 + (gam1 / gam2 / aL * uL), 2.0 * fgamma / gam1);
 		for (int dim = 1; dim < NDIM; dim++) {
-			V.vel()[dim] = VL.vel()[dim];
+			W.v[dim] = WL.v[dim];
 		}
-		return V;
+		return W;
 	};
 
-	const auto VrR = [=]() {
-		primitive_state V;
+	const auto WrR = [=]() {
+		primitive_state W;
 		const auto tmp = 2.0 / gam2 - (gam1 / gam2 / aR * uR);
-		V.den() = rhoR * pow(tmp, 2.0 / gam1);
-		V.vel()[0] = 2.0 / gam2 * (-aR + gam1 / 2.0 * uR);
-		V.pre() = PR * pow(2.0 / gam2 - (gam1 / gam2 / aR * uR), 2.0 * fgamma / gam1);
+		W.rho = rhoR * pow(tmp, 2.0 / gam1);
+		W.v[0] = 2.0 / gam2 * (-aR + gam1 / 2.0 * uR);
+		W.p = PR * pow(2.0 / gam2 - (gam1 / gam2 / aR * uR), 2.0 * fgamma / gam1);
 		for (int dim = 1; dim < NDIM; dim++) {
-			V.vel()[dim] = VR.vel()[dim];
+			W.v[dim] = WR.v[dim];
 		}
-		return V;
+		return W;
 	};
 
-	const auto VO = [=]() {
-		primitive_state V;
+	const auto WO = [=]() {
+		primitive_state W;
 		for (int i = 0; i < STATE_SIZE; i++) {
-			V[i] = 0.0;
+			W.p = W.rho = 0.0;
+			W.v = vect(0.0);
 		}
-		return V;
+		return W;
 	};
 
-	const auto V0L = [&]() {
-		primitive_state V;
+	const auto W0L = [&]() {
+		primitive_state W;
 		real rho0L;
 		if (P0 > PL) {
 			const auto num = P0 / PL + gam1 / gam2;
@@ -134,17 +135,17 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 		} else {
 			rho0L = rhoL * pow(P0 / PL, 1.0 / fgamma);
 		}
-		V.pre() = P0;
-		V.den() = rho0L;
-		V.vel()[0] = s0;
+		W.p = P0;
+		W.rho = rho0L;
+		W.v[0] = s0;
 		for (int dim = 1; dim < NDIM; dim++) {
-			V.vel()[dim] = VL.vel()[dim];
+			W.v[dim] = WL.v[dim];
 		}
-		return V;
+		return W;
 	};
 
-	const auto V0R = [&]() {
-		primitive_state V;
+	const auto W0R = [&]() {
+		primitive_state W;
 		real rho0R;
 		if (P0 > PR) {
 			const auto num = P0 / PR + gam1 / gam2;
@@ -153,37 +154,37 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 		} else {
 			rho0R = rhoR * pow(P0 / PR, 1.0 / fgamma);
 		}
-		V.pre() = P0;
-		V.den() = rho0R;
-		V.vel()[0] = s0;
+		W.p = P0;
+		W.rho = rho0R;
+		W.v[0] = s0;
 		for (int dim = 1; dim < NDIM; dim++) {
-			V.vel()[dim] = VR.vel()[dim];
+			W.v[dim] = WR.v[dim];
 		}
-		return V;
+		return W;
 	};
 
-	primitive_state Vi;
+	primitive_state Wi;
 	if (sOL < sOR) {
 		if (sOL > 0.0) {
 			if( uL - aL > 0.0 ) {
-				Vi = VL;
+				Wi = WL;
 			} else if( sOL < 0.0) {
-				Vi = VO();
+				Wi = WO();
 			} else {
-				Vi = VrL();
+				Wi = WrL();
 			}
 		} else if (sOR < 0.0) {
 			if( uR + aR < 0.0 ) {
-				Vi = VR;
+				Wi = WR;
 			} else if( sOR > 0.0) {
-				Vi = VO();
+				Wi = WO();
 			} else {
-				Vi = VrR();
+				Wi = WrR();
 			}
 		} else {
-			Vi = VO();
+			Wi = WO();
 		}
-		F = Vi.to_flux();
+		F = Wi.to_flux();
 	} else {
 
 		P0 = (PL + PR) / 2.0;
@@ -227,9 +228,9 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 			if (P0 > PL) {
 				sL = uL - QL / rhoL;
 				if (sL > 0.0) {
-					Vi = VL;
+					Wi = WL;
 				} else {
-					Vi = V0L();
+					Wi = W0L();
 				}
 			} else {
 				const auto a0L = aL * pow(P0 / PL, (fgamma - 1) / (2 * fgamma));
@@ -237,22 +238,22 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 				sTL = s0 - a0L;
 				assert(sHL <= sTL);
 				if (sHL > 0.0) {
-					Vi = VL;
+					Wi = WL;
 				} else if (sTL < 0.0) {
-					Vi = V0L();
+					Wi = W0L();
 				} else {
-					Vi = VrL();
+					Wi = WrL();
 				}
 			}
-			FL = Vi.to_flux();
+			FL = Wi.to_flux();
 		}
 		if (s0 <= 0.0) {
 			if (P0 > PR) {
 				sR = uR + QR / rhoR;
 				if (sR < 0.0) {
-					Vi = VR;
+					Wi = WR;
 				} else {
-					Vi = V0R();
+					Wi = W0R();
 				}
 			} else {
 				const auto a0R = aR * pow(P0 / PR, (fgamma - 1) / (2 * fgamma));
@@ -260,14 +261,14 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 				sTR = s0 + a0R;
 				assert(sHR >= sTR);
 				if (sHR < 0.0) {
-					Vi = VR;
+					Wi = WR;
 				} else if (sTR > 0.0) {
-					Vi = V0R();
+					Wi = W0R();
 				} else {
-					Vi = VrR();
+					Wi = WrR();
 				}
 			}
-			FR = Vi.to_flux();
+			FR = Wi.to_flux();
 		}
 		if (s0 > 0.0) {
 			F = FL;
@@ -281,23 +282,23 @@ bool exact_Riemann(flux_state &F, const primitive_state &VL, const primitive_sta
 	return true;
 }
 
-static bool HLLC(flux_state &F, const primitive_state &VL, const primitive_state &VR) {
+static bool HLLC(flux_state &F, const primitive_state &WL, const primitive_state &WR) {
 	static const auto opts = options::get();
 	const real fgamma = opts.fgamma;
 	flux_state FR, F0R;
 	flux_state FL, F0L;
-	const auto UL = VL.to_con();
-	const auto UR = VR.to_con();
-	const auto aL = VL.sound_speed();
-	const auto aR = VR.sound_speed();
+	const auto UL = WL.to_con();
+	const auto UR = WR.to_con();
+	const auto aL = WL.sound_speed();
+	const auto aR = WR.sound_speed();
 	const auto rhoL = UL.den();
 	const auto rhoR = UR.den();
 	const auto EL = UL.ene();
 	const auto ER = UR.ene();
-	const auto PL = max(VL.pre(), 1.0e-10);
-	const auto PR = max(VR.pre(), 1.0e-10);
-	const auto uL = VL.vel()[0];
-	const auto uR = VR.vel()[0];
+	const auto PL = max(WL.p, 1.0e-10);
+	const auto PR = max(WR.p, 1.0e-10);
+	const auto uL = WL.v[0];
+	const auto uR = WR.v[0];
 	int iter = 0;
 	real sR;
 	real sL;
@@ -305,7 +306,7 @@ static bool HLLC(flux_state &F, const primitive_state &VL, const primitive_state
 	const auto wL = sqrt(rhoL);
 	const auto hR = ER / rhoR;
 	const auto hL = EL / rhoL;
-	const auto ubar = (VL.vel() * wL + VR.vel() * wR) / (wL + wR);
+	const auto ubar = (WL.v * wL + WR.v * wR) / (wL + wR);
 	const auto hbar = (hR * wR + hL * wL) / (wL + wR);
 	const auto abar = sqrt(max((fgamma - 1.0) * (hbar - ubar.dot(ubar) / 2.0), real(0.0)));
 
@@ -313,11 +314,11 @@ static bool HLLC(flux_state &F, const primitive_state &VL, const primitive_state
 	sL = ubar[0] - abar;
 
 	if (sL == 0.0 && sR == 0.0) {
-		F = (VL.to_flux() + VR.to_flux()) / 2.0;
+		F = (WL.to_flux() + WR.to_flux()) / 2.0;
 	} else if (sL >= 0.0) {
-		F = VL.to_flux();
+		F = WL.to_flux();
 	} else if (sR <= 0.0) {
-		F = VR.to_flux();
+		F = WR.to_flux();
 	} else {
 		const auto s0_den = rhoL * (sL - uL) - rhoR * (sR - uR);
 		const auto s0_num = PR - PL + rhoL * uL * (sL - uL) - rhoR * uR * (sR - uR);
@@ -327,13 +328,13 @@ static bool HLLC(flux_state &F, const primitive_state &VL, const primitive_state
 			sR = max(uR, uL) + max(aL, aR);
 			sL = min(uR, uL) - max(aL, aR);
 			if (sL == 0.0 && sR == 0.0) {
-				F = (VL.to_flux() + VR.to_flux()) / 2.0;
+				F = (WL.to_flux() + WR.to_flux()) / 2.0;
 				goto RETURN;
 			} else if (sL >= 0.0) {
-				F = VL.to_flux();
+				F = WL.to_flux();
 				goto RETURN;
 			} else if (sR <= 0.0) {
-				F = VR.to_flux();
+				F = WR.to_flux();
 				goto RETURN;
 			}
 			P0 = 0.5 * (PR + rhoR * (sR - uR) * (s0 - uR) + PL + rhoL * (sL - uL) * (s0 - uL));
@@ -341,18 +342,18 @@ static bool HLLC(flux_state &F, const primitive_state &VL, const primitive_state
 				sR = max(uR + aR, uL + aL);
 				sL = min(uR - aR, uL - aL);
 				if (sL == 0.0 && sR == 0.0) {
-					F = (VL.to_flux() + VR.to_flux()) / 2.0;
+					F = (WL.to_flux() + WR.to_flux()) / 2.0;
 					goto RETURN;
 				} else if (sL >= 0.0) {
-					F = VL.to_flux();
+					F = WL.to_flux();
 					goto RETURN;
 				} else if (sR <= 0.0) {
-					F = VR.to_flux();
+					F = WR.to_flux();
 					goto RETURN;
 				}
 				P0 = 0.5 * (PR + rhoR * (sR - uR) * (s0 - uR) + PL + rhoL * (sL - uL) * (s0 - uL));
 				if (P0 <= 0.0) {
-					return exact_Riemann(F, VL, VR);
+					return exact_Riemann(F, WL, WR);
 				}
 			}
 		}
@@ -362,14 +363,14 @@ static bool HLLC(flux_state &F, const primitive_state &VL, const primitive_state
 			U0L.den() = rho0L;
 			U0L.mom()[0] = rho0L * s0;
 			for (int dim = 1; dim < NDIM; dim++) {
-				U0L.mom()[dim] = rho0L * VL.vel()[dim];
+				U0L.mom()[dim] = rho0L * WL.v[dim];
 			}
 			if (rho0L != 0.0) {
 				U0L.ene() = rho0L * (EL / rhoL + (s0 - uL) * (s0 + PL / (rhoL * (sL - uL))));
 			} else {
 				U0L.ene() = 0.0;
 			}
-			const auto FL = VL.to_flux();
+			const auto FL = WL.to_flux();
 			F0L = FL + (U0L - UL) * sL;
 		}
 		if (s0 <= 0.0) {
@@ -377,14 +378,14 @@ static bool HLLC(flux_state &F, const primitive_state &VL, const primitive_state
 			U0R.den() = rho0R;
 			U0R.mom()[0] = rho0R * s0;
 			for (int dim = 1; dim < NDIM; dim++) {
-				U0R.mom()[dim] = rho0R * VR.vel()[dim];
+				U0R.mom()[dim] = rho0R * WR.v[dim];
 			}
 			if (rho0R != 0.0) {
 				U0R.ene() = rho0R * (ER / rhoR + (s0 - uR) * (s0 + PR / (rhoR * (sR - uR))));
 			} else {
 				U0R.ene() = 0.0;
 			}
-			const auto FR = VR.to_flux();
+			const auto FR = WR.to_flux();
 			F0R = FR + (U0R - UR) * sR;
 		}
 		if (s0 == 0.0) {
@@ -399,6 +400,6 @@ static bool HLLC(flux_state &F, const primitive_state &VL, const primitive_state
 	RETURN: return true;
 }
 
-bool riemann_solver(flux_state &f, const primitive_state &VL, const primitive_state &VR) {
-	return exact_Riemann(f, VL, VR);
+bool riemann_solver(flux_state &f, const primitive_state &WL, const primitive_state &WR) {
+	return exact_Riemann(f, WL, WR);
 }
