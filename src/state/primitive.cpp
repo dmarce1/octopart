@@ -46,10 +46,7 @@ primitive_state primitive_state::dW_dt(const gradient &dW_dx) const {
 	static const auto opts = options::get();
 	const real fgamma = opts.fgamma;
 	primitive_state dW;
-	dW.p = dW.rho = 0.0;
-	for (int i = 0; i < STATE_SIZE; i++) {
-		dW.v[i] = 0;
-	}
+	dW.zero();
 	for (int dim = 0; dim < NDIM; dim++) {
 		const auto u = v[dim];
 		dW.rho -= u * dW_dx[dim].rho;
@@ -82,10 +79,13 @@ real primitive_state::operator[](int i) const {
 		return p;
 	case 2:
 		return v[i - 2];
+	default:
+		return std::numeric_limits<real>::signaling_NaN();
 	}
 }
 
 real& primitive_state::operator[](int i) {
+	static real nan = std::numeric_limits<real>::signaling_NaN();
 	switch (i) {
 	case 0:
 		return rho;
@@ -93,6 +93,8 @@ real& primitive_state::operator[](int i) {
 		return p;
 	case 2:
 		return v[i - 2];
+	default:
+		return nan;
 	}
 }
 

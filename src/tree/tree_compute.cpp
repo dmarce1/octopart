@@ -61,7 +61,6 @@ void tree::compute_gradients() {
 	static auto opts = options::get();
 	if (leaf) {
 		PROFILE();
-		assert(nparts0 == parts.size());
 		if (!opts.first_order_space) {
 			for (int i = 0; i < nparts0; i++) {
 				auto &pi = parts[i];
@@ -163,7 +162,7 @@ void tree::compute_time_derivatives(fixed_real dt) {
 							WL = WL.boost_to(uij);
 							WR = WR.boost_to(uij);
 							WL = WL + WL.dW_dt(pi.dW) * double(fixed_real(0.5) * dt);
-							WR = WR + WR.dW_dt(pi.dW) * double(fixed_real(0.5) * dt);
+							WR = WR + WR.dW_dt(pj.dW) * double(fixed_real(0.5) * dt);
 							WL = WL.boost_to(-uij);
 							WR = WR.boost_to(-uij);
 						}
@@ -174,36 +173,36 @@ void tree::compute_time_derivatives(fixed_real dt) {
 							const auto dxj = xij - pj.x;
 							for (int dim = 0; dim < NDIM; dim++) {
 								WL = WL + pi.dW[dim] * dxi[dim];
-								WR = WR + pi.dW[dim] * dxj[dim];
+								WR = WR + pj.dW[dim] * dxj[dim];
 							}
-							const auto dV_abs = abs(W_j, W_i);
-							const auto delta_1 = dV_abs * psi1;
-							const auto delta_2 = dV_abs * psi2;
-							const auto V_min = min(W_i, W_j);
-							const auto V_max = max(W_i, W_j);
-							const auto V_bar_i = W_i + (W_j - W_i) * abs(xij - pi.x) / abs(pi.x - pj.x);
-							const auto V_bar_j = W_j + (W_i - W_j) * abs(xij - pj.x) / abs(pi.x - pj.x);
+							const auto dW_abs = abs(W_j, W_i);
+							const auto delta_1 = dW_abs * psi1;
+							const auto delta_2 = dW_abs * psi2;
+							const auto W_min = min(W_i, W_j);
+							const auto W_max = max(W_i, W_j);
+							const auto W_bar_i = W_i + (W_j - W_i) * abs(xij - pi.x) / abs(pi.x - pj.x);
+							const auto W_bar_j = W_j + (W_i - W_j) * abs(xij - pj.x) / abs(pi.x - pj.x);
 							for (int f = 0; f < STATE_SIZE; f++) {
-								real V_m;
-								real V_p;
-								if ((V_min[f] - delta_1[f]) * V_min[f] >= 0.0) {
-									V_m = V_min[f] - delta_1[f];
+								real W_m;
+								real W_p;
+								if ((W_min[f] - delta_1[f]) * W_min[f] >= 0.0) {
+									W_m = W_min[f] - delta_1[f];
 								} else {
-									V_m = V_min[f] * abs(V_min[f]) / (abs(V_min[f]) + delta_1[f]);
+									W_m = W_min[f] * abs(W_min[f]) / (abs(W_min[f]) + delta_1[f]);
 								}
-								if ((V_max[f] + delta_1[f]) * V_max[f] >= 0.0) {
-									V_p = V_max[f] + delta_1[f];
+								if ((W_max[f] + delta_1[f]) * W_max[f] >= 0.0) {
+									W_p = W_max[f] + delta_1[f];
 								} else {
-									V_p = V_max[f] * abs(V_max[f]) / (abs(V_max[f]) + delta_1[f]);
+									W_p = W_max[f] * abs(W_max[f]) / (abs(W_max[f]) + delta_1[f]);
 								}
 								if (W_i[f] == W_j[f]) {
 									WR[f] = WL[f] = W_i[f];
 								} else if (W_i[f] < W_j[f]) {
-									WL[f] = max(V_m, min(V_bar_i[f] + delta_2[f], WL[f]));
-									WR[f] = min(V_p, max(V_bar_j[f] - delta_2[f], WR[f]));
+									WL[f] = max(W_m, min(W_bar_i[f] + delta_2[f], WL[f]));
+									WR[f] = min(W_p, max(W_bar_j[f] - delta_2[f], WR[f]));
 								} else {
-									WL[f] = min(V_p, max(V_bar_i[f] - delta_2[f], WL[f]));
-									WR[f] = max(V_m, min(V_bar_j[f] + delta_2[f], WR[f]));
+									WL[f] = min(W_p, max(W_bar_i[f] - delta_2[f], WL[f]));
+									WR[f] = max(W_m, min(W_bar_j[f] + delta_2[f], WR[f]));
 								}
 							}
 						}
@@ -224,22 +223,7 @@ void tree::compute_time_derivatives(fixed_real dt) {
 						WL = WL.rotate_to(norm);
 						WR = WR.rotate_to(norm);
 						flux_state F;
-						if (!riemann_solver(F, WL, WR)) {
-							printf("Riemann failed high order\n");
-							sleep(1);
-							WL = W_i;
-							WR = W_j;
-							WL = WL.boost_to(uij);
-							WR = WR.boost_to(uij);
-							WL = WL.rotate_to(norm);
-							WR = WR.rotate_to(norm);
-							const auto rc = riemann_solver(F, W_i, W_j);
-							if (!rc) {
-								printf("Rieman Solver failed\n");
-								abort();
-								F = KT(W_i, W_j);
-							}
-						}
+						riemann_solver(F, WL, WR);
 						F = F.rotate_from(norm);
 						F = F.boost_from(uij);
 						if (i < nparts0) {

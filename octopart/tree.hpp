@@ -101,7 +101,7 @@ public:
 	hpx::id_type get_parent() const;
 	std::vector<vect> get_particle_positions(range, const vect&) const;
 	std::vector<particle> get_particles(range, range, const vect&) const;
-	void get_neighbor_particles(bool init);
+	void get_neighbor_particles();
 	void initialize(const std::string&);
 	void redistribute_workload(int, int);
 	void send_particles(const std::vector<particle>&, const vect&);
