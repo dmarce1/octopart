@@ -76,9 +76,9 @@ int particle::read(FILE *fp) {
 	return cnt;
 }
 
-primitive_state particle::to_prim() const {
-	return to_con().to_prim();
-}
+//primitive_state particle::to_prim() const {
+//	return to_con().to_prim();
+//}
 
 conserved_state particle::to_con() const {
 	static const auto fgamma = options::get().fgamma;

@@ -120,7 +120,30 @@ struct primitive_state {
 	primitive_state rotate_to(const vect &norm) const;
 	primitive_state dW_dt(const gradient&) const;
 	flux_state to_flux() const;
+	void zero();
+	primitive_state operator*(const real &other) const;
+	primitive_state operator+(const primitive_state &other) const;
+	primitive_state operator-() const;
+	inline primitive_state operator/(const real &other) const {
+		return (*this) * (1.0 / other);
+	}
+	inline primitive_state operator-(const primitive_state &other) const {
+		return (*this) + -other;
+	}
+	real operator[](int i) const;
+	real& operator[](int i);
+	template<class Arc>
+	void serialize(Arc &&a, unsigned) {
+		a & rho;
+		a & p;
+		a & v;
+	}
 };
+
+primitive_state max(const primitive_state &a, const primitive_state &b);
+primitive_state min(const primitive_state &a, const primitive_state &b);
+primitive_state abs(const primitive_state &a, const primitive_state &b);
+
 
 flux_state KT(const primitive_state &UL, const primitive_state &UR);
 bool riemann_solver(flux_state&, const primitive_state &UL, const primitive_state &UR);

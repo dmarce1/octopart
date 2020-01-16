@@ -88,14 +88,14 @@ int main(int argc, char *argv[]) {
 		}
 		for (const auto &pi : parts) {
 			const auto U = pi.to_con();
-			const auto V = U.to_prim();
-			rho.push_back(V.den());
-			ein.push_back(U.ene() - V.vel().dot(U.mom()) / 2.0);
+			const auto W = pi.W;
+			rho.push_back(W.rho);
+			ein.push_back(U.ene() - W.v.dot(U.mom()) / 2.0);
 			h.push_back(pi.h);
 			std::array<vect, NDIM> E;
 			Nc.push_back(condition_number(pi.B, E));
 			for (int dim = 0; dim < NDIM; dim++) {
-				vel[dim].push_back(V.vel()[dim]);
+				vel[dim].push_back(W.v[dim]);
 				g[dim].push_back(pi.g[dim]);
 			}
 		}

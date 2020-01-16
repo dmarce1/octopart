@@ -1,9 +1,6 @@
-
 #include <octopart/state.hpp>
 #include <octopart/math.hpp>
 #include <octopart/options.hpp>
-
-
 
 flux_state primitive_state::to_flux() const {
 	static const auto opts = options::get();
@@ -33,8 +30,8 @@ conserved_state primitive_state::to_con() const {
 real primitive_state::sound_speed() const {
 	static const auto opts = options::get();
 	const real fgamma = opts.fgamma;
-	if( rho < 0.0 ) {
-		printf( "Negative density on recon %e\n", rho.get());
+	if (rho < 0.0) {
+		printf("Negative density on recon %e\n", rho.get());
 	}
 	return sqrt(fgamma * max(p, real(0.0)) / rho);
 }
@@ -67,9 +64,87 @@ primitive_state primitive_state::dW_dt(const gradient &dW_dx) const {
 	return dW;
 }
 
+primitive_state primitive_state::operator*(const real &other) const {
+	primitive_state rc;
+	rc.rho = rho * other;
+	rc.p = p * other;
+	rc.v = v * other;
+	return rc;
+}
+
+
+
+real primitive_state::operator[](int i) const {
+	switch (i) {
+	case 0:
+		return rho;
+	case 1:
+		return p;
+	case 2:
+		return v[i - 2];
+	}
+}
+
+real& primitive_state::operator[](int i) {
+	switch (i) {
+	case 0:
+		return rho;
+	case 1:
+		return p;
+	case 2:
+		return v[i - 2];
+	}
+}
+
+primitive_state primitive_state::operator+(const primitive_state &other) const {
+	primitive_state rc;
+	rc.rho = rho + other.rho;
+	rc.p = p + other.p;
+	rc.v = v + other.v;
+	return rc;
+}
+
+primitive_state abs(const primitive_state &a, const primitive_state &b) {
+	primitive_state rc;
+	rc.rho = abs(a.rho - b.rho);
+	rc.p = abs(a.p - b.p);
+	rc.v = abs(a.v - b.v);
+	return rc;
+}
+
+primitive_state primitive_state::operator-() const {
+	primitive_state rc;
+	rc.rho = -rho;
+	rc.p = -p;
+	rc.v = -v;
+	return rc;
+}
+
+primitive_state max(const primitive_state &a, const primitive_state &b) {
+	primitive_state rc;
+	rc.rho = max(a.rho, b.rho);
+	rc.p = max(a.p, b.p);
+	rc.v = max(a.v, b.v);
+	return rc;
+}
+
+primitive_state min(const primitive_state &a, const primitive_state &b) {
+	primitive_state rc;
+	rc.rho = min(a.rho, b.rho);
+	rc.p = min(a.p, b.p);
+	rc.v = min(a.v, b.v);
+	return rc;
+}
+
 primitive_state primitive_state::rotate_to(const vect &norm) const {
 	primitive_state W = *this;
 	W.v = ::rotate_to(W.v, norm);
 	return W;
+}
+
+void primitive_state::zero() {
+	v = vect(0.0);
+	p = 0.0;
+	rho = 0.0;
 }
 

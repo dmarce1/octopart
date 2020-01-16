@@ -37,7 +37,7 @@ struct particle {
 		a & h;
 		a & B;
 	}
-	primitive_state to_prim() const;
+//	primitive_state to_prim() const;
 	conserved_state to_con() const;
 	particle from_con(const conserved_state&) const;
 };
