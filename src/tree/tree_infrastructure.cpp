@@ -269,7 +269,6 @@ std::vector<gradient> tree::get_gradients(range big, range small, const vect &sh
 		const auto &pi = parts[i];
 		if (in_range(pi.x, big) || ranges_intersect(range_around(pi.x, pi.h), small)) {
 			gj.push_back(grad[i]);
-			gj.push_back(grad_lim[i]);
 		}
 	}
 	return gj;

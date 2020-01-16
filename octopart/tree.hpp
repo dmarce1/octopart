@@ -61,7 +61,6 @@ struct mass_attr {
 class tree: public hpx::components::migration_support<hpx::components::component_base<tree>> {
 	std::vector<particle> new_parts;
 	std::vector<particle> parts;
-	std::vector<gradient> grad_lim;
 	std::vector<gradient> grad;
 	std::vector<conserved_state> dudt;
 	std::vector<real> Ncond;

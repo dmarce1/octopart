@@ -63,7 +63,6 @@ void tree::compute_gradients() {
 		PROFILE();
 		assert(nparts0 == parts.size());
 		grad.resize(nparts0);
-		grad_lim.resize(nparts0);
 		if (!opts.first_order_space) {
 			for (int i = 0; i < nparts0; i++) {
 				const auto &pi = parts[i];
@@ -88,7 +87,6 @@ void tree::compute_gradients() {
 						}
 					}
 				}
-				grad_lim[i] = grad[i];
 				real max_dx = 0.0;
 				for (const auto &pj : parts) {
 					const auto r = abs(pi.x - pj.x);
@@ -111,7 +109,7 @@ void tree::compute_gradients() {
 					const auto dmin_ngb = piW[k] - min_ngb[k];
 					real grad_abs = 0.0;
 					for (int dim = 0; dim < NDIM; dim++) {
-						grad_abs += grad_lim[i][dim][k] * grad_lim[i][dim][k];
+						grad_abs += grad[i][dim][k] * grad[i][dim][k];
 					}
 					grad_abs = sqrt(grad_abs);
 					const real den = grad_abs * max_dx;
@@ -121,7 +119,7 @@ void tree::compute_gradients() {
 						alpha = min(1.0, beta * min(dmax_ngb / den, dmin_ngb / den));
 					}
 					for (int dim = 0; dim < NDIM; dim++) {
-						grad_lim[i][dim][k] = grad_lim[i][dim][k] * alpha;
+						grad[i][dim][k] = grad[i][dim][k] * alpha;
 					}
 
 				}
@@ -155,16 +153,14 @@ void tree::compute_time_derivatives(fixed_real dt) {
 			for (int i = 0; i < siblings.size(); i++) {
 				const auto these_grads = futs[i].get();
 				std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
-				for (int j = 0; j < these_grads.size(); j += 2) {
+				for (int j = 0; j < these_grads.size(); j++) {
 					grad.push_back(these_grads[j]);
-					grad_lim.push_back(these_grads[j + 1]);
 				}
 			}
 			const bool rbc[3] = { opts.x_reflecting, opts.y_reflecting, opts.z_reflecting };
 			for (int i = 0; i < 2 * NDIM; i++) {
 				if (rbc[i / 2]) {
 					std::vector<gradient> rgrad;
-					std::vector<gradient> rgrad_lim;
 					const auto sz = grad.size();
 					const auto dim = i / 2;
 					real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
@@ -175,19 +171,14 @@ void tree::compute_time_derivatives(fixed_real dt) {
 							const auto &pj = parts[j];
 							if (in_range(pj.x, rsbox) || ranges_intersect(range_around(pj.x, pj.h), rbox)) {
 								auto g = grad[j];
-								auto gl = grad_lim[j];
 								g[dim] = -g[dim];
-								gl[dim] = -gl[dim];
 								g[dim].v[dim] = -g[dim].v[dim];
-								gl[dim].v[dim] = -gl[dim].v[dim];
 								rgrad.push_back(g);
-								rgrad_lim.push_back(gl);
 							}
 						}
 					}
 					std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
 					grad.insert(grad.end(), rgrad.begin(), rgrad.end());
-					grad_lim.insert(grad_lim.end(), rgrad_lim.begin(), rgrad_lim.end());
 				}
 			}
 		}PROFILE();
@@ -217,8 +208,8 @@ void tree::compute_time_derivatives(fixed_real dt) {
 						if (!opts.first_order_time) {
 							WL = WL.boost_to(uij);
 							WR = WR.boost_to(uij);
-							WL = WL + WL.dW_dt(grad_lim[i]) * double(fixed_real(0.5) * dt);
-							WR = WR + WR.dW_dt(grad_lim[j]) * double(fixed_real(0.5) * dt);
+							WL = WL + WL.dW_dt(grad[i]) * double(fixed_real(0.5) * dt);
+							WR = WR + WR.dW_dt(grad[j]) * double(fixed_real(0.5) * dt);
 							WL = WL.boost_to(-uij);
 							WR = WR.boost_to(-uij);
 						}
@@ -228,8 +219,8 @@ void tree::compute_time_derivatives(fixed_real dt) {
 							const auto dxi = xij - pi.x;
 							const auto dxj = xij - pj.x;
 							for (int dim = 0; dim < NDIM; dim++) {
-								WL = WL + grad_lim[i][dim] * dxi[dim];
-								WR = WR + grad_lim[j][dim] * dxj[dim];
+								WL = WL + grad[i][dim] * dxi[dim];
+								WR = WR + grad[j][dim] * dxj[dim];
 							}
 							const auto dV_abs = abs(W_j, W_i);
 							const auto delta_1 = dV_abs * psi1;
@@ -532,7 +523,7 @@ void tree::compute_next_state(fixed_real dt) {
 		parts.resize(nparts0);
 		for (int i = 0; i < nparts0; i++) {
 			auto &p = parts[i];
-			auto& Q = p.Q;
+			auto &Q = p.Q;
 			Q = Q + (dudt[i] * double(dt));
 			if (Q.m <= 0.0) {
 				printf("Negative density! %e\n", Q.m.get());
