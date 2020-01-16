@@ -62,16 +62,15 @@ void tree::compute_gradients() {
 	if (leaf) {
 		PROFILE();
 		assert(nparts0 == parts.size());
-		grad.resize(nparts0);
 		if (!opts.first_order_space) {
 			for (int i = 0; i < nparts0; i++) {
-				const auto &pi = parts[i];
+				auto &pi = parts[i];
 				primitive_state max_ngb;
 				primitive_state min_ngb;
 				const auto piW = pi.W;
 				max_ngb = min_ngb = piW;
 				for (int dim = 0; dim < NDIM; dim++) {
-					grad[i][dim].zero();
+					pi.dW[dim].zero();
 				}
 				for (const auto &pj : parts) {
 					const auto r = abs(pi.x - pj.x);
@@ -83,7 +82,7 @@ void tree::compute_gradients() {
 							for (int m = 0; m < NDIM; m++) {
 								psi_a_j += pi.B[dim][m] * (pj.x[m] - pi.x[m]) * W(r, h) * pi.V;
 							}
-							grad[i][dim] = grad[i][dim] + (pjW - piW) * psi_a_j;
+							pi.dW[dim] = pi.dW[dim] + (pjW - piW) * psi_a_j;
 						}
 					}
 				}
@@ -109,7 +108,7 @@ void tree::compute_gradients() {
 					const auto dmin_ngb = piW[k] - min_ngb[k];
 					real grad_abs = 0.0;
 					for (int dim = 0; dim < NDIM; dim++) {
-						grad_abs += grad[i][dim][k] * grad[i][dim][k];
+						grad_abs += pi.dW[dim][k] * pi.dW[dim][k];
 					}
 					grad_abs = sqrt(grad_abs);
 					const real den = grad_abs * max_dx;
@@ -119,7 +118,7 @@ void tree::compute_gradients() {
 						alpha = min(1.0, beta * min(dmax_ngb / den, dmin_ngb / den));
 					}
 					for (int dim = 0; dim < NDIM; dim++) {
-						grad[i][dim][k] = grad[i][dim][k] * alpha;
+						pi.dW[dim][k] = pi.dW[dim][k] * alpha;
 					}
 
 				}
@@ -137,51 +136,6 @@ void tree::compute_gradients() {
 void tree::compute_time_derivatives(fixed_real dt) {
 	static auto opts = options::get();
 	if (leaf) {
-		if (!opts.first_order_space) {
-			range sbox = null_range();
-			std::vector<hpx::future<std::vector<gradient>>> futs(siblings.size());
-			for (int i = 0; i < nparts0; i++) {
-				const auto &pi = parts[i];
-				for (int dim = 0; dim < NDIM; dim++) {
-					sbox.min[dim] = min(sbox.min[dim], pi.x[dim] - pi.h);
-					sbox.max[dim] = max(sbox.max[dim], pi.x[dim] + pi.h);
-				}
-			}
-			for (int i = 0; i < siblings.size(); i++) {
-				futs[i] = hpx::async<get_gradients_action>(siblings[i].id, sbox, box, siblings[i].pshift);
-			}
-			for (int i = 0; i < siblings.size(); i++) {
-				const auto these_grads = futs[i].get();
-				std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
-				for (int j = 0; j < these_grads.size(); j++) {
-					grad.push_back(these_grads[j]);
-				}
-			}
-			const bool rbc[3] = { opts.x_reflecting, opts.y_reflecting, opts.z_reflecting };
-			for (int i = 0; i < 2 * NDIM; i++) {
-				if (rbc[i / 2]) {
-					std::vector<gradient> rgrad;
-					const auto sz = grad.size();
-					const auto dim = i / 2;
-					real axis = i % 2 ? root_box.max[dim] : root_box.min[dim];
-					if (axis == (i % 2 ? box.max[dim] : box.min[dim])) {
-						const auto rsbox = reflect_range(sbox, dim, axis);
-						const auto rbox = reflect_range(box, dim, axis);
-						for (int j = 0; j < sz; j++) {
-							const auto &pj = parts[j];
-							if (in_range(pj.x, rsbox) || ranges_intersect(range_around(pj.x, pj.h), rbox)) {
-								auto g = grad[j];
-								g[dim] = -g[dim];
-								g[dim].v[dim] = -g[dim].v[dim];
-								rgrad.push_back(g);
-							}
-						}
-					}
-					std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
-					grad.insert(grad.end(), rgrad.begin(), rgrad.end());
-				}
-			}
-		}PROFILE();
 		dudt.resize(nparts0);
 		for (auto &du : dudt) {
 			for (int i = 0; i < STATE_SIZE; i++) {
@@ -208,8 +162,8 @@ void tree::compute_time_derivatives(fixed_real dt) {
 						if (!opts.first_order_time) {
 							WL = WL.boost_to(uij);
 							WR = WR.boost_to(uij);
-							WL = WL + WL.dW_dt(grad[i]) * double(fixed_real(0.5) * dt);
-							WR = WR + WR.dW_dt(grad[j]) * double(fixed_real(0.5) * dt);
+							WL = WL + WL.dW_dt(pi.dW) * double(fixed_real(0.5) * dt);
+							WR = WR + WR.dW_dt(pi.dW) * double(fixed_real(0.5) * dt);
 							WL = WL.boost_to(-uij);
 							WR = WR.boost_to(-uij);
 						}
@@ -219,8 +173,8 @@ void tree::compute_time_derivatives(fixed_real dt) {
 							const auto dxi = xij - pi.x;
 							const auto dxj = xij - pj.x;
 							for (int dim = 0; dim < NDIM; dim++) {
-								WL = WL + grad[i][dim] * dxi[dim];
-								WR = WR + grad[j][dim] * dxj[dim];
+								WL = WL + pi.dW[dim] * dxi[dim];
+								WR = WR + pi.dW[dim] * dxj[dim];
 							}
 							const auto dV_abs = abs(W_j, W_i);
 							const auto delta_1 = dV_abs * psi1;

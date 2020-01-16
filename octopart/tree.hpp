@@ -61,7 +61,6 @@ struct mass_attr {
 class tree: public hpx::components::migration_support<hpx::components::component_base<tree>> {
 	std::vector<particle> new_parts;
 	std::vector<particle> parts;
-	std::vector<gradient> grad;
 	std::vector<conserved_state> dudt;
 	std::vector<real> Ncond;
 	std::array<hpx::id_type, NCHILD> children;
@@ -97,13 +96,12 @@ public:
 	tree_attr finish_drift();
 	tree_attr get_attributes() const;
 	std::array<hpx::id_type, NCHILD> get_children() const;
-	std::vector<gradient> get_gradients(range, range, const vect&) const;
 	std::vector<gravity_part> get_gravity_particles() const;
 	mass_attr get_mass_attributes() const;
 	hpx::id_type get_parent() const;
 	std::vector<vect> get_particle_positions(range, const vect&) const;
 	std::vector<particle> get_particles(range, range, const vect&) const;
-	void get_neighbor_particles();
+	void get_neighbor_particles(bool init);
 	void initialize(const std::string&);
 	void redistribute_workload(int, int);
 	void send_particles(const std::vector<particle>&, const vect&);
@@ -150,7 +148,6 @@ public:
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_checkpoint);
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_silo);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_attributes);
-	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_gradients);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_gravity_particles);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_mass_attributes);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_parent);

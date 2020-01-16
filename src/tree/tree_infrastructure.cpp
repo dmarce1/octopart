@@ -259,26 +259,13 @@ std::array<hpx::id_type, NCHILD> tree::get_children() const {
 	return children;
 }
 
-std::vector<gradient> tree::get_gradients(range big, range small, const vect &shift) const {
-	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
-	PROFILE();
-	std::vector<gradient> gj;
-	big = shift_range(big, -shift);
-	small = shift_range(small, -shift);
-	for (int i = 0; i < nparts0; i++) {
-		const auto &pi = parts[i];
-		if (in_range(pi.x, big) || ranges_intersect(range_around(pi.x, pi.h), small)) {
-			gj.push_back(grad[i]);
-		}
-	}
-	return gj;
-}
 
-
-void tree::get_neighbor_particles() {
+void tree::get_neighbor_particles(bool init) {
 	static auto opts = options::get();
 	if (leaf) {
-		assert(nparts0 == parts.size());
+		if( init ) {
+			parts.resize(nparts0);
+		}
 		range sbox = null_range();
 		std::vector<hpx::future<std::vector<particle>>> futs(siblings.size());
 		for (const auto &pi : parts) {
@@ -290,10 +277,17 @@ void tree::get_neighbor_particles() {
 		for (int i = 0; i < siblings.size(); i++) {
 			futs[i] = hpx::async<get_particles_action>(siblings[i].id, sbox, box, siblings[i].pshift);
 		}
+		int k = nparts0;
 		for (int i = 0; i < siblings.size(); i++) {
 			const auto these_parts = futs[i].get();
 			std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
-			parts.insert(parts.end(), these_parts.begin(), these_parts.end());
+			if( init ) {
+				parts.insert(parts.end(), these_parts.begin(), these_parts.end());
+			} else {
+				for( int j = 0; j < these_parts.size(); j++) {
+					parts[k++] = these_parts[j];
+				}
+			}
 		}
 		const bool rbc[3] = { opts.x_reflecting, opts.y_reflecting, opts.z_reflecting };
 		for (int i = 0; i < 2 * NDIM; i++) {
@@ -319,13 +313,19 @@ void tree::get_neighbor_particles() {
 					}
 				}
 				std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
-				parts.insert(parts.end(), rparts.begin(), rparts.end());
+				if( init ) {
+					parts.insert(parts.end(), rparts.begin(), rparts.end());
+				} else {
+					for( int j = 0; j < rparts.size(); j++) {
+						parts[k++] = rparts[j];
+					}
+				}
 			}
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<get_neighbor_particles_action>(children[ci]);
+			futs[ci] = hpx::async<get_neighbor_particles_action>(children[ci], init);
 		}
 		hpx::wait_all(futs);
 	}

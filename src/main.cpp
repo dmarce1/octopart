@@ -29,8 +29,11 @@ void drift(fixed_real dt) {
 void hydro(fixed_real dt) {
 	static const auto opts = options::get();
 	if (!opts.dust_only) {
-		tree::get_neighbor_particles_action()(root);
-		tree::compute_gradients_action()(root);
+		if( opts.first_order_space) {
+			tree::get_neighbor_particles_action()(root,false);
+			tree::compute_gradients_action()(root);
+		}
+		tree::get_neighbor_particles_action()(root,false);
 		tree::compute_time_derivatives_action()(root, dt);
 		tree::compute_next_state_action()(root, dt);
 	}
@@ -52,7 +55,7 @@ void write_checkpoint(int i) {
 
 fixed_real timestep(fixed_real t) {
 	static const auto opts = options::get();
-	tree::get_neighbor_particles_action()(root);
+	tree::get_neighbor_particles_action()(root,true);
 	fixed_real dt = tree::compute_timestep_action()(root,t);
 	return dt;
 }
@@ -123,12 +126,11 @@ int hpx_main(int argc, char *argv[]) {
 			printf("%e ", s.momentum[dim].get());
 		}
 		printf("Energy = %e\n", s.energy.get());
-		solve_gravity(dt / fixed_real(2.0));
+	//	solve_gravity(dt / fixed_real(2.0));
 		tree::set_drift_velocity_action()(root);
-		hydro(dt / fixed_real(2.0));
+		hydro(dt);
 		drift(dt);
-		hydro(dt / fixed_real(2.0));
-		solve_gravity(dt / fixed_real(2.0));
+//		solve_gravity(dt / fixed_real(2.0));
 		t += dt;
 		i++;
 		if (int((last_output / fixed_real(opts.output_freq))) != int(((t / fixed_real(opts.output_freq))))) {
