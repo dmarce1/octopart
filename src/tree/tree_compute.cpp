@@ -298,10 +298,10 @@ void tree::compute_time_derivatives(fixed_real dt) {
 						F = F.rotate_from(norm);
 						F = F.boost_from(uij);
 						if (i < nparts0) {
-							dudt[i] = dudt[i] - F * abs(da) / pi.V;
+							dudt[i] = dudt[i] - F * abs(da);
 						}
 						if (j < nparts0) {
-							dudt[j] = dudt[j] + F * abs(da) / pj.V;
+							dudt[j] = dudt[j] + F * abs(da);
 						}
 					}
 				}
@@ -532,13 +532,13 @@ void tree::compute_next_state(fixed_real dt) {
 		parts.resize(nparts0);
 		for (int i = 0; i < nparts0; i++) {
 			auto &p = parts[i];
-			auto U = p.to_con();
-			U = U + dudt[i] * double(dt);
-			if (U.den() <= 0.0) {
-				printf("Negative density! %e\n", U.den().get());
+			auto& Q = p.Q;
+			Q = Q + (dudt[i] * double(dt));
+			if (Q.m <= 0.0) {
+				printf("Negative density! %e\n", Q.m.get());
 				abort();
 			}
-			p = p.from_con(U);
+			p.con_to_prim();
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;

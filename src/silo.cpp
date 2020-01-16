@@ -87,10 +87,10 @@ int main(int argc, char *argv[]) {
 			g[dim].reserve(nnodes);
 		}
 		for (const auto &pi : parts) {
-			const auto U = pi.to_con();
+			const auto Q = pi.Q;
 			const auto W = pi.W;
-			rho.push_back(W.rho);
-			ein.push_back(U.ene() - W.v.dot(U.mom()) / 2.0);
+			rho.push_back(Q.m / pi.V);
+			ein.push_back(Q.E / pi.V - W.v.dot(Q.p / pi.V) / 2.0);
 			h.push_back(pi.h);
 			std::array<vect, NDIM> E;
 			Nc.push_back(condition_number(pi.B, E));

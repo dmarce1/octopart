@@ -19,10 +19,19 @@ struct qcon_state {
 	real E;
 	general_vect<real, NDIM> p;
 	template<class Arc>
-	void serialize(Arc &&arc, unsigned) {
+	inline void serialize(Arc &&arc, unsigned) {
 		arc & m;
 		arc & E;
 		arc & p;
+	}
+	inline qcon_state operator+(const general_vect<real,STATE_SIZE> &b) {
+		qcon_state c;
+		c.m = m + b[0];
+		c.E = E + b[1];
+		for (int dim = 0; dim < NDIM; dim++) {
+			c.p[dim] = p[dim] + b[2 + dim];
+		}
+		return c;
 	}
 };
 
@@ -143,7 +152,6 @@ struct primitive_state {
 primitive_state max(const primitive_state &a, const primitive_state &b);
 primitive_state min(const primitive_state &a, const primitive_state &b);
 primitive_state abs(const primitive_state &a, const primitive_state &b);
-
 
 flux_state KT(const primitive_state &UL, const primitive_state &UR);
 bool riemann_solver(flux_state&, const primitive_state &UL, const primitive_state &UR);

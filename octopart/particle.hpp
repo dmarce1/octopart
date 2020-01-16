@@ -25,6 +25,7 @@ struct particle {
 	std::array<vect, NDIM> B;
 	void write(FILE*) const;
 	int read(FILE*);
+	void con_to_prim();
 	template<class Arc>
 	void serialize(Arc &&a, unsigned) {
 		a & W;
@@ -38,8 +39,8 @@ struct particle {
 		a & B;
 	}
 //	primitive_state to_prim() const;
-	conserved_state to_con() const;
-	particle from_con(const conserved_state&) const;
+//	conserved_state to_con() const;
+//	particle from_con(const conserved_state&) const;
 };
 
 
