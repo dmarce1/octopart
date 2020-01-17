@@ -18,9 +18,11 @@ struct particle {
 	primitive_state W;
 	gradient dW;
 	qcon_state Q;
+	real m0;
 	vect x;
 	vect vf;
 	vect g;
+	vect g0;
 	real V;
 	real h;
 	fixed_real t;
@@ -36,6 +38,8 @@ struct particle {
 		a & W;
 		a & dW;
 		a & Q;
+		a & m0;
+		a & g0;
 		a & vf;
 		a & g;
 		a & x;

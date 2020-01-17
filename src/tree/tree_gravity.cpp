@@ -11,7 +11,7 @@ void tree::apply_gravity(fixed_real t, fixed_real dt) {
 			auto &p = parts[i];
 			if (p.t + p.dt == t + dt || opts.global_time) {
 				const auto ek0 = p.Q.p.dot(p.Q.p) / p.Q.m / 2.0;
-				p.Q.p = p.Q.p + p.g * p.Q.m * double(dt);
+				p.Q.p = p.Q.p + (p.g0 * p.m0 + p.g * p.Q.m) * (0.5 * double(dt));
 				const auto ek1 = p.Q.p.dot(p.Q.p) / p.Q.m / 2.0;
 				p.Q.E += ek1 - ek0;
 			}

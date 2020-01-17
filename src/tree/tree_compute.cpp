@@ -256,6 +256,8 @@ fixed_real tree::compute_timestep(fixed_real t) {
 		for (int i = 0; i < nparts0; i++) {
 			auto &pi = parts[i];
 			if (pi.t == t || opts.global_time) {
+				pi.m0 = pi.Q.m;
+				pi.g0 = pi.g;
 				pi.dt = fixed_real::max();
 				const auto Wi = pi.W;
 				const auto ci = Wi.sound_speed();
