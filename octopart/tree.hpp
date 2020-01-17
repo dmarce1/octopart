@@ -82,13 +82,13 @@ public:
 	void apply_gravity(fixed_real);
 	mass_attr compute_mass_attributes();
 	void compute_drift(fixed_real);
-	void compute_gradients();
+	void compute_gradients(fixed_real t);
 	void compute_gravity(std::vector<hpx::id_type>, std::vector<mass_attr>);
-	void compute_conservative_update(fixed_real);
+	void compute_conservative_update(fixed_real, fixed_real);
 	fixed_real compute_timestep(fixed_real);
 	void compute_interactions();
 	int compute_workload();
-	void con_to_prim();
+	void con_to_prim(fixed_real t);
 	void create_children();
 	std::vector<particle> destroy();
 	void form_tree(std::vector<hpx::id_type>, bool = true);

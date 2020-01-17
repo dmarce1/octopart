@@ -26,15 +26,11 @@ void drift(fixed_real dt) {
 	tree::compute_interactions_action()(root);
 }
 
-void hydro(fixed_real dt) {
+void hydro(fixed_real t, fixed_real dt) {
 	static const auto opts = options::get();
 	if (!opts.dust_only) {
-		if( !opts.first_order_space) {
-			tree::get_neighbor_particles_action()(root);
-			tree::compute_gradients_action()(root);
-		}
 		tree::get_neighbor_particles_action()(root);
-		tree::compute_conservative_update_action()(root, dt);
+		tree::compute_conservative_update_action()(root, t, dt);
 	}
 }
 
@@ -55,7 +51,7 @@ void write_checkpoint(int i) {
 fixed_real timestep(fixed_real t) {
 	static const auto opts = options::get();
 	tree::get_neighbor_particles_action()(root);
-	fixed_real dt = tree::compute_timestep_action()(root,t);
+	fixed_real dt = tree::compute_timestep_action()(root, t);
 	return dt;
 }
 
@@ -111,6 +107,8 @@ int hpx_main(int argc, char *argv[]) {
 	init(t0);
 	tree::set_drift_velocity_action()(root);
 	solve_gravity(0.0);
+	tree::get_neighbor_particles_action()(root);
+	tree::compute_gradients_action()(root, 0.0);
 	write_checkpoint(0);
 	int oi = 0;
 	int i = 0;
@@ -126,12 +124,14 @@ int hpx_main(int argc, char *argv[]) {
 			printf("%e ", s.momentum[dim].get());
 		}
 		printf("Energy = %e\n", s.energy.get());
-	//	solve_gravity(dt / fixed_real(2.0));
-		hydro(dt);
+		//	solve_gravity(dt / fixed_real(2.0));
+		hydro(t, dt);
 		drift(dt);
-		tree::con_to_prim_action()(root);
-//		solve_gravity(dt / fixed_real(2.0));
 		t += dt;
+		tree::con_to_prim_action()(root, t);
+		tree::get_neighbor_particles_action()(root);
+		tree::compute_gradients_action()(root, t);
+//		solve_gravity(dt / fixed_real(2.0));
 		i++;
 		if (int((last_output / fixed_real(opts.output_freq))) != int(((t / fixed_real(opts.output_freq))))) {
 			last_output = t;
