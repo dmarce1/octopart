@@ -10,6 +10,7 @@ public:
 	bool first_order_space;
 	bool first_order_time;
 	bool fpe;
+	bool global_time;
 	bool gravity;
 	bool x_periodic;
 	bool y_periodic;
@@ -38,6 +39,7 @@ public:
 		arc & first_order_space;
 		arc & first_order_time;
 		arc & fpe;
+		arc & global_time;
 		arc & gravity;
 		arc & parts_per_node;
 		arc & x_periodic;

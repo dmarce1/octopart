@@ -246,39 +246,38 @@ fixed_real tree::compute_timestep(fixed_real t) {
 	if (leaf) {
 		PROFILE();
 		for (int i = 0; i < nparts0; i++) {
-			const auto &pi = parts[i];
+			auto &pi = parts[i];
+			pi.dt = fixed_real::max();
+			const auto Wi = pi.W;
+			const auto ci = Wi.sound_speed();
+			const auto ai = ci + abs(pi.Q.p / pi.Q.m - pi.vf);
+			if (ai != 0.0) {
+				pi.dt = min(pi.dt, fixed_real((pi.h / ai).get()));
+			}
+			if (opts.gravity) {
+				const auto a = abs(pi.g);
+				if (a > 0.0) {
+					pi.dt = min(pi.dt, fixed_real(sqrt(pi.h / a).get()));
+				}
+			}
 			for (const auto &pj : parts) {
 				const auto dx = pi.x - pj.x;
 				const auto r = abs(dx);
 				if (r > 0.0 && r < max(pi.h, pj.h)) {
-					const auto Wi = pi.W;
 					const auto Wj = pj.W;
-					const auto ci = Wi.sound_speed();
 					const auto cj = Wj.sound_speed();
-					const auto ai = ci + abs(pi.Q.p / pi.Q.m - pi.vf);
 					const real vsig = (ci + cj - min(0.0, (pi.vf - pj.vf).dot(dx) / r)) / 2.0;
 					if (vsig != 0.0) {
-						tmin = min(tmin, fixed_real((r / vsig).get()));
+						pi.dt = min(pi.dt, fixed_real((r / vsig).get()));
 					}
-					if (ai != 0.0) {
-						tmin = min(tmin, fixed_real((pi.h / ai).get()));
-					}
-					if (opts.gravity) {
-						const auto a = abs(pi.g);
-						if (a > 0.0) {
-							tmin = min(tmin, fixed_real(sqrt(pi.h / a).get()));
-						}
-					}
-					//			printf( "%li\n", tmin.get_int());
 				}
 			}
+			pi.dt *= opts.cfl;
+			pi.dt = pi.dt.nearest_log2();
+			pi.dt = min(pi.dt, t.next_bin() - t);
+			tmin = min(tmin, pi.dt);
 		}
-		tmin *= opts.cfl;
-		//	printf( "%li %li %li\n",t.next_bin().get_int(), tmin.get_int(), t.get_int());
-		tmin = tmin.nearest_log2();
-		tmin = min(tmin, t.next_bin() - t);
 		parts.resize(nparts0);
-//		sleep(10);
 	} else {
 		std::array<hpx::future<fixed_real>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {

@@ -169,6 +169,7 @@ init_func_type get_initialization_function(const std::string &name) {
 	}
 	return [init](particle &p) {
 		init(p);
+		p.t = p.dt = fixed_real(0);
 		p.con_to_prim();
 	};
 }

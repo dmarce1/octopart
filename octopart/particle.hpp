@@ -8,10 +8,11 @@
 #ifndef SRC_PARTICLE_HPP_
 #define SRC_PARTICLE_HPP_
 
+#include <octopart/fixed_real.hpp>
+#include <octopart/state.hpp>
 #include <octopart/vect.hpp>
 #include <vector>
 
-#include "state.hpp"
 
 struct particle {
 	primitive_state W;
@@ -22,12 +23,16 @@ struct particle {
 	vect g;
 	real V;
 	real h;
+	fixed_real t;
+	fixed_real dt;
 	std::array<vect, NDIM> B;
 	void write(FILE*) const;
 	int read(FILE*);
 	void con_to_prim();
 	template<class Arc>
 	void serialize(Arc &&a, unsigned) {
+		a & t;
+		a & dt;
 		a & W;
 		a & dW;
 		a & Q;
