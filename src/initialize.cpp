@@ -71,30 +71,30 @@ void kh(particle &p) {
 }
 
 void kepler(particle &p) {
-	printf("Must re-write %s\n", __FUNCTION__);
-//#if(NDIM==1)
-//	printf("Cannot do Kepler problem in 1D\n");
-//	abort();
-//#else
-//	static const auto opts = options::get();
-//	static const auto eps = opts.kep_eps;
-//	const auto r = abs(p.x);
-//	const auto y = p.x[1];
-//	const auto x = p.x[0];
-//	p.v = vect(0);
-//	const auto tmp = pow(eps * eps + r * r, -0.75);
-//	p.v[0] = -y * tmp;
-//	p.v[1] = +x * tmp;
-//	if (r < 1.0 / 12.0) {
-//		p.Q.m = 0.01 + 12 * r * r * r;
-//	} else if (r < 1.0 / 3.0) {
-//		p.Q.m = 0.01 + 1.0;
-//	} else {
-//		p.Q.m = 0.01 + 1.0 / pow(1.0 + (r - 1.0 / 3.0) / .1, 3.0);
-//	}
-//	p.Q.m *= p.V;
-//	p.E = 1.0e-6 * p.V + 0.5 * p.v.dot(p.v) * p.Q.m;
-//#endif
+#if(NDIM==1)
+	printf("Cannot do Kepler problem in 1D\n");
+	abort();
+#else
+	static const auto opts = options::get();
+	static const auto eps = opts.kep_eps;
+	const auto r = abs(p.x);
+	const auto y = p.x[1];
+	const auto x = p.x[0];
+	p.Q.p = vect(0);
+	const auto tmp = pow(eps * eps + r * r, -0.75);
+	p.Q.p[0] = -y * tmp;
+	p.Q.p[1] = +x * tmp;
+	if (r < 1.0 / 12.0) {
+		p.Q.m = 0.01 + 12 * r * r * r;
+	} else if (r < 1.0 / 3.0) {
+		p.Q.m = 0.01 + 1.0;
+	} else {
+		p.Q.m = 0.01 + 1.0 / pow(1.0 + (r - 1.0 / 3.0) / .1, 3.0);
+	}
+	p.Q.m *= p.V;
+	p.Q.p = p.Q.p / p.Q.m;
+	p.Q.E = 1.0e-6 * p.V + 0.5 * p.Q.p.dot(p.Q.p) / p.Q.m;
+#endif
 }
 
 void sod(particle &p) {

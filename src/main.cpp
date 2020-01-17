@@ -5,7 +5,7 @@
 
 hpx::id_type root;
 
-void solve_gravity(fixed_real dt) {
+void solve_gravity(fixed_real t, fixed_real dt) {
 	static const auto opts = options::get();
 	if (opts.problem == "kepler" || opts.problem == "rt") {
 		tree::set_problem_force_action()(root);
@@ -14,7 +14,7 @@ void solve_gravity(fixed_real dt) {
 		tree::compute_gravity_action()(root, std::vector<hpx::id_type>(1, root), std::vector<mass_attr>());
 	}
 	if (opts.problem == "kepler" || opts.problem == "rt" || opts.gravity) {
-		tree::apply_gravity_action()(root, dt);
+		tree::apply_gravity_action()(root, t, dt);
 	}
 }
 
@@ -106,7 +106,7 @@ int hpx_main(int argc, char *argv[]) {
 	root = hpx::new_<tree>(hpx::find_here(), std::move(parts), box, null_range()).get();
 	init(t0);
 	tree::set_drift_velocity_action()(root);
-	solve_gravity(0.0);
+	solve_gravity(0.0, 0.0);
 	tree::get_neighbor_particles_action()(root);
 	tree::compute_gradients_action()(root, 0.0);
 	write_checkpoint(0);
@@ -127,11 +127,11 @@ int hpx_main(int argc, char *argv[]) {
 		//	solve_gravity(dt / fixed_real(2.0));
 		hydro(t, dt);
 		drift(dt);
+		solve_gravity(t, dt);
 		t += dt;
 		tree::con_to_prim_action()(root, t);
 		tree::get_neighbor_particles_action()(root);
 		tree::compute_gradients_action()(root, t);
-//		solve_gravity(dt / fixed_real(2.0));
 		i++;
 		if (int((last_output / fixed_real(opts.output_freq))) != int(((t / fixed_real(opts.output_freq))))) {
 			last_output = t;

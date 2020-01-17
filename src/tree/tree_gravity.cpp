@@ -4,19 +4,22 @@
 
 constexpr real G = 6.67259e-8;
 
-void tree::apply_gravity(fixed_real dt) {
+void tree::apply_gravity(fixed_real t, fixed_real dt) {
+	const static auto opts = options::get();
 	if (leaf) {
 		for (int i = 0; i < parts.size(); i++) {
 			auto &p = parts[i];
-			const auto ek0 = p.Q.p.dot(p.Q.p) / p.Q.m / 2.0;
-			p.Q.p = p.Q.p + p.g * p.Q.m * double(dt);
-			const auto ek1 = p.Q.p.dot(p.Q.p) / p.Q.m / 2.0;
-			p.Q.E += ek1 - ek0;
+			if (p.t + p.dt == t + dt || opts.global_time) {
+				const auto ek0 = p.Q.p.dot(p.Q.p) / p.Q.m / 2.0;
+				p.Q.p = p.Q.p + p.g * p.Q.m * double(dt);
+				const auto ek1 = p.Q.p.dot(p.Q.p) / p.Q.m / 2.0;
+				p.Q.E += ek1 - ek0;
+			}
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<apply_gravity_action>(children[ci], dt);
+			futs[ci] = hpx::async<apply_gravity_action>(children[ci], t, dt);
 		}
 		hpx::wait_all(futs);
 	}

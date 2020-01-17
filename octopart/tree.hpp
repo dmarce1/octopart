@@ -79,7 +79,7 @@ public:
 	tree();
 	tree(std::vector<particle>&&, const range&, const range&);
 
-	void apply_gravity(fixed_real);
+	void apply_gravity(fixed_real, fixed_real);
 	mass_attr compute_mass_attributes();
 	void compute_drift(fixed_real);
 	void compute_gradients(fixed_real t);
