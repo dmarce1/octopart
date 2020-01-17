@@ -34,8 +34,7 @@ void hydro(fixed_real dt) {
 			tree::compute_gradients_action()(root);
 		}
 		tree::get_neighbor_particles_action()(root);
-		tree::compute_time_derivatives_action()(root, dt);
-		tree::compute_next_state_action()(root, dt);
+		tree::compute_conservative_update_action()(root, dt);
 	}
 }
 
@@ -118,6 +117,7 @@ int hpx_main(int argc, char *argv[]) {
 	fixed_real last_output = 0.0;
 	while (t < fixed_real(opts.tmax)) {
 //		printf( "%e\n", double(t.next_bin()));
+		tree::set_drift_velocity_action()(root);
 		fixed_real dt = timestep(t);
 		auto s = statistics();
 		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, double(t), double(dt), s.nparts, s.nleaves,
@@ -127,9 +127,9 @@ int hpx_main(int argc, char *argv[]) {
 		}
 		printf("Energy = %e\n", s.energy.get());
 	//	solve_gravity(dt / fixed_real(2.0));
-		tree::set_drift_velocity_action()(root);
 		hydro(dt);
 		drift(dt);
+		tree::con_to_prim_action()(root);
 //		solve_gravity(dt / fixed_real(2.0));
 		t += dt;
 		i++;

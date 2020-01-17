@@ -61,7 +61,6 @@ struct mass_attr {
 class tree: public hpx::components::migration_support<hpx::components::component_base<tree>> {
 	std::vector<particle> new_parts;
 	std::vector<particle> parts;
-	std::vector<conserved_state> dudt;
 	std::vector<real> Ncond;
 	std::array<hpx::id_type, NCHILD> children;
 	std::array<int, NCHILD> child_loads;
@@ -85,11 +84,11 @@ public:
 	void compute_drift(fixed_real);
 	void compute_gradients();
 	void compute_gravity(std::vector<hpx::id_type>, std::vector<mass_attr>);
-	void compute_next_state(fixed_real);
-	void compute_time_derivatives(fixed_real);
+	void compute_conservative_update(fixed_real);
 	fixed_real compute_timestep(fixed_real);
 	void compute_interactions();
 	int compute_workload();
+	void con_to_prim();
 	void create_children();
 	std::vector<particle> destroy();
 	void form_tree(std::vector<hpx::id_type>, bool = true);
@@ -130,11 +129,11 @@ public:
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_mass_attributes);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_drift);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_gradients);
-	HPX_DEFINE_COMPONENT_ACTION(tree,compute_next_state);
-	HPX_DEFINE_COMPONENT_ACTION(tree,compute_time_derivatives);
+	HPX_DEFINE_COMPONENT_ACTION(tree,compute_conservative_update);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_timestep);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_interactions);
 	HPX_DEFINE_COMPONENT_ACTION(tree,compute_workload);
+	HPX_DEFINE_COMPONENT_ACTION(tree,con_to_prim);
 	HPX_DEFINE_COMPONENT_ACTION(tree,destroy);
 	HPX_DEFINE_COMPONENT_ACTION(tree,form_tree);
 	HPX_DEFINE_COMPONENT_ACTION(tree,get_neighbor_particles);

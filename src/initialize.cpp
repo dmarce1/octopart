@@ -38,37 +38,36 @@ void rt(particle &p) {
 }
 
 void kh(particle &p) {
-	printf("Must re-write %s\n", __FUNCTION__);
-//	const real x = p.x[0];
-//	const real y = p.x[1];
-//	constexpr real rho1 = 1.0;
-//	constexpr real rho2 = 2.0;
-//	const real drho = 0.5 * (rho2 - rho1);
-//	constexpr real dy = 0.025;
-//	constexpr real E = 3.75;
-//	real rho, vx, vy;
-//	if (y < -0.25) {
-//		rho = rho1 + drho * exp((y + 0.25) / dy);
-//		vx = -0.5 + 0.5 * exp((y + 0.25) / dy);
-//	} else if (y < 0.) {
-//		rho = rho2 - drho * exp((-0.25 - y) / dy);
-//		vx = +0.5 - 0.5 * exp((-0.25 - y) / dy);
-//	} else if (y < 0.25) {
-//		rho = rho2 - drho * exp((y - 0.25) / dy);
-//		vx = +0.5 - 0.5 * exp((y - 0.25) / dy);
-//	} else {
-//		rho = rho1 + drho * exp((0.25 - y) / dy);
-//		vx = -0.5 + 0.5 * exp((0.25 - y) / dy);
-//	}
-//	vy = 0.01 * sin(4.0 * M_PI * (x + 0.5));
-//	p.v[0] = -vx;
-//	p.v[1] = vy;
-//#if(NDIM==3)
-//	p.v[2] = 0.0;
-//#endif
-//	p.Q.m = rho * p.V;
-//	p.E = E * p.V + p.v.dot(p.v) * 0.5 * p.Q.m;
-//	;
+//	printf("Must re-write %s\n", __FUNCTION__);
+	const real x = p.x[0];
+	const real y = p.x[1];
+	constexpr real rho1 = 1.0;
+	constexpr real rho2 = 2.0;
+	const real drho = 0.5 * (rho2 - rho1);
+	constexpr real dy = 0.025;
+	constexpr real E = 3.75;
+	real rho, vx, vy;
+	if (y < -0.25) {
+		rho = rho1 + drho * exp((y + 0.25) / dy);
+		vx = -0.5 + 0.5 * exp((y + 0.25) / dy);
+	} else if (y < 0.) {
+		rho = rho2 - drho * exp((-0.25 - y) / dy);
+		vx = +0.5 - 0.5 * exp((-0.25 - y) / dy);
+	} else if (y < 0.25) {
+		rho = rho2 - drho * exp((y - 0.25) / dy);
+		vx = +0.5 - 0.5 * exp((y - 0.25) / dy);
+	} else {
+		rho = rho1 + drho * exp((0.25 - y) / dy);
+		vx = -0.5 + 0.5 * exp((0.25 - y) / dy);
+	}
+	vy = 0.01 * sin(4.0 * M_PI * (x + 0.5));
+	p.Q.m = rho * p.V;
+	p.Q.p[0] = -vx * p.Q.m;
+	p.Q.p[1] = vy * p.Q.m;
+#if(NDIM==3)
+	p.Q.p[2] = 0.0;
+#endif
+	p.Q.E = E * p.V + p.Q.p.dot(p.Q.p) / (2.0 * p.Q.m);
 }
 
 void kepler(particle &p) {

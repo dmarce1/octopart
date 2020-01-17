@@ -77,24 +77,19 @@ real primitive_state::operator[](int i) const {
 		return rho;
 	case 1:
 		return p;
-	case 2:
-		return v[i - 2];
 	default:
-		return std::numeric_limits<real>::signaling_NaN();
+		return v[i - 2];
 	}
 }
 
 real& primitive_state::operator[](int i) {
-	static real nan = std::numeric_limits<real>::signaling_NaN();
 	switch (i) {
 	case 0:
 		return rho;
 	case 1:
 		return p;
-	case 2:
-		return v[i - 2];
 	default:
-		return nan;
+		return v[i - 2];
 	}
 }
 
