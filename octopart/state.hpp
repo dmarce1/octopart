@@ -127,7 +127,7 @@ struct primitive_state {
 	conserved_state to_con() const;
 	primitive_state boost_to(const vect &v) const;
 	primitive_state rotate_to(const vect &norm) const;
-	primitive_state dW_dt(const gradient&) const;
+	primitive_state dW_dt(const gradient&, const vect) const;
 	flux_state to_flux() const;
 	void zero();
 	primitive_state operator*(const real &other) const;

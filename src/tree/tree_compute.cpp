@@ -162,8 +162,8 @@ void tree::compute_conservative_update(fixed_real t, fixed_real dt) {
 						if (!opts.first_order_time) {
 							WL = WL.boost_to(uij);
 							WR = WR.boost_to(uij);
-							WL = WL + WL.dW_dt(pi.dW) * double(fixed_real(0.5) * dt);
-							WR = WR + WR.dW_dt(pj.dW) * double(fixed_real(0.5) * dt);
+							WL = WL + WL.dW_dt(pi.dW, pi.g) * double(fixed_real(0.5) * dt);
+							WR = WR + WR.dW_dt(pj.dW, pj.g) * double(fixed_real(0.5) * dt);
 							WL = WL.boost_to(-uij);
 							WR = WR.boost_to(-uij);
 						}
@@ -261,14 +261,14 @@ fixed_real tree::compute_timestep(fixed_real t) {
 				pi.dt = fixed_real::max();
 				const auto Wi = pi.W;
 				const auto ci = Wi.sound_speed();
-				const auto ai = ci + abs(pi.Q.p / pi.Q.m - pi.vf);
+				const auto ai = ci +abs(pi.Q.p / pi.Q.m - pi.vf);
 				if (ai != 0.0) {
 					pi.dt = min(pi.dt, fixed_real((pi.h / ai).get()));
 				}
 				if (opts.gravity) {
 					const auto a = abs(pi.g);
 					if (a > 0.0) {
-						pi.dt = min(pi.dt, fixed_real(sqrt(pi.h / a).get()));
+						pi.dt = double(min(pi.dt, fixed_real(sqrt(pi.h / a).get())));
 					}
 				}
 				for (const auto &pj : parts) {
@@ -276,7 +276,8 @@ fixed_real tree::compute_timestep(fixed_real t) {
 					const auto r = abs(dx);
 					if (r > 0.0 && r < max(pi.h, pj.h)) {
 						const auto Wj = pj.W;
-						const auto cj = Wj.sound_speed();
+						const auto ci = Wi.sound_speed() + abs(Wi.v);
+						const auto cj = Wj.sound_speed() + abs(Wj.v);
 						const real vsig = (ci + cj - min(0.0, (pi.vf - pj.vf).dot(dx) / r)) / 2.0;
 						if (vsig != 0.0) {
 							pi.dt = min(pi.dt, fixed_real((r / vsig).get()));

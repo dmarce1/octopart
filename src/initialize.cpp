@@ -92,7 +92,7 @@ void kepler(particle &p) {
 		p.Q.m = 0.01 + 1.0 / pow(1.0 + (r - 1.0 / 3.0) / .1, 3.0);
 	}
 	p.Q.m *= p.V;
-	p.Q.p = p.Q.p / p.Q.m;
+	p.Q.p = p.Q.p * p.Q.m;
 	p.Q.E = 1.0e-6 * p.V + 0.5 * p.Q.p.dot(p.Q.p) / p.Q.m;
 #endif
 }

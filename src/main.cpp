@@ -129,15 +129,15 @@ int hpx_main(int argc, char *argv[]) {
 		drift(dt);
 		solve_gravity(t, dt);
 		t += dt;
-		tree::con_to_prim_action()(root, t);
-		tree::get_neighbor_particles_action()(root);
-		tree::compute_gradients_action()(root, t);
-		i++;
 		if (int((last_output / fixed_real(opts.output_freq))) != int(((t / fixed_real(opts.output_freq))))) {
 			last_output = t;
 			write_checkpoint(++oi);
 			printf("output %i\n", oi);
 		}
+		tree::con_to_prim_action()(root, t);
+		tree::get_neighbor_particles_action()(root);
+		tree::compute_gradients_action()(root, t);
+		i++;
 	}
 	FILE *fp = fopen("profile.txt", "wt");
 	profiler_output(fp);

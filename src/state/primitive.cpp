@@ -42,7 +42,7 @@ primitive_state primitive_state::boost_to(const vect &vf) const {
 	return W;
 }
 
-primitive_state primitive_state::dW_dt(const gradient &dW_dx) const {
+primitive_state primitive_state::dW_dt(const gradient &dW_dx, const vect g) const {
 	static const auto opts = options::get();
 	const real fgamma = opts.fgamma;
 	primitive_state dW;
@@ -57,6 +57,7 @@ primitive_state primitive_state::dW_dt(const gradient &dW_dx) const {
 			dW.v[n] -= u * dW_dx[dim].v[n];
 		}
 		dW.v[dim] -= dW_dx[dim].p / rho;
+		dW.v[dim] -= g[dim];
 	}
 	return dW;
 }

@@ -9,11 +9,14 @@ void tree::apply_gravity(fixed_real t, fixed_real dt) {
 	if (leaf) {
 		for (int i = 0; i < parts.size(); i++) {
 			auto &p = parts[i];
-			if (p.t + p.dt == t + dt || opts.global_time) {
-				const auto ek0 = p.Q.p.dot(p.Q.p) / p.Q.m / 2.0;
-				p.Q.p = p.Q.p + (p.g0 * p.m0 + p.g * p.Q.m) * (0.5 * double(dt));
-				const auto ek1 = p.Q.p.dot(p.Q.p) / p.Q.m / 2.0;
-				p.Q.E += ek1 - ek0;
+			if (dt != fixed_real(0.0)) {
+				if (p.t + p.dt == t + dt || opts.global_time) {
+					const auto this_dt = opts.global_time ? dt : p.dt;
+					const auto ek0 = p.Q.p.dot(p.Q.p) / p.Q.m / 2.0;
+					p.Q.p = p.Q.p + (p.g0 * p.m0 + p.g * p.Q.m) * (0.5 * double(this_dt));
+					const auto ek1 = p.Q.p.dot(p.Q.p) / p.Q.m / 2.0;
+					p.Q.E += ek1 - ek0;
+				}
 			}
 		}
 	} else {
