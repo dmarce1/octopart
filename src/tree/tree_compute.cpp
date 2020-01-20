@@ -16,6 +16,38 @@ constexpr int NNGB = 32;
 #endif
 #endif
 
+bool tree::adjust_timesteps(fixed_real t) {
+	static const auto opts = options::get();
+	bool rc = false;
+	if (leaf) {
+		for (int i = 0; i < nparts0; i++) {
+			auto &pi = parts[i];
+			if (pi.t == t || opts.global_time) {
+				for (const auto &pj : parts) {
+					const auto r = abs(pi.x - pj.x);
+					const auto &h = pi.h;
+					if (r < h) {
+						if (pi.dt > pj.dt * fixed_real(2)) {
+							rc = true;
+							pi.dt = fixed_real(2) * pj.dt;
+						}
+					}
+				}
+			}
+		}
+		parts.resize(nparts0);
+	} else {
+		std::array<hpx::future<bool>, NCHILD> futs;
+		for (int ci = 0; ci < NCHILD; ci++) {
+			futs[ci] = hpx::async<adjust_timesteps_action>(children[ci], t);
+		}
+		for (int ci = 0; ci < NCHILD; ci++) {
+			rc = rc || futs[ci].get();
+		}
+	}
+	return rc;
+}
+
 void tree::compute_drift(fixed_real dt) {
 	static const auto opts = options::get();
 	if (leaf) {
@@ -261,7 +293,7 @@ fixed_real tree::compute_timestep(fixed_real t) {
 				pi.dt = fixed_real::max();
 				const auto Wi = pi.W;
 				const auto ci = Wi.sound_speed();
-				const auto ai = ci +abs(pi.Q.p / pi.Q.m - pi.vf);
+				const auto ai = ci + abs(pi.Q.p / pi.Q.m - pi.vf);
 				if (ai != 0.0) {
 					pi.dt = min(pi.dt, fixed_real((pi.h / ai).get()));
 				}

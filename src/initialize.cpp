@@ -112,13 +112,12 @@ void sod(particle &p) {
 }
 
 void blast(particle &p) {
-	printf("Must re-write %s\n", __FUNCTION__);
-//	const auto r = sqrt(p.x.dot(p.x));
-//	p.Q.m = p.V;
-//	for (int dim = 0; dim < NDIM; dim++) {
-//		p.v[dim] = 0.0;
-//	}
-//	p.E = p.V * exp(-r * r * 1000);
+	const auto r = sqrt(p.x.dot(p.x));
+	p.Q.m = p.V;
+	for (int dim = 0; dim < NDIM; dim++) {
+		p.Q.p[dim] = 0.0;
+	}
+	p.Q.E = min( 1.0e-10, p.V * exp(-r * r * 1000));
 }
 
 void single_polytrope(particle &p) {

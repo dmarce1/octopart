@@ -27,6 +27,11 @@ public:
 		m.i = std::int64_t(1) << std::int64_t(62);
 		return m;
 	}
+	inline static fixed_real min() {
+		fixed_real m;
+		m.i = 1;
+		return m;
+	}
 
 	fixed_real next_bin() {
 		if (i != 0) {

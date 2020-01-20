@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
 		}
 		fclose(fp);
 		DBfile *db = DBCreateReal(filename.c_str(), DB_CLOBBER, DB_LOCAL, "Meshless",
-				DB_HDF5);
+		DB_HDF5);
 #if( NDIM == 1)
 		const int shapetypes[1] = {DB_ZONETYPE_BEAM};
 	#elif( NDIM ==2)
@@ -92,16 +92,15 @@ int main(int argc, char *argv[]) {
 		}
 		for (const auto &pi : parts) {
 			const auto Q = pi.Q;
-			const auto W = pi.W;
 			t.push_back(double(pi.t));
 			dt.push_back(double(pi.dt));
 			rho.push_back(Q.m / pi.V);
-			ein.push_back(Q.E / pi.V - W.v.dot(Q.p / pi.V) / 2.0);
+			ein.push_back(Q.E / pi.V - Q.p.dot(Q.p / pi.V) / 2.0 / Q.m);
 			h.push_back(pi.h);
 			std::array<vect, NDIM> E;
 			Nc.push_back(condition_number(pi.B, E));
 			for (int dim = 0; dim < NDIM; dim++) {
-				vel[dim].push_back(W.v[dim]);
+				vel[dim].push_back(Q.p[dim] / Q.m);
 				g[dim].push_back(pi.g[dim]);
 			}
 		}
