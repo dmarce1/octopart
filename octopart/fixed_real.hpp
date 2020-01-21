@@ -68,11 +68,11 @@ public:
 			m.i >>= std::int64_t(1);
 			lev++;
 			if (lev > 64) {
-				printf("Something's wrong\n");
+				printf("Nearest log 2 exceeds range\n");
 				abort();
 			}
 		}
-		m.i = 1 << lev;
+		m.i = std::int64_t(1) << lev;
 		return m;
 	}
 

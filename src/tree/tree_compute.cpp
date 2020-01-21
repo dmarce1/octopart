@@ -297,6 +297,7 @@ fixed_real tree::compute_timestep(fixed_real t) {
 				if (ai != 0.0) {
 					pi.dt = min(pi.dt, fixed_real((pi.h / ai).get()));
 				}
+				//			printf( "%e %e %e\n", pi.h / ai, pi.h, ai);
 				if (opts.gravity) {
 					const auto a = abs(pi.g);
 					if (a > 0.0) {
@@ -317,6 +318,9 @@ fixed_real tree::compute_timestep(fixed_real t) {
 					}
 				}
 				pi.dt *= opts.cfl;
+				if (pi.dt.nearest_log2() < fixed_real(0)) {
+					printf("%e %e\n", (double) pi.dt, (double) pi.dt.nearest_log2());
+				}
 				pi.dt = pi.dt.nearest_log2();
 				pi.dt = min(pi.dt, t.next_bin() - t);
 				tmin = min(tmin, pi.dt);
