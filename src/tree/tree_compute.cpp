@@ -527,16 +527,30 @@ void tree::con_to_prim(fixed_real t) {
 		hpx::wait_all(futs);
 	}
 }
-void tree::set_drift_velocity() {
+void tree::set_drift_velocity(fixed_real t) {
+	static const auto opts = options::get();
 	if (leaf) {
-		for (auto &p : parts) {
-			p.vf = p.Q.p / p.Q.m;
-			//		p.vf = vect(0.0);
+		for (int i = 0; i < nparts0; i++) {
+			auto &pi = parts[i];
+			if (pi.t == t || opts.global_time == 1) {
+				auto w = pi.Q.p / pi.Q.m;
+				if (opts.lloyd_correct) {
+					constexpr auto eta = 0.25;
+					for (const auto &pj : parts) {
+						const auto dx = pi.x - pj.x;
+						const auto r = abs(dx);
+						if (r < pi.h) {
+						}
+					}
+				}
+				pi.vf = w;
+			}
 		}
+		parts.resize(nparts0);
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<set_drift_velocity_action>(children[ci]);
+			futs[ci] = hpx::async<set_drift_velocity_action>(children[ci], t);
 		}
 		hpx::wait_all(futs.begin(), futs.end());
 	}

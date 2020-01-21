@@ -52,11 +52,11 @@ fixed_real timestep(fixed_real t) {
 	static const auto opts = options::get();
 	tree::get_neighbor_particles_action()(root);
 	fixed_real dt = tree::compute_timestep_action()(root, t);
-	for (int i = 0; i < 2; i++) {
-		tree::get_neighbor_particles_action()(root);
-		tree::adjust_timesteps_action()(root, t, 1);
-	}
 	if (!opts.global_time) {
+		for (int i = 0; i < 2; i++) {
+			tree::get_neighbor_particles_action()(root);
+			tree::adjust_timesteps_action()(root, t, 1);
+		}
 		bool rc;
 		do {
 			tree::get_neighbor_particles_action()(root);
@@ -115,11 +115,10 @@ int hpx_main(int argc, char *argv[]) {
 	}
 	root = hpx::new_<tree>(hpx::find_here(), std::move(parts), box, null_range()).get();
 	init(t0);
-	tree::set_drift_velocity_action()(root);
 	solve_gravity(0.0, 0.0);
 	tree::get_neighbor_particles_action()(root);
 	tree::compute_gradients_action()(root, 0.0);
-	tree::set_drift_velocity_action()(root);
+	tree::set_drift_velocity_action()(root, 0.0);
 	fixed_real dt = timestep(t);
 	write_checkpoint(0);
 	int oi = 0;
@@ -147,7 +146,7 @@ int hpx_main(int argc, char *argv[]) {
 		tree::con_to_prim_action()(root, t);
 		tree::get_neighbor_particles_action()(root);
 		tree::compute_gradients_action()(root, t);
-		tree::set_drift_velocity_action()(root);
+		tree::set_drift_velocity_action()(root, t);
 		dt = timestep(t);
 		i++;
 	}

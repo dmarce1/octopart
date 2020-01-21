@@ -106,7 +106,7 @@ public:
 	void redistribute_workload(int, int);
 	void send_particles(const std::vector<particle>&, const vect&);
 	void set_problem_force();
-	void set_drift_velocity();
+	void set_drift_velocity(fixed_real);
 	void set_self_and_parent(const hpx::id_type, const hpx::id_type);
 	tree_stats tree_statistics() const;
 	void write_checkpoint(const std::string&) const;
