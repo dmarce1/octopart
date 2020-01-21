@@ -27,6 +27,7 @@ struct particle {
 	real h;
 	fixed_real t;
 	fixed_real dt;
+	fixed_real tmp;
 	std::array<vect, NDIM> B;
 	void write(FILE*) const;
 	int read(FILE*);

@@ -16,30 +16,37 @@ constexpr int NNGB = 32;
 #endif
 #endif
 
-bool tree::adjust_timesteps(fixed_real t) {
+bool tree::adjust_timesteps(fixed_real t, int factor) {
 	static const auto opts = options::get();
 	bool rc = false;
 	if (leaf) {
 		for (int i = 0; i < nparts0; i++) {
 			auto &pi = parts[i];
+			pi.tmp = pi.dt;
 			if (pi.t == t || opts.global_time) {
 				for (const auto &pj : parts) {
 					const auto r = abs(pi.x - pj.x);
 					const auto &h = pi.h;
 					if (r < h) {
-						if (pi.dt > pj.dt * fixed_real(2)) {
+						if (pi.tmp > pj.dt * fixed_real(factor)) {
 							rc = true;
-							pi.dt = fixed_real(2) * pj.dt;
+							pi.tmp = min(pi.tmp, fixed_real(factor) * pj.dt);
 						}
 					}
 				}
+			}
+		}
+		for (int i = 0; i < nparts0; i++) {
+			auto &pi = parts[i];
+			if (pi.t == t || opts.global_time) {
+				pi.dt = pi.tmp;
 			}
 		}
 		parts.resize(nparts0);
 	} else {
 		std::array<hpx::future<bool>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<adjust_timesteps_action>(children[ci], t);
+			futs[ci] = hpx::async<adjust_timesteps_action>(children[ci], t, factor);
 		}
 		for (int ci = 0; ci < NCHILD; ci++) {
 			rc = rc || futs[ci].get();
@@ -311,7 +318,7 @@ fixed_real tree::compute_timestep(fixed_real t) {
 						const auto Wj = pj.W;
 						const auto ci = Wi.sound_speed() + abs(Wi.v);
 						const auto cj = Wj.sound_speed() + abs(Wj.v);
-						const real vsig = (ci + cj - min(0.0, (pi.vf - pj.vf).dot(dx) / r)) / 2.0;
+						const real vsig = (ci + cj - min(0.0, (pi.vf - pj.vf).dot(dx) / r));
 						if (vsig != 0.0) {
 							pi.dt = min(pi.dt, fixed_real((r / vsig).get()));
 						}

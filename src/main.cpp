@@ -52,11 +52,15 @@ fixed_real timestep(fixed_real t) {
 	static const auto opts = options::get();
 	tree::get_neighbor_particles_action()(root);
 	fixed_real dt = tree::compute_timestep_action()(root, t);
+	for (int i = 0; i < 2; i++) {
+		tree::get_neighbor_particles_action()(root);
+		tree::adjust_timesteps_action()(root, t, 1);
+	}
 	if (!opts.global_time) {
 		bool rc;
 		do {
 			tree::get_neighbor_particles_action()(root);
-			rc = tree::adjust_timesteps_action()(root, t);
+			rc = tree::adjust_timesteps_action()(root, t, 2);
 		} while (rc);
 	}
 	return dt;
@@ -66,7 +70,6 @@ auto statistics() {
 	return tree::tree_statistics_action()(root);
 }
 
-int N = 32;
 int hpx_main(int argc, char *argv[]) {
 	fixed_real t = 0.0;
 	options opts;
@@ -116,14 +119,14 @@ int hpx_main(int argc, char *argv[]) {
 	solve_gravity(0.0, 0.0);
 	tree::get_neighbor_particles_action()(root);
 	tree::compute_gradients_action()(root, 0.0);
+	tree::set_drift_velocity_action()(root);
+	fixed_real dt = timestep(t);
 	write_checkpoint(0);
 	int oi = 0;
 	int i = 0;
 	fixed_real last_output = 0.0;
 	while (t < fixed_real(opts.tmax)) {
 //		printf( "%e\n", double(t.next_bin()));
-		tree::set_drift_velocity_action()(root);
-		fixed_real dt = timestep(t);
 		auto s = statistics();
 		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, double(t), double(dt), s.nparts, s.nleaves,
 				s.max_level, s.mass.get());
@@ -144,6 +147,8 @@ int hpx_main(int argc, char *argv[]) {
 		tree::con_to_prim_action()(root, t);
 		tree::get_neighbor_particles_action()(root);
 		tree::compute_gradients_action()(root, t);
+		tree::set_drift_velocity_action()(root);
+		dt = timestep(t);
 		i++;
 	}
 	FILE *fp = fopen("profile.txt", "wt");

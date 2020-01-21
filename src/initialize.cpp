@@ -117,7 +117,7 @@ void blast(particle &p) {
 	for (int dim = 0; dim < NDIM; dim++) {
 		p.Q.p[dim] = 0.0;
 	}
-	p.Q.E = max( 1.0e-10, p.V * exp(-r * r * 1000));
+	p.Q.E = max( 1.0e-10, p.V * exp(-r * r * 10000));
 }
 
 void single_polytrope(particle &p) {
