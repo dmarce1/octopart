@@ -35,7 +35,7 @@ bool options::process_options(int argc, char *argv[]) {
 		("checkpoint", po::value<std::string>(&checkpoint)->default_value(""), "checkpoint file") //
 		("config_file", po::value<std::string>(&config_file)->default_value(""), "configuration file") //
 		("dust_only", po::value<bool>(&dust_only)->default_value(false), "treat particles as dust") //
-		("lloyd_correct", po::value<bool>(&lloyd_correct)->default_value(true), "treat particles as dust") //
+		("eulerian", po::value<bool>(&eulerian)->default_value(false), "treat particles as dust") //
 		("kep_eps", po::value<double>(&kep_eps)->default_value(0.05), "softening length for central force") //
 		("fgamma", po::value<double>(&fgamma)->default_value(7.0 / 5.0), "gamma for fluid gamma law") //
 		("first_order_space", po::value<bool>(&first_order_space)->default_value(false), "use 1st order spatial scheme") //
@@ -104,7 +104,7 @@ bool options::process_options(int argc, char *argv[]) {
 	SHOW(fpe);
 	SHOW(global_time);
 	SHOW(gravity);
-	SHOW(lloyd_correct);
+	SHOW(eulerian);
 	SHOW(parts_per_node);
 	SHOW(x_periodic);
 	SHOW(y_periodic);

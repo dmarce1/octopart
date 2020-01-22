@@ -12,7 +12,7 @@ public:
 	bool fpe;
 	bool global_time;
 	bool gravity;
-	bool lloyd_correct;
+	bool eulerian;
 	bool x_periodic;
 	bool y_periodic;
 	bool z_periodic;
@@ -32,7 +32,7 @@ public:
 
 	template<class Arc>
 	void serialize(Arc &arc, unsigned) {
-		arc & lloyd_correct;
+		arc & eulerian;
 		arc & cfl;
 		arc & kep_eps;
 		arc & checkpoint;

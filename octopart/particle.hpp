@@ -25,6 +25,7 @@ struct particle {
 	vect g0;
 	real V;
 	real h;
+	real c;
 	fixed_real t;
 	fixed_real dt;
 	fixed_real tmp;
@@ -34,6 +35,7 @@ struct particle {
 	void con_to_prim();
 	template<class Arc>
 	void serialize(Arc &&a, unsigned) {
+		a & c;
 		a & t;
 		a & dt;
 		a & W;

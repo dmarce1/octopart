@@ -61,6 +61,7 @@ void particle::write(FILE *fp) const {
 	fwrite(&x, sizeof(real), NDIM, fp);
 	fwrite(&g, sizeof(real), NDIM, fp);
 	fwrite(&V, sizeof(real), 1, fp);
+	fwrite(&c, sizeof(real), 1, fp);
 	fwrite(&h, sizeof(real), 1, fp);
 	fwrite(&t, sizeof(real), 1, fp);
 	fwrite(&dt, sizeof(real), 1, fp);
@@ -73,6 +74,7 @@ int particle::read(FILE *fp) {
 	cnt += fread(&x, sizeof(real), NDIM, fp);
 	cnt += fread(&g, sizeof(real), NDIM, fp);
 	cnt += fread(&V, sizeof(real), 1, fp);
+	cnt += fread(&c, sizeof(real), 1, fp);
 	cnt += fread(&h, sizeof(real), 1, fp);
 	cnt += fread(&t, sizeof(real), 1, fp);
 	cnt += fread(&dt, sizeof(real), 1, fp);

@@ -534,16 +534,11 @@ void tree::set_drift_velocity(fixed_real t) {
 			auto &pi = parts[i];
 			if (pi.t == t || opts.global_time == 1) {
 				auto w = pi.Q.p / pi.Q.m;
-				if (opts.lloyd_correct) {
-					constexpr auto eta = 0.25;
-					for (const auto &pj : parts) {
-						const auto dx = pi.x - pj.x;
-						const auto r = abs(dx);
-						if (r < pi.h) {
-						}
-					}
+				if (opts.eulerian) {
+					pi.vf = vect(0.0);
+				} else {
+					pi.vf = w;
 				}
-				pi.vf = w;
 			}
 		}
 		parts.resize(nparts0);
