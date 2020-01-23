@@ -15,6 +15,8 @@
 
 struct primitive_particle;
 struct hydro_particle;
+struct timestep_particle;
+struct nesting_particle;
 
 struct particle {
 	primitive_state W;
@@ -55,8 +57,44 @@ struct particle {
 	particle() = default;
 	particle& operator=(const primitive_particle&);
 	particle(const primitive_particle &p);
+	particle& operator=(const timestep_particle& p);
+	particle(const timestep_particle &p);
 	particle& operator=(const hydro_particle&);
 	particle(const hydro_particle &p);
+	particle& operator=(const nesting_particle&);
+	particle(const nesting_particle &p);
+};
+
+struct nesting_particle {
+	fixed_real dt;
+	vect x;
+	real h;
+	template<class Arc>
+	void serialize(Arc &&a, unsigned) {
+		a & dt;
+		a & x;
+		a & h;
+	}
+	nesting_particle() = default;
+	nesting_particle& operator=(const particle &p);
+	nesting_particle(const particle &p);
+};
+
+struct timestep_particle {
+	primitive_state W;
+	vect vf;
+	vect x;
+	real h;
+	template<class Arc>
+	void serialize(Arc &&a, unsigned) {
+		a & W;
+		a & vf;
+		a & h;
+		a & x;
+	}
+	timestep_particle() = default;
+	timestep_particle& operator=(const particle &p);
+	timestep_particle(const particle &p);
 };
 
 struct hydro_particle {

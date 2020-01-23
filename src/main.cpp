@@ -50,16 +50,16 @@ void write_checkpoint(int i) {
 
 fixed_real timestep(fixed_real t) {
 	static const auto opts = options::get();
-	tree::get_neighbor_particles_action()(root, tree::ALL);
+	tree::get_neighbor_particles_action()(root, tree::TIMESTEP);
 	fixed_real dt = tree::compute_timestep_action()(root, t);
 	if (!opts.global_time) {
 		for (int i = 0; i < 2; i++) {
-			tree::get_neighbor_particles_action()(root, tree::ALL);
+			tree::get_neighbor_particles_action()(root, tree::NESTING);
 			tree::adjust_timesteps_action()(root, t, 1);
 		}
 		bool rc;
 		do {
-			tree::get_neighbor_particles_action()(root, tree::ALL);
+			tree::get_neighbor_particles_action()(root, tree::NESTING);
 			rc = tree::adjust_timesteps_action()(root, t, 2);
 		} while (rc);
 	}

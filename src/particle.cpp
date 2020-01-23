@@ -84,6 +84,55 @@ int particle::read(FILE *fp) {
 	return cnt;
 }
 
+particle& particle::operator=(const timestep_particle& p) {
+	W = p.W;
+	vf = p.vf;
+	h = p.h;
+	x = p.x;
+	return *this;
+}
+
+
+nesting_particle& nesting_particle::operator=(const particle &p) {
+	dt = p.dt;
+	x = p.x;
+	h = p.h;
+	return *this;
+}
+
+nesting_particle::nesting_particle(const particle &p) {
+	*this = p;
+}
+
+particle::particle(const timestep_particle &p) {
+	*this = p;
+}
+
+particle& particle::operator=(const nesting_particle& p) {
+	dt = p.dt;
+	x = p.x;
+	h = p.h;
+	return *this;
+}
+
+particle::particle(const nesting_particle &p) {
+	*this = p;
+}
+
+
+timestep_particle& timestep_particle::operator=(const particle &p) {
+	W = p.W;
+	vf = p.vf;
+	h = p.h;
+	x = p.x;
+	return *this;
+}
+
+timestep_particle::timestep_particle(const particle &p) {
+	*this = p;
+}
+
+
 particle& particle::operator=(const hydro_particle &p) {
 	B = p.B;
 	W = p.W;

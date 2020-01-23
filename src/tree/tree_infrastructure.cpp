@@ -273,6 +273,30 @@ void tree::get_neighbor_particles(tree::bnd_ex_type type) {
 		int k = nparts0;
 
 		switch (type) {
+		case NESTING: {
+			std::vector<hpx::future<std::vector<nesting_particle>>> futs(siblings.size());
+			for (int i = 0; i < siblings.size(); i++) {
+				futs[i] = hpx::async<get_nesting_particles_action>(siblings[i].id, sbox, box, siblings[i].pshift);
+			}
+			for (int i = 0; i < siblings.size(); i++) {
+				const auto these_parts = futs[i].get();
+				std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
+				parts.insert(parts.end(), these_parts.begin(), these_parts.end());
+			}
+			break;
+		}
+		case TIMESTEP: {
+			std::vector<hpx::future<std::vector<timestep_particle>>> futs(siblings.size());
+			for (int i = 0; i < siblings.size(); i++) {
+				futs[i] = hpx::async<get_timestep_particles_action>(siblings[i].id, sbox, box, siblings[i].pshift);
+			}
+			for (int i = 0; i < siblings.size(); i++) {
+				const auto these_parts = futs[i].get();
+				std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
+				parts.insert(parts.end(), these_parts.begin(), these_parts.end());
+			}
+			break;
+		}
 		case HYDRO: {
 			std::vector<hpx::future<std::vector<hydro_particle>>> futs(siblings.size());
 			for (int i = 0; i < siblings.size(); i++) {
@@ -371,6 +395,39 @@ std::vector<particle> tree::get_particles(range big, range small, const vect &sh
 	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
 	PROFILE();
 	std::vector<particle> pj;
+	big = shift_range(big, -shift);
+	small = shift_range(small, -shift);
+	for (int i = 0; i < nparts0; i++) {
+		auto pi = parts[i];
+		if (in_range(pi.x, big) || ranges_intersect(range_around(pi.x, pi.h), small)) {
+			pi.x = pi.x + shift;
+			pj.push_back(pi);
+		}
+	}
+	return pj;
+}
+
+std::vector<nesting_particle> tree::get_nesting_particles(range big, range small, const vect &shift) const {
+	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
+	PROFILE();
+	std::vector<nesting_particle> pj;
+	big = shift_range(big, -shift);
+	small = shift_range(small, -shift);
+	for (int i = 0; i < nparts0; i++) {
+		auto pi = parts[i];
+		if (in_range(pi.x, big) || ranges_intersect(range_around(pi.x, pi.h), small)) {
+			pi.x = pi.x + shift;
+			pj.push_back(pi);
+		}
+	}
+	return pj;
+}
+
+
+std::vector<timestep_particle> tree::get_timestep_particles(range big, range small, const vect &shift) const {
+	std::lock_guard<hpx::lcos::local::mutex> lock(*mtx);
+	PROFILE();
+	std::vector<timestep_particle> pj;
 	big = shift_range(big, -shift);
 	small = shift_range(small, -shift);
 	for (int i = 0; i < nparts0; i++) {

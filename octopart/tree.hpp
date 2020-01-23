@@ -76,7 +76,7 @@ class tree: public hpx::components::migration_support<hpx::components::component
 
 public:
 
-	enum bnd_ex_type { HYDRO, PRIMITIVE, ALL};
+	enum bnd_ex_type { HYDRO, PRIMITIVE, TIMESTEP, NESTING, ALL};
 
 	tree();
 	tree(std::vector<particle>&&, const range&, const range&);
@@ -106,6 +106,8 @@ public:
 	std::vector<primitive_particle> get_primitive_particles(range, range, const vect&) const;
 	std::vector<hydro_particle> get_hydro_particles(range, range, const vect&) const;
 	void get_neighbor_particles(enum bnd_ex_type);
+	std::vector<nesting_particle> get_nesting_particles(range, range, const vect&) const;
+	std::vector<timestep_particle> get_timestep_particles(range, range, const vect&) const;
 	void initialize(const std::string&);
 	void redistribute_workload(int, int);
 	void send_particles(const std::vector<particle>&, const vect&);
@@ -160,6 +162,8 @@ public:
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_particle_positions);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_particles);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_primitive_particles);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_nesting_particles);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_timestep_particles);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_children);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,send_particles);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,set_self_and_parent);
