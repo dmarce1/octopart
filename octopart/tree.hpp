@@ -75,6 +75,9 @@ class tree: public hpx::components::migration_support<hpx::components::component
 	std::shared_ptr<hpx::lcos::local::mutex> mtx;
 
 public:
+
+	enum bnd_ex_type { HYDRO, PRIMITIVE, ALL};
+
 	tree();
 	tree(std::vector<particle>&&, const range&, const range&);
 
@@ -100,7 +103,9 @@ public:
 	hpx::id_type get_parent() const;
 	std::vector<vect> get_particle_positions(range, const vect&) const;
 	std::vector<particle> get_particles(range, range, const vect&) const;
-	void get_neighbor_particles();
+	std::vector<primitive_particle> get_primitive_particles(range, range, const vect&) const;
+	std::vector<hydro_particle> get_hydro_particles(range, range, const vect&) const;
+	void get_neighbor_particles(enum bnd_ex_type);
 	void initialize(const std::string&);
 	void redistribute_workload(int, int);
 	void send_particles(const std::vector<particle>&, const vect&);
@@ -149,10 +154,12 @@ public:
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_silo);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_attributes);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_gravity_particles);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_hydro_particles);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_mass_attributes);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_parent);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_particle_positions);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_particles);
+	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_primitive_particles);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_children);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,send_particles);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,set_self_and_parent);

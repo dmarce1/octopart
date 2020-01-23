@@ -171,6 +171,7 @@ void tree::compute_gradients(fixed_real t) {
 		}
 		hpx::wait_all(futs);
 	}
+	parts.resize(nparts0);
 }
 
 void tree::compute_conservative_update(fixed_real t, fixed_real dt) {
@@ -540,7 +541,6 @@ void tree::set_drift_velocity(fixed_real t) {
 				}
 			}
 		}
-		parts.resize(nparts0);
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {

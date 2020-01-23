@@ -32,10 +32,10 @@ std::vector<particle> cartesian_particle_set(int N) {
 	for (int j = 0; j < N; j++) {
 		part.x[1] = (real(j) + 0.5) / real(N) - real(0.5);
 #endif
-	for (int i = 0; i < N; i++) {
-		part.x[0] = (i + 0.5) / N - 0.5;
-		parts.push_back(part);
-	}
+		for (int i = 0; i < N; i++) {
+			part.x[0] = (i + 0.5) / N - 0.5;
+			parts.push_back(part);
+		}
 #if(NDIM>=2)
 	}
 #endif
@@ -84,6 +84,46 @@ int particle::read(FILE *fp) {
 	return cnt;
 }
 
+particle& particle::operator=(const hydro_particle &p) {
+	B = p.B;
+	W = p.W;
+	dW = p.dW;
+	g = p.g;
+	x = p.x;
+	vf = p.vf;
+	V = p.V;
+	h = p.h;
+	dt = p.dt;
+	t = p.t;
+	return *this;
+}
+
+particle::particle(const hydro_particle &p) {
+	*this = p;
+}
+
+hydro_particle& hydro_particle::operator=(const particle &p) {
+	B = p.B;
+	W = p.W;
+	dW = p.dW;
+	g = p.g;
+	x = p.x;
+	vf = p.vf;
+	V = p.V;
+	h = p.h;
+	dt = p.dt;
+	t = p.t;
+	return *this;
+}
+
+hydro_particle::hydro_particle(const particle &p) {
+	*this = p;
+}
+
+particle::particle(const primitive_particle &p) {
+	*this = p;
+}
+
 void particle::con_to_prim() {
 	static const auto opts = options::get();
 	W.rho = Q.m / V;
@@ -91,6 +131,9 @@ void particle::con_to_prim() {
 	W.v = Q.p / Q.m;
 }
 
+primitive_particle::primitive_particle(const particle &p) {
+	*this = p;
+}
 
 primitive_particle& primitive_particle::operator=(const particle &p) {
 	W = p.W;
@@ -103,8 +146,7 @@ primitive_particle& primitive_particle::operator=(const particle &p) {
 	return *this;
 }
 
-
-particle& particle::operator=(const primitive_particle& p) {
+particle& particle::operator=(const primitive_particle &p) {
 	W = p.W;
 	x = p.x;
 	V = p.V;
@@ -114,7 +156,6 @@ particle& particle::operator=(const primitive_particle& p) {
 	Nc = p.Nc;
 	return *this;
 }
-
 
 //primitive_state particle::to_prim() const {
 //	return to_con().to_prim();

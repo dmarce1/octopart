@@ -14,6 +14,7 @@
 #include <vector>
 
 struct primitive_particle;
+struct hydro_particle;
 
 struct particle {
 	primitive_state W;
@@ -51,10 +52,40 @@ struct particle {
 		a & B;
 		a & Nc;
 	}
-//	primitive_state to_prim() const;
-//	conserved_state to_con() const;
-//	particle from_con(const conserved_state&) const;
+	particle() = default;
 	particle& operator=(const primitive_particle&);
+	particle(const primitive_particle &p);
+	particle& operator=(const hydro_particle&);
+	particle(const hydro_particle &p);
+};
+
+struct hydro_particle {
+	primitive_state W;
+	gradient dW;
+	vect g;
+	vect x;
+	vect vf;
+	real V;
+	real h;
+	fixed_real dt;
+	fixed_real t;
+	std::array<vect, NDIM> B;
+	template<class Arc>
+	void serialize(Arc &&a, unsigned) {
+		a & B;
+		a & W;
+		a & dW;
+		a & g;
+		a & x;
+		a & vf;
+		a & V;
+		a & h;
+		a & dt;
+		a & t;
+	}
+	hydro_particle() = default;
+	hydro_particle& operator=(const particle &p);
+	hydro_particle(const particle &p);
 };
 
 struct primitive_particle {
@@ -75,9 +106,10 @@ struct primitive_particle {
 		a & t;
 		a & Nc;
 	}
+	primitive_particle() = default;
 	primitive_particle& operator=(const particle &p);
+	primitive_particle(const particle &p);
 };
-
 
 struct gravity_part {
 	real m;
