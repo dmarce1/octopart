@@ -61,7 +61,6 @@ struct mass_attr {
 class tree: public hpx::components::migration_support<hpx::components::component_base<tree>> {
 	std::vector<particle> new_parts;
 	std::vector<particle> parts;
-	std::vector<real> Ncond;
 	std::array<hpx::id_type, NCHILD> children;
 	std::array<int, NCHILD> child_loads;
 	std::vector<sibling_attr> siblings;

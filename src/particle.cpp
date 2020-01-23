@@ -58,26 +58,28 @@ std::vector<particle> random_particle_set(int N) {
 void particle::write(FILE *fp) const {
 	real r;
 	fwrite(&Q, sizeof(qcon_state), NDIM, fp);
+	fwrite(&vf, sizeof(real), NDIM, fp);
 	fwrite(&x, sizeof(real), NDIM, fp);
 	fwrite(&g, sizeof(real), NDIM, fp);
 	fwrite(&V, sizeof(real), 1, fp);
-	fwrite(&c, sizeof(real), 1, fp);
 	fwrite(&h, sizeof(real), 1, fp);
-	fwrite(&t, sizeof(real), 1, fp);
-	fwrite(&dt, sizeof(real), 1, fp);
+	fwrite(&Nc, sizeof(real), 1, fp);
+	fwrite(&t, sizeof(fixed_real), 1, fp);
+	fwrite(&dt, sizeof(fixed_real), 1, fp);
 	fwrite(&B, sizeof(real), NDIM * NDIM, fp);
 }
 
 int particle::read(FILE *fp) {
 	int cnt = 0;
 	cnt += fread(&Q, sizeof(qcon_state), NDIM, fp);
+	cnt += fread(&vf, sizeof(real), NDIM, fp);
 	cnt += fread(&x, sizeof(real), NDIM, fp);
 	cnt += fread(&g, sizeof(real), NDIM, fp);
 	cnt += fread(&V, sizeof(real), 1, fp);
-	cnt += fread(&c, sizeof(real), 1, fp);
 	cnt += fread(&h, sizeof(real), 1, fp);
-	cnt += fread(&t, sizeof(real), 1, fp);
-	cnt += fread(&dt, sizeof(real), 1, fp);
+	cnt += fread(&Nc, sizeof(real), 1, fp);
+	cnt += fread(&t, sizeof(fixed_real), 1, fp);
+	cnt += fread(&dt, sizeof(fixed_real), 1, fp);
 	cnt += fread(&B, sizeof(real), NDIM * NDIM, fp);
 	return cnt;
 }
@@ -88,6 +90,31 @@ void particle::con_to_prim() {
 	W.p = (opts.fgamma - 1.0) * (Q.E - Q.p.dot(Q.p) / (2.0 * Q.m)) / V;
 	W.v = Q.p / Q.m;
 }
+
+
+primitive_particle& primitive_particle::operator=(const particle &p) {
+	W = p.W;
+	x = p.x;
+	V = p.V;
+	h = p.h;
+	B = p.B;
+	t = p.t;
+	Nc = p.Nc;
+	return *this;
+}
+
+
+particle& particle::operator=(const primitive_particle& p) {
+	W = p.W;
+	x = p.x;
+	V = p.V;
+	h = p.h;
+	B = p.B;
+	t = p.t;
+	Nc = p.Nc;
+	return *this;
+}
+
 
 //primitive_state particle::to_prim() const {
 //	return to_con().to_prim();

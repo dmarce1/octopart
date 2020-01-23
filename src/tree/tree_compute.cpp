@@ -139,7 +139,7 @@ void tree::compute_gradients(fixed_real t) {
 							min_ngb = min(min_ngb, pjW);
 						}
 					}
-					const auto beta = max(1.0, min(2.0, 100.0 / Ncond[i]));
+					const auto beta = max(1.0, min(2.0, 100.0 / pi.Nc));
 					//	const auto beta = 0.5;
 					real alpha;
 					for (int k = 0; k < STATE_SIZE; k++) {
@@ -463,7 +463,6 @@ void tree::compute_interactions() {
 			}
 			{
 				PROFILE();
-				Ncond.resize(parts.size());
 				for (int i = 0; i < parts.size(); i++) {
 					auto &pi = parts[i];
 					pi.V = 0.0;
@@ -492,8 +491,8 @@ void tree::compute_interactions() {
 						}
 					}
 
-					Ncond[i] = condition_number(E, pi.B);
-					assert(Ncond[i] != 0.0);
+					pi.Nc = condition_number(E, pi.B);
+					assert(pi.Nc != 0.0);
 				}
 			}
 		}

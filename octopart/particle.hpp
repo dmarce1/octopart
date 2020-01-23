@@ -13,6 +13,7 @@
 #include <octopart/vect.hpp>
 #include <vector>
 
+struct primitive_particle;
 
 struct particle {
 	primitive_state W;
@@ -25,7 +26,7 @@ struct particle {
 	vect g0;
 	real V;
 	real h;
-	real c;
+	real Nc;
 	fixed_real t;
 	fixed_real dt;
 	fixed_real tmp;
@@ -35,7 +36,6 @@ struct particle {
 	void con_to_prim();
 	template<class Arc>
 	void serialize(Arc &&a, unsigned) {
-		a & c;
 		a & t;
 		a & dt;
 		a & W;
@@ -49,10 +49,33 @@ struct particle {
 		a & V;
 		a & h;
 		a & B;
+		a & Nc;
 	}
 //	primitive_state to_prim() const;
 //	conserved_state to_con() const;
 //	particle from_con(const conserved_state&) const;
+	particle& operator=(const primitive_particle&);
+};
+
+struct primitive_particle {
+	primitive_state W;
+	std::array<vect, NDIM> B;
+	vect x;
+	real V;
+	real h;
+	real Nc;
+	fixed_real t;
+	template<class Arc>
+	void serialize(Arc &&a, unsigned) {
+		a & W;
+		a & x;
+		a & V;
+		a & h;
+		a & B;
+		a & t;
+		a & Nc;
+	}
+	primitive_particle& operator=(const particle &p);
 };
 
 
@@ -70,6 +93,6 @@ struct gravity_part {
 
 std::vector<particle> cartesian_particle_set(int);
 std::vector<particle> random_particle_set(int);
-std::vector<particle> disc_particle_set( int N);
+std::vector<particle> disc_particle_set(int N);
 
 #endif /* SRC_PARTICLE_HPP_ */
