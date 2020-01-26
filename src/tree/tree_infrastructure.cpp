@@ -563,12 +563,13 @@ tree_stats tree::tree_statistics() const {
 	return stats;
 }
 
-void tree::write_checkpoint(const std::string &filename) const {
+void tree::write_checkpoint(const std::string &filename, fixed_real t) const {
 	FILE *fp;
 	static const auto opts = options::get();
 	if (parent == hpx::invalid_id) {
 		fp = fopen(filename.c_str(), "wb");
 		fwrite(&opts.fgamma, sizeof(real), 1, fp);
+		fwrite(&t, sizeof(fixed_real), 1, fp);
 		fclose(fp);
 	}
 	if (leaf) {
@@ -579,15 +580,15 @@ void tree::write_checkpoint(const std::string &filename) const {
 		fclose(fp);
 	} else {
 		for (int ci = 0; ci < NCHILD; ci++) {
-			write_checkpoint_action()(children[ci], filename);
+			write_checkpoint_action()(children[ci], filename, t);
 		}
 	}
 }
 
-void tree::write_silo(int num) const {
+void tree::write_silo(int num, fixed_real t) const {
 	std::string base_name = "Y" + std::to_string(num);
 	std::string command = "./check2silo " + base_name;
-	write_checkpoint(base_name);
+	write_checkpoint(base_name, t);
 	if (system(command.c_str()) != 0) {
 		printf("Unable to convert checkpoint to SILO\n");
 	}

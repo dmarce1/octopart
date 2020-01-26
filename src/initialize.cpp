@@ -121,25 +121,23 @@ void blast(particle &p) {
 }
 
 void single_polytrope(particle &p) {
-	printf("Must re-write %s\n", __FUNCTION__);
-//	static const auto opts = options::get();
-//	const auto r = abs(p.x);
-//	const auto rho = max(1.0e-6, polytrope(r));
-//	const auto c0 = (1.5 / 2.5) * 4.0 * M_PI * physcon::G;
-//	p.Q.m = rho * p.V;
-//	p.E = c0 * pow(rho, opts.fgamma) * p.V;
-//	p.v = vect(0);
+	static const auto opts = options::get();
+	const auto r = abs(p.x);
+	const auto rho = max(1.0e-6, polytrope(r));
+	const auto c0 = (1.5 / 2.5) * 4.0 * M_PI * physcon::G;
+	p.Q.m = rho * p.V;
+	p.Q.E = c0 * pow(rho, opts.fgamma) * p.V;
+	p.Q.p = vect(0);
 }
 
 void collapse(particle &p) {
-	printf("Must re-write %s\n", __FUNCTION__);
-//	if (abs(p.x) < 0.4) {
-//		p.Q.m = 1.0e+6 * p.V;
-//	} else {
-//		p.Q.m = 1.0 * p.V;
-//	}
-//	p.v = vect(0);
-//	p.E = p.V;
+	if (abs(p.x) < 0.4) {
+		p.Q.m = 1.0e+6 * p.V;
+	} else {
+		p.Q.m = 1.0 * p.V;
+	}
+	p.Q.p = vect(0);
+	p.Q.E = p.Q.m * 1.0e-6;
 }
 
 init_func_type get_initialization_function(const std::string &name) {

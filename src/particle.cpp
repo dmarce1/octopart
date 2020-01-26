@@ -29,15 +29,15 @@ std::vector<particle> cartesian_particle_set(int N) {
 		part.x[2] = (l + 0.5) / N - 0.5;
 #endif
 #if(NDIM>=2)
-	for (int j = 0; j < N; j++) {
-		part.x[1] = (real(j) + 0.5) / real(N) - real(0.5);
+		for (int j = 0; j < N; j++) {
+			part.x[1] = (real(j) + 0.5) / real(N) - real(0.5);
 #endif
-		for (int i = 0; i < N; i++) {
-			part.x[0] = (i + 0.5) / N - 0.5;
-			parts.push_back(part);
-		}
+			for (int i = 0; i < N; i++) {
+				part.x[0] = (i + 0.5) / N - 0.5;
+				parts.push_back(part);
+			}
 #if(NDIM>=2)
-	}
+		}
 #endif
 #if(NDIM==3)
 	}
@@ -57,41 +57,48 @@ std::vector<particle> random_particle_set(int N) {
 
 void particle::write(FILE *fp) const {
 	real r;
-	fwrite(&Q, sizeof(qcon_state), NDIM, fp);
-	fwrite(&vf, sizeof(real), NDIM, fp);
-	fwrite(&x, sizeof(real), NDIM, fp);
-	fwrite(&g, sizeof(real), NDIM, fp);
+	fwrite(&W, sizeof(primitive_state), 1, fp);
+	fwrite(&Q, sizeof(qcon_state), 1, fp);
+	fwrite(&dW, sizeof(gradient), 1, fp);
+	fwrite(&vf, sizeof(vect), 1, fp);
+	fwrite(&x, sizeof(vect), 1, fp);
+	fwrite(&g, sizeof(vect), 1, fp);
+	fwrite(&g0, sizeof(vect), 1, fp);
+	fwrite(&m0, sizeof(real), 1, fp);
 	fwrite(&V, sizeof(real), 1, fp);
 	fwrite(&h, sizeof(real), 1, fp);
 	fwrite(&Nc, sizeof(real), 1, fp);
 	fwrite(&t, sizeof(fixed_real), 1, fp);
 	fwrite(&dt, sizeof(fixed_real), 1, fp);
-	fwrite(&B, sizeof(real), NDIM * NDIM, fp);
+	fwrite(&B, sizeof(vect), NDIM, fp);
 }
 
 int particle::read(FILE *fp) {
 	int cnt = 0;
-	cnt += fread(&Q, sizeof(qcon_state), NDIM, fp);
-	cnt += fread(&vf, sizeof(real), NDIM, fp);
-	cnt += fread(&x, sizeof(real), NDIM, fp);
-	cnt += fread(&g, sizeof(real), NDIM, fp);
+	cnt += fread(&W, sizeof(primitive_state), 1, fp);
+	cnt += fread(&Q, sizeof(qcon_state), 1, fp);
+	cnt += fread(&dW, sizeof(gradient), 1, fp);
+	cnt += fread(&vf, sizeof(vect), 1, fp);
+	cnt += fread(&x, sizeof(vect), 1, fp);
+	cnt += fread(&g, sizeof(vect), 1, fp);
+	cnt += fread(&g0, sizeof(vect), 1, fp);
+	cnt += fread(&m0, sizeof(real), 1, fp);
 	cnt += fread(&V, sizeof(real), 1, fp);
 	cnt += fread(&h, sizeof(real), 1, fp);
 	cnt += fread(&Nc, sizeof(real), 1, fp);
 	cnt += fread(&t, sizeof(fixed_real), 1, fp);
 	cnt += fread(&dt, sizeof(fixed_real), 1, fp);
-	cnt += fread(&B, sizeof(real), NDIM * NDIM, fp);
+	cnt += fread(&B, sizeof(vect), NDIM, fp);
 	return cnt;
 }
 
-particle& particle::operator=(const timestep_particle& p) {
+particle& particle::operator=(const timestep_particle &p) {
 	W = p.W;
 	vf = p.vf;
 	h = p.h;
 	x = p.x;
 	return *this;
 }
-
 
 nesting_particle& nesting_particle::operator=(const particle &p) {
 	dt = p.dt;
@@ -108,7 +115,7 @@ particle::particle(const timestep_particle &p) {
 	*this = p;
 }
 
-particle& particle::operator=(const nesting_particle& p) {
+particle& particle::operator=(const nesting_particle &p) {
 	dt = p.dt;
 	x = p.x;
 	h = p.h;
@@ -118,7 +125,6 @@ particle& particle::operator=(const nesting_particle& p) {
 particle::particle(const nesting_particle &p) {
 	*this = p;
 }
-
 
 timestep_particle& timestep_particle::operator=(const particle &p) {
 	W = p.W;
@@ -131,7 +137,6 @@ timestep_particle& timestep_particle::operator=(const particle &p) {
 timestep_particle::timestep_particle(const particle &p) {
 	*this = p;
 }
-
 
 particle& particle::operator=(const hydro_particle &p) {
 	B = p.B;

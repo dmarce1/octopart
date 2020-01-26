@@ -86,10 +86,10 @@ public:
 	mass_attr compute_mass_attributes();
 	void compute_drift(fixed_real);
 	void compute_gradients(fixed_real t);
-	void compute_gravity(std::vector<hpx::id_type>, std::vector<mass_attr>);
+	void compute_gravity(std::vector<hpx::id_type>, std::vector<mass_attr>, fixed_real, fixed_real);
 	void compute_conservative_update(fixed_real, fixed_real);
 	fixed_real compute_timestep(fixed_real);
-	void compute_interactions();
+	void compute_interactions(fixed_real, fixed_real);
 	int compute_workload();
 	void con_to_prim(fixed_real t);
 	void create_children();
@@ -115,8 +115,8 @@ public:
 	void set_drift_velocity(fixed_real);
 	void set_self_and_parent(const hpx::id_type, const hpx::id_type);
 	tree_stats tree_statistics() const;
-	void write_checkpoint(const std::string&) const;
-	void write_silo(int) const;
+	void write_checkpoint(const std::string&, fixed_real) const;
+	void write_silo(int, fixed_real) const;
 
 	template<class Arc>
 	void serialize(Arc &&arc, unsigned) {

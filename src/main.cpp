@@ -11,19 +11,19 @@ void solve_gravity(fixed_real t, fixed_real dt) {
 		tree::set_problem_force_action()(root);
 	} else if (opts.gravity) {
 		tree::compute_mass_attributes_action()(root);
-		tree::compute_gravity_action()(root, std::vector<hpx::id_type>(1, root), std::vector<mass_attr>());
+		tree::compute_gravity_action()(root, std::vector<hpx::id_type>(1, root), std::vector<mass_attr>(), t, dt);
 	}
 	if (opts.problem == "kepler" || opts.problem == "rt" || opts.gravity) {
 		tree::apply_gravity_action()(root, t, dt);
 	}
 }
 
-void drift(fixed_real dt) {
+void drift(fixed_real t, fixed_real dt) {
 	tree::compute_drift_action()(root, dt);
 	tree::finish_drift_action()(root);
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
-	tree::compute_interactions_action()(root);
+	tree::compute_interactions_action()(root, t, dt);
 }
 
 void hydro(fixed_real t, fixed_real dt) {
@@ -34,18 +34,18 @@ void hydro(fixed_real t, fixed_real dt) {
 	}
 }
 
-void init(bool t0) {
+void init(fixed_real t, bool t0) {
 	static const auto opts = options::get();
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
-	tree::compute_interactions_action()(root);
+	tree::compute_interactions_action()(root, t, 0.0);
 	if (t0) {
 		tree::initialize_action()(root, opts.problem);
 	}
 }
 
-void write_checkpoint(int i) {
-	tree::write_silo_action()(root, i + 1);
+void write_checkpoint(int i, fixed_real t) {
+	tree::write_silo_action()(root, i + 1, t);
 }
 
 fixed_real timestep(fixed_real t) {
@@ -86,6 +86,7 @@ int hpx_main(int argc, char *argv[]) {
 			particle p;
 			real dummy;
 			int cnt = fread(&dummy, sizeof(real), 1, fp);
+			cnt += fread(&t, sizeof(real), 1, fp);
 			if (cnt == 0) {
 				printf("Empty checkpoint\n");
 				return hpx::finalize();
@@ -114,13 +115,13 @@ int hpx_main(int argc, char *argv[]) {
 		box.max[dim] = +opts.grid_size / 2.0;
 	}
 	root = hpx::new_<tree>(hpx::find_here(), std::move(parts), box, null_range()).get();
-	init(t0);
-	solve_gravity(0.0, 0.0);
+	init(t,t0);
+	solve_gravity(t, 0.0);
 	tree::get_neighbor_particles_action()(root, tree::PRIMITIVE);
-	tree::compute_gradients_action()(root, 0.0);
-	tree::set_drift_velocity_action()(root, 0.0);
+	tree::compute_gradients_action()(root, t);
+	tree::set_drift_velocity_action()(root, t);
 	fixed_real dt = timestep(t);
-	write_checkpoint(0);
+	write_checkpoint(0, t);
 	int oi = 0;
 	int i = 0;
 	fixed_real last_output = 0.0;
@@ -135,15 +136,15 @@ int hpx_main(int argc, char *argv[]) {
 		printf("Energy = %e\n", s.energy.get());
 		//	solve_gravity(dt / fixed_real(2.0));
 		hydro(t, dt);
-		drift(dt);
+		drift(t, dt);
 		solve_gravity(t, dt);
 		t += dt;
+		tree::con_to_prim_action()(root, t);
 		if (int((last_output / fixed_real(opts.output_freq))) != int(((t / fixed_real(opts.output_freq))))) {
 			last_output = t;
-			write_checkpoint(++oi);
+			write_checkpoint(++oi, t);
 			printf("output %i\n", oi);
 		}
-		tree::con_to_prim_action()(root, t);
 		tree::get_neighbor_particles_action()(root, tree::PRIMITIVE);
 		tree::compute_gradients_action()(root, t);
 		tree::set_drift_velocity_action()(root, t);

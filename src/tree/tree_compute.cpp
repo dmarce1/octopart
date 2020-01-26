@@ -139,8 +139,8 @@ void tree::compute_gradients(fixed_real t) {
 							min_ngb = min(min_ngb, pjW);
 						}
 					}
-					const auto beta = max(1.0, min(2.0, 100.0 / pi.Nc));
-					//	const auto beta = 0.5;
+				//	const auto beta = max(1.0, min(2.0, 100.0 / pi.Nc));
+					const auto beta = 0.5;
 					real alpha;
 					for (int k = 0; k < STATE_SIZE; k++) {
 						const auto dmax_ngb = max_ngb[k] - piW[k];
@@ -347,7 +347,7 @@ fixed_real tree::compute_timestep(fixed_real t) {
 	return tmin;
 }
 
-void tree::compute_interactions() {
+void tree::compute_interactions(fixed_real t, fixed_real dt) {
 	const auto toler = NNGB * 10.0 * real::eps();
 	static auto opts = options::get();
 	nparts0 = parts.size();
@@ -358,7 +358,9 @@ void tree::compute_interactions() {
 			const auto h0 = pow(range_volume(box) / (CV * parts.size()), 1.0 / NDIM);
 			for (auto &pi : parts) {
 				pos.push_back(pi.x);
-				pi.h = h0;
+				if (pi.h == -1) {
+					pi.h = h0;
+				}
 			}
 			const auto hmax = box.max[0] - box.min[0];
 			for (int pass = 0; pass < 2; pass++) {
@@ -375,7 +377,7 @@ void tree::compute_interactions() {
 								real N = 0.0;
 								real Np = 0.0;
 								real dNdh;
-								const auto eps = 0.1 * abs(dh);
+								const auto eps = abs(dh);
 								for (const auto &pj : pos) {
 									if (pj != pi.x) {
 										const auto r = abs(pj - pi.x);
@@ -407,7 +409,7 @@ void tree::compute_interactions() {
 										break;
 									}
 								} else {
-									if (iters > 50) {
+									if (iters >= 50) {
 										printf("%e %e %e\n", h.get(), dh.get(), /*max_dh.get(), */N.get());
 										if (iters == 100) {
 											printf("Smoothing length failed to converge\n");
@@ -466,41 +468,44 @@ void tree::compute_interactions() {
 				PROFILE();
 				for (int i = 0; i < parts.size(); i++) {
 					auto &pi = parts[i];
-					pi.V = 0.0;
-					for (const auto &pjx : pos) {
-						const auto r = abs(pi.x - pjx);
-						const auto h = pi.h;
-						if (r < h) {
-							pi.V += W(r, h);
+					if (pi.t + pi.dt == t + dt || opts.global_time) {
+						pi.V = 0.0;
+						for (const auto &pjx : pos) {
+							const auto r = abs(pi.x - pjx);
+							const auto h = pi.h;
+							if (r < h) {
+								pi.V += W(r, h);
+							}
 						}
-					}
-					pi.V = 1.0 / pi.V;
-					std::array<vect, NDIM> E, B;
-					for (int n = 0; n < NDIM; n++) {
-						E[n] = vect(0.0);
-					}
-					for (const auto &pjx : pos) {
-						const auto r = abs(pi.x - pjx);
-						const auto h = pi.h;
-						if (r < h) {
-							const auto psi_j = W(r, h) * pi.V;
-							for (int n = 0; n < NDIM; n++) {
-								for (int m = 0; m < NDIM; m++) {
-									E[n][m] += (pjx[n] - pi.x[n]) * (pjx[m] - pi.x[m]) * psi_j;
+
+						pi.V = 1.0 / pi.V;
+						std::array<vect, NDIM> E, B;
+						for (int n = 0; n < NDIM; n++) {
+							E[n] = vect(0.0);
+						}
+						for (const auto &pjx : pos) {
+							const auto r = abs(pi.x - pjx);
+							const auto h = pi.h;
+							if (r < h) {
+								const auto psi_j = W(r, h) * pi.V;
+								for (int n = 0; n < NDIM; n++) {
+									for (int m = 0; m < NDIM; m++) {
+										E[n][m] += (pjx[n] - pi.x[n]) * (pjx[m] - pi.x[m]) * psi_j;
+									}
 								}
 							}
 						}
-					}
 
-					pi.Nc = condition_number(E, pi.B);
-					assert(pi.Nc != 0.0);
+						pi.Nc = condition_number(E, pi.B);
+						assert(pi.Nc != 0.0);
+					}
 				}
 			}
 		}
 	} else {
 		std::array<hpx::future<void>, NCHILD> futs;
 		for (int ci = 0; ci < NCHILD; ci++) {
-			futs[ci] = hpx::async<compute_interactions_action>(children[ci]);
+			futs[ci] = hpx::async<compute_interactions_action>(children[ci], t, dt);
 		}
 		hpx::wait_all(futs);
 	}

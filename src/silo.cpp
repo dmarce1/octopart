@@ -21,14 +21,22 @@ int main(int argc, char *argv[]) {
 	} else {
 		std::vector<particle> parts;
 		particle p;
+		fixed_real tm;
 		std::string filename = argv[1];
 		filename += ".silo";
-		fread(&opts.fgamma, sizeof(real), 1, fp);
+		int cnt = 0;
+		cnt += fread(&opts.fgamma, sizeof(real), 1, fp);
+		cnt += fread(&tm, sizeof(real), 1, fp);
 		opts.set(opts);
 		while (p.read(fp)) {
 			parts.push_back(p);
 		}
 		fclose(fp);
+		auto optlist = DBMakeOptlist(2);
+		float ftime = (float) (double) tm;
+		double dtime = tm;
+		DBAddOption(optlist, DBOPT_TIME, &ftime);
+		DBAddOption(optlist, DBOPT_DTIME, &dtime);
 		DBfile *db = DBCreateReal(filename.c_str(), DB_CLOBBER, DB_LOCAL, "Meshless",
 		DB_HDF5);
 #if( NDIM == 1)
@@ -70,8 +78,8 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		DBPutZonelist2(db, "zonelist", nzones, NDIM, node_list.data(), node_list.size(), 0, 0, 0, shapetypes, shapesize, shapecount, 1,
-		NULL);
-		DBPutUcdmesh(db, "mesh", NDIM, coordnames, coords, nnodes, nzones, "zonelist", NULL, DB_DOUBLE, NULL);
+		optlist);
+		DBPutUcdmesh(db, "mesh", NDIM, coordnames, coords, nnodes, nzones, "zonelist", NULL, DB_DOUBLE, optlist);
 		std::vector<real> Nc;
 		std::vector<real> h;
 		std::vector<real> t;
@@ -104,24 +112,25 @@ int main(int argc, char *argv[]) {
 				g[dim].push_back(pi.g[dim]);
 			}
 		}
-		DBPutUcdvar1(db, "t", "mesh", t.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
-		DBPutUcdvar1(db, "dt", "mesh", dt.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
-		DBPutUcdvar1(db, "h", "mesh", h.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
-		DBPutUcdvar1(db, "Nc", "mesh", Nc.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
-		DBPutUcdvar1(db, "rho", "mesh", rho.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
-		DBPutUcdvar1(db, "e", "mesh", ein.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
+		DBPutUcdvar1(db, "t", "mesh", t.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
+		DBPutUcdvar1(db, "dt", "mesh", dt.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
+		DBPutUcdvar1(db, "h", "mesh", h.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
+		DBPutUcdvar1(db, "Nc", "mesh", Nc.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
+		DBPutUcdvar1(db, "rho", "mesh", rho.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
+		DBPutUcdvar1(db, "e", "mesh", ein.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
 		for (int dim = 0; dim < NDIM; dim++) {
 			std::string nm = std::string() + "v_" + char('x' + char(dim));
-			DBPutUcdvar1(db, nm.c_str(), "mesh", vel[dim].data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
+			DBPutUcdvar1(db, nm.c_str(), "mesh", vel[dim].data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
 		}
 		for (int dim = 0; dim < NDIM; dim++) {
 			std::string nm = std::string() + "g_" + char('x' + char(dim));
-			DBPutUcdvar1(db, nm.c_str(), "mesh", g[dim].data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, NULL);
+			DBPutUcdvar1(db, nm.c_str(), "mesh", g[dim].data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
 		}
 		for (int dim = 0; dim < NDIM; dim++) {
 			delete[] coordnames[dim];
 			delete[] coords[dim];
 		}
+		DBFreeOptlist(optlist);
 		DBClose(db);
 
 	}

@@ -105,7 +105,7 @@ mass_attr tree::get_mass_attributes() const {
 	return mass;
 }
 
-void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr> masses) {
+void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr> masses, fixed_real t, fixed_real dt) {
 	const static auto opts = options::get();
 	const auto theta = opts.theta;
 	assert(nparts0 == parts.size());
@@ -149,29 +149,30 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 		for (int i = 0; i < near.size(); i++) {
 			gfuts[i] = hpx::async<get_gravity_particles_action>(near[i]);
 		}
-		real mtot = 0.0;
 		for (int j = 0; j < masses.size(); j++) {
-			mtot += masses[j].mtot;
 			for (int i = 0; i < parts.size(); i++) {
 				auto &pi = parts[i];
-				const auto r = pi.x - masses[j].com;
-				const auto r3inv = pow(abs(r), -3);
-				pi.g = pi.g - r * (G * masses[j].mtot * r3inv);
+				if (pi.t + pi.dt == t + dt || opts.global_time) {
+					const auto r = pi.x - masses[j].com;
+					const auto r3inv = pow(abs(r), -3);
+					pi.g = pi.g - r * (G * masses[j].mtot * r3inv);
+				}
 			}
 		}
 		for (auto &n : gfuts) {
 			const auto list = n.get();
 			for (int j = 0; j < list.size(); j++) {
-				mtot += list[j].m;
 				for (int i = 0; i < parts.size(); i++) {
 					auto &pi = parts[i];
-					const auto r = pi.x - list[j].x;
-					const auto r0 = abs(r);
-					if (r0 > 0.0) {
-						const auto h = 0.5 * (pi.h + list[j].h);
-						const auto f = grav_force(abs(r), h);
-						const auto c = f * G * list[j].m;
-						pi.g = pi.g + r * c / r0;
+					if (pi.t + pi.dt == t + dt || opts.global_time) {
+						const auto r = pi.x - list[j].x;
+						const auto r0 = abs(r);
+						if (r0 > 0.0) {
+							const auto h = 0.5 * (pi.h + list[j].h);
+							const auto f = grav_force(abs(r), h);
+							const auto c = f * G * list[j].m;
+							pi.g = pi.g + r * c / r0;
+						}
 					}
 				}
 			}
@@ -198,7 +199,7 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 			nids.insert(nids.end(), tmp.begin(), tmp.end());
 		}
 		for (int ci = 0; ci < NCHILD; ci++) {
-			cfuts[ci] = hpx::async<compute_gravity_action>(children[ci], nids, masses);
+			cfuts[ci] = hpx::async<compute_gravity_action>(children[ci], nids, masses, t, dt);
 		}
 		hpx::wait_all(cfuts);
 	}

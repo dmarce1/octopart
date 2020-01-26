@@ -45,7 +45,7 @@ bool options::process_options(int argc, char *argv[]) {
 		("gravity", po::value<bool>(&gravity)->default_value(false), "enable gravity") //
 		("grid_size", po::value<double>(&grid_size)->default_value(1.0), "size of grid") //
 		("output_freq", po::value<double>(&output_freq)->default_value(-1), "output frequency") //
-		("parts_per_node", po::value<int>(&parts_per_node)->default_value(1000), "maximum number of particles on a node") //
+		("parts_per_node", po::value<int>(&parts_per_node)->default_value(250), "maximum number of particles on a node") //
 		("x_periodic", po::value<bool>(&x_periodic)->default_value(false), "enable periodic boundary conditions for x") //
 		("y_periodic", po::value<bool>(&y_periodic)->default_value(false), "enable periodic boundary conditions for y") //
 		("z_periodic", po::value<bool>(&z_periodic)->default_value(false), "enable periodic boundary conditions for z") //

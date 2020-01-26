@@ -54,7 +54,10 @@ struct particle {
 		a & B;
 		a & Nc;
 	}
-	particle() = default;
+	particle() {
+		h = -1.0;
+		t = dt = 0.0;
+	}
 	particle& operator=(const primitive_particle&);
 	particle(const primitive_particle &p);
 	particle& operator=(const timestep_particle& p);
