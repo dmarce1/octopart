@@ -143,36 +143,43 @@ void tree::compute_gravity(std::vector<hpx::id_type> nids, std::vector<mass_attr
 			}
 		}
 		for (auto &pi : parts) {
-			pi.g = vect(0);
+			if (pi.t + pi.dt == t + dt || opts.global_time) {
+				pi.g = vect(0);
+			}
 		}
 		std::vector<hpx::future<std::vector<gravity_part>>> gfuts(near.size());
 		for (int i = 0; i < near.size(); i++) {
 			gfuts[i] = hpx::async<get_gravity_particles_action>(near[i]);
 		}
-		for (int j = 0; j < masses.size(); j++) {
-			for (int i = 0; i < parts.size(); i++) {
-				auto &pi = parts[i];
+		for (int i = 0; i < parts.size(); i++) {
+			auto &pi = parts[i];
+			for (int j = 0; j < masses.size(); j++) {
 				if (pi.t + pi.dt == t + dt || opts.global_time) {
-					const auto r = pi.x - masses[j].com;
+						const auto r = pi.x - masses[j].com;
 					const auto r3inv = pow(abs(r), -3);
 					pi.g = pi.g - r * (G * masses[j].mtot * r3inv);
 				}
 			}
 		}
+		static thread_local std::vector<gravity_part> pj;
+		pj.clear();
 		for (auto &n : gfuts) {
 			const auto list = n.get();
-			for (int j = 0; j < list.size(); j++) {
-				for (int i = 0; i < parts.size(); i++) {
-					auto &pi = parts[i];
-					if (pi.t + pi.dt == t + dt || opts.global_time) {
-						const auto r = pi.x - list[j].x;
-						const auto r0 = abs(r);
-						if (r0 > 0.0) {
-							const auto h = 0.5 * (pi.h + list[j].h);
-							const auto f = grav_force(abs(r), h);
-							const auto c = f * G * list[j].m;
-							pi.g = pi.g + r * c / r0;
-						}
+			for (int i = 0; i < list.size(); i++) {
+				pj.push_back(list[i]);
+			}
+		}
+		for (int i = 0; i < parts.size(); i++) {
+			auto &pi = parts[i];
+			if (pi.t + pi.dt == t + dt || opts.global_time) {
+				for (int j = 0; j < pj.size(); j++) {
+					const auto r = pi.x - pj[j].x;
+					const auto r0 = abs(r);
+					if (r0 > 0.0) {
+						const auto h = 0.5 * (pi.h + pj[j].h);
+						const auto f = grav_force(abs(r), h);
+						const auto c = f * G * pj[j].m;
+						pi.g = pi.g + r * c / r0;
 					}
 				}
 			}
