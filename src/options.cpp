@@ -24,7 +24,7 @@ void options::set(options o) {
 }
 
 bool options::process_options(int argc, char *argv[]) {
-	std::thread([&]() {
+//	std::thread([&]() {
 		namespace po = boost::program_options;
 
 		po::options_description command_opts("options");
@@ -84,9 +84,9 @@ bool options::process_options(int argc, char *argv[]) {
 			printf("ERROR: first_order_time must be enabled for first_order_space\n");
 			abort();
 		}
-		return true;
-	}
-	).join();
+//		return true;
+//	}
+//	).join();
 	const auto loc = hpx::find_all_localities();
 	const auto sz = loc.size();
 	std::vector<hpx::future<void>> futs;

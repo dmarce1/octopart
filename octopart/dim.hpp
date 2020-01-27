@@ -10,7 +10,7 @@
 
 #include <cmath>
 
-#define NDIM 3
+#define NDIM 2
 static constexpr int NCHILD = 1 << NDIM;
 static constexpr int NSIBLING = 2 * NDIM;
 static constexpr int NNEIGHBOR = std::pow(3,NDIM);

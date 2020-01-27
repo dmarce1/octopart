@@ -13,6 +13,18 @@ tree::tree() {
 	leaf = false;
 }
 
+tree::tree(const std::vector<particle> &_parts, const std::array<hpx::id_type, NCHILD> &_children, const std::array<int, NCHILD>& _child_loads, const range &_root_box, const range &_box, bool _leaf) {
+	mtx = std::make_shared<hpx::lcos::local::mutex>();
+	parts =_parts;
+	children = _children;
+	child_loads = _child_loads;
+	root_box = _root_box;
+	box = _box;
+	leaf = _leaf;
+	dead = false;
+	nparts0 = parts.size();
+}
+
 tree::tree(std::vector<particle> &&these_parts, const range &box_, const range &root_box_) :
 		box(box_), nparts0(0), dead(false), root_box(root_box_) {
 	const int sz = these_parts.size();
@@ -278,6 +290,14 @@ void tree::initialize(const std::string &init_name) {
 	}
 }
 
+hpx::id_type tree::migrate(const hpx::id_type &loc) {
+	auto id_fut = hpx::new_<tree>(loc, parts, children, child_loads, root_box, box, leaf);
+	auto id = id_fut.get();
+	set_self_and_parent_action()(id, id, parent);
+	dead = true;
+	return id;
+}
+
 void tree::redistribute_workload(int current, int total) {
 	if (!leaf) {
 		std::array<hpx::future<void>, NCHILD> futs;
@@ -285,7 +305,7 @@ void tree::redistribute_workload(int current, int total) {
 			static const auto localities = hpx::find_all_localities();
 			const int loc_id = current * localities.size() / total;
 			if (localities[loc_id] != hpx::find_here()) {
-				hpx::components::migrate<tree>(children[ci], localities[loc_id]);
+				children[ci] = migrate_action()(children[ci], localities[loc_id]);
 			}
 			futs[ci] = hpx::async<redistribute_workload_action>(children[ci], current, total);
 			current += child_loads[ci];

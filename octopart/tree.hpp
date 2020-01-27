@@ -58,7 +58,7 @@ struct mass_attr {
 	}
 };
 
-class tree: public hpx::components::migration_support<hpx::components::component_base<tree>> {
+class tree: public hpx::components::component_base<tree> {
 	std::vector<particle> new_parts;
 	std::vector<particle> parts;
 	std::array<hpx::id_type, NCHILD> children;
@@ -79,6 +79,7 @@ public:
 	enum bnd_ex_type { HYDRO, PRIMITIVE, TIMESTEP, NESTING, ALL};
 
 	tree();
+	tree( const std::vector<particle>& _parts, const std::array<hpx::id_type, NCHILD>& _children, const std::array<int, NCHILD>& _child_loads, const range& _root_box, const range& _box, bool _leaf );
 	tree(std::vector<particle>&&, const range&, const range&);
 
 	bool adjust_timesteps(fixed_real t, int);
@@ -117,6 +118,7 @@ public:
 	tree_stats tree_statistics() const;
 	void write_checkpoint(const std::string&, fixed_real) const;
 	void write_silo(int, fixed_real) const;
+	hpx::id_type migrate(const hpx::id_type&);
 
 	template<class Arc>
 	void serialize(Arc &&arc, unsigned) {
@@ -128,7 +130,9 @@ public:
 		arc & self;
 		arc & root_box;
 		arc & box;
+		arc & nparts0;
 		arc & leaf;
+		arc & dead;
 		arc & mass;
 	}
 
@@ -154,6 +158,7 @@ public:
 	HPX_DEFINE_COMPONENT_ACTION(tree,tree_statistics);
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_checkpoint);
 	HPX_DEFINE_COMPONENT_ACTION(tree,write_silo);
+	HPX_DEFINE_COMPONENT_ACTION(tree,migrate);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_attributes);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_gravity_particles);
 	HPX_DEFINE_COMPONENT_DIRECT_ACTION(tree,get_hydro_particles);

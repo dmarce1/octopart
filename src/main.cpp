@@ -128,6 +128,9 @@ int hpx_main(int argc, char *argv[]) {
 	while (t < fixed_real(opts.tmax)) {
 //		printf( "%e\n", double(t.next_bin()));
 		auto s = statistics();
+		tree::compute_workload_action()(root);
+		tree::redistribute_workload_action()(root,0,s.nparts);
+
 		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, double(t), double(dt), s.nparts, s.nleaves,
 				s.max_level, s.mass.get());
 		for (int dim = 0; dim < NDIM; dim++) {

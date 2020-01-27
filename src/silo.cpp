@@ -85,16 +85,14 @@ int main(int argc, char *argv[]) {
 		std::vector<real> t;
 		std::vector<real> dt;
 		std::vector<real> rho;
-		std::vector<real> tau;
-		std::vector<real> ein;
+		std::vector<real> pre;
 		std::array<std::vector<real>, NDIM> vel;
 		std::array<std::vector<real>, NDIM> g;
-		tau.reserve(nnodes);
 		t.reserve(nnodes);
 		dt.reserve(nnodes);
 		rho.reserve(nnodes);
-		ein.reserve(nnodes);
-		for (int dim = 0; dim < NDIM; dim++) {
+		pre.reserve(nnodes);
+			for (int dim = 0; dim < NDIM; dim++) {
 			vel[dim].reserve(nnodes);
 			g[dim].reserve(nnodes);
 		}
@@ -102,13 +100,13 @@ int main(int argc, char *argv[]) {
 			const auto Q = pi.Q;
 			t.push_back(double(pi.t));
 			dt.push_back(double(pi.dt));
-			rho.push_back(Q.m / pi.V);
-			ein.push_back(Q.E / pi.V - Q.p.dot(Q.p / pi.V) / 2.0 / Q.m);
+			rho.push_back(pi.W.rho);
+			pre.push_back(pi.W.p);
 			h.push_back(pi.h);
 			std::array<vect, NDIM> E;
-			Nc.push_back(condition_number(pi.B, E));
+			Nc.push_back(pi.Nc);
 			for (int dim = 0; dim < NDIM; dim++) {
-				vel[dim].push_back(Q.p[dim] / Q.m);
+				vel[dim].push_back(pi.W.v[dim]);
 				g[dim].push_back(pi.g[dim]);
 			}
 		}
@@ -117,7 +115,7 @@ int main(int argc, char *argv[]) {
 		DBPutUcdvar1(db, "h", "mesh", h.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
 		DBPutUcdvar1(db, "Nc", "mesh", Nc.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
 		DBPutUcdvar1(db, "rho", "mesh", rho.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
-		DBPutUcdvar1(db, "e", "mesh", ein.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
+		DBPutUcdvar1(db, "p", "mesh", pre.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
 		for (int dim = 0; dim < NDIM; dim++) {
 			std::string nm = std::string() + "v_" + char('x' + char(dim));
 			DBPutUcdvar1(db, nm.c_str(), "mesh", vel[dim].data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
