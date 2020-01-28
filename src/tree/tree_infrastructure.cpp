@@ -293,7 +293,6 @@ void tree::initialize(const std::string &init_name) {
 hpx::id_type tree::migrate(const hpx::id_type &loc) {
 	auto id_fut = hpx::new_<tree>(loc, parts, children, child_loads, root_box, box, leaf);
 	auto id = id_fut.get();
-	set_self_and_parent_action()(id, id, parent);
 	dead = true;
 	return id;
 }

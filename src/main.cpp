@@ -21,6 +21,9 @@ void solve_gravity(fixed_real t, fixed_real dt) {
 void drift(fixed_real t, fixed_real dt) {
 	tree::compute_drift_action()(root, dt);
 	tree::finish_drift_action()(root);
+	const auto s = tree::tree_statistics_action()(root);
+	tree::compute_workload_action()(root);
+	tree::redistribute_workload_action()(root,0,s.nparts);
 	tree::set_self_and_parent_action()(root, root, hpx::invalid_id);
 	tree::form_tree_action()(root, std::vector<hpx::id_type>(1, root), true);
 	tree::compute_interactions_action()(root, t, dt);
@@ -128,8 +131,6 @@ int hpx_main(int argc, char *argv[]) {
 	while (t < fixed_real(opts.tmax)) {
 //		printf( "%e\n", double(t.next_bin()));
 		auto s = statistics();
-		tree::compute_workload_action()(root);
-		tree::redistribute_workload_action()(root,0,s.nparts);
 
 		printf("Step = %i t = %e  dt = %e Nparts = %i Nleaves = %i Max Level = %i Mass = %e Momentum = ", i, double(t), double(dt), s.nparts, s.nleaves,
 				s.max_level, s.mass.get());
