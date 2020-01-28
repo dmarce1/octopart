@@ -104,6 +104,8 @@ int hpx_main(int argc, char *argv[]) {
 //	std::vector<particle> parts = random_particle_set(N * N);
 		if (opts.problem == "kepler") {
 			parts = disc_particle_set(opts.problem_size);
+		} else if( opts.problem == "polytrope"){
+			parts = spherical_particle_set(opts.problem_size);
 		} else {
 			parts = cartesian_particle_set(opts.problem_size);
 		}

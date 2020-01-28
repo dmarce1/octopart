@@ -88,12 +88,14 @@ int main(int argc, char *argv[]) {
 		std::vector<real> pre;
 		std::array<std::vector<real>, NDIM> vel;
 		std::array<std::vector<real>, NDIM> g;
+		std::array<std::vector<real>, NDIM> dpre_dx;
 		t.reserve(nnodes);
 		dt.reserve(nnodes);
 		rho.reserve(nnodes);
 		pre.reserve(nnodes);
 			for (int dim = 0; dim < NDIM; dim++) {
 			vel[dim].reserve(nnodes);
+			dpre_dx[dim].reserve(nnodes);
 			g[dim].reserve(nnodes);
 		}
 		for (const auto &pi : parts) {
@@ -107,6 +109,7 @@ int main(int argc, char *argv[]) {
 			Nc.push_back(pi.Nc);
 			for (int dim = 0; dim < NDIM; dim++) {
 				vel[dim].push_back(pi.W.v[dim]);
+				dpre_dx[dim].push_back(pi.dW[dim].p);
 				g[dim].push_back(pi.g[dim]);
 			}
 		}
@@ -116,6 +119,10 @@ int main(int argc, char *argv[]) {
 		DBPutUcdvar1(db, "Nc", "mesh", Nc.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
 		DBPutUcdvar1(db, "rho", "mesh", rho.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
 		DBPutUcdvar1(db, "p", "mesh", pre.data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
+		for (int dim = 0; dim < NDIM; dim++) {
+			std::string nm = std::string() + "dpre_d" + char('x' + char(dim));
+			DBPutUcdvar1(db, nm.c_str(), "mesh", dpre_dx[dim].data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);
+		}
 		for (int dim = 0; dim < NDIM; dim++) {
 			std::string nm = std::string() + "v_" + char('x' + char(dim));
 			DBPutUcdvar1(db, nm.c_str(), "mesh", vel[dim].data(), nnodes, NULL, 0, DB_DOUBLE, DB_NODECENT, optlist);

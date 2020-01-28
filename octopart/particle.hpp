@@ -164,6 +164,7 @@ struct gravity_part {
 	}
 };
 
+std::vector<particle> spherical_particle_set(int);
 std::vector<particle> cartesian_particle_set(int);
 std::vector<particle> random_particle_set(int);
 std::vector<particle> disc_particle_set(int N);
